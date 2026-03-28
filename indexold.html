@@ -661,7 +661,17 @@ main{padding:12px 16px;max-width:1500px;margin:0 auto;width:100%}
           </div>
         </div>
         <div class="sync-last" id="syncLastTime"></div>
-
+        <div class="fr" style="margin-top:12px">
+          <label>Google OAuth Client ID</label>
+          <input type="text" id="clientIdInput" placeholder="xxxx.apps.googleusercontent.com"
+            style="font-family:var(--mono);font-size:.72rem"
+            onchange="saveClientId(this.value)">
+          <div class="clientid-hint">
+            Register free at <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a>
+            → APIs &amp; Services → Credentials → OAuth 2.0 Client ID (Web).<br>
+            Add your site HTTPS URL to Authorised JavaScript origins.
+          </div>
+        </div>
       </div>
 
       <div class="sc" style="grid-column:span 2">
@@ -1952,15 +1962,13 @@ function getDeviceId(){
   if(!id){id='dev-'+Math.random().toString(36).slice(2,10)+'-'+Date.now().toString(36);localStorage.setItem('shiftbook_deviceId',id);}
   return id;
 }
-// ─────────────────────────────────────────────────────────
-// YOUR GOOGLE OAUTH CLIENT ID — paste it between the quotes
-// Register at: console.cloud.google.com → APIs & Services
-// → Credentials → OAuth 2.0 Client ID (Web application)
-// Authorised JavaScript origins: https://yourdomain.com
-// ─────────────────────────────────────────────────────────
-const GOOGLE_CLIENT_ID = '836524430218-ogmqnbndtugsv6gbc74nsle3iufipgjn.apps.googleusercontent.com';  // ← PASTE YOUR CLIENT ID HERE
-
-function getClientId(){ return GOOGLE_CLIENT_ID; }
+function getClientId(){return localStorage.getItem('shiftbook_clientId')||'';}
+function saveClientId(v){
+  localStorage.setItem('shiftbook_clientId',v.trim());
+  _tokenClient=null; // force re-init
+  initGoogleAuth();
+  toast('Client ID saved');
+}
 
 const Sync={
   token:null, userEmail:null, fileId:null,
@@ -2023,59 +2031,34 @@ function initGoogleAuth(){
     client_id:cid,
     scope:GDRIVE_SCOPE,
     callback:(resp)=>{
-      if(resp.error){
-        // UX-only errors (user closed popup etc.) — don't show error state
-        const silent=['access_denied','popup_closed_by_user','immediate_failed'];
-        if(silent.includes(resp.error)){Sync.setStatus('unsigned');return;}
-        console.error('GIS:',resp);Sync.setStatus('error','☁ Auth error');return;
-      }
+      if(resp.error){console.error('GIS:',resp);Sync.setStatus('error','☁ Auth error');return;}
       Sync.token=resp.access_token;
-      // Remember that this user has previously consented
-      const savedEmail=localStorage.getItem('shiftbook_userEmail');
       fetch('https://www.googleapis.com/oauth2/v3/tokeninfo?access_token='+resp.access_token)
-        .then(r=>r.json())
-        .then(info=>{
-          const email=info.email||savedEmail||'Signed in';
-          localStorage.setItem('shiftbook_userEmail',email);
-          localStorage.setItem('shiftbook_hasConsented','1');
-          Sync.setUser(email);
-        })
-        .catch(()=>{
-          Sync.setUser(savedEmail||'Signed in');
-        });
+        .then(r=>r.json()).then(info=>Sync.setUser(info.email||'Signed in')).catch(()=>Sync.setUser('Signed in'));
       if(_pendingSyncAfterAuth){_pendingSyncAfterAuth=false;syncNow();}
     },
   });
-  // Restore UI state from last session
-  const prevEmail=localStorage.getItem('shiftbook_userEmail');
-  const hasConsented=localStorage.getItem('shiftbook_hasConsented');
-  if(prevEmail&&hasConsented){
-    // Show as signed-in immediately (token will be acquired silently below)
-    Sync.setUser(prevEmail);
-    // Silent token acquisition — no popup, fails gracefully if consent lapsed
-    _tokenClient.requestAccessToken({prompt:'none'});
-  } else {
-    Sync.setStatus('unsigned');
-  }
+  Sync.setStatus('unsigned');
 }
 
 window._onGISLoad=function(){
   initGoogleAuth();
+  const ci=document.getElementById('clientIdInput');
+  if(ci) ci.value=getClientId();
 };
 
 function signIn(){
-  if(!getClientId()){toast('Google Client ID not set — see app setup instructions');return;}
-  if(!_tokenClient) initGoogleAuth();
-  if(!_tokenClient){toast('Google auth not ready — check console for errors');return;}
+  if(!_tokenClient){
+    if(!getClientId()){toast('Enter your Google Client ID in Settings → Cloud Sync');return;}
+    initGoogleAuth();
+    if(!_tokenClient){toast('Google auth not ready — check Client ID');return;}
+  }
   _tokenClient.requestAccessToken({prompt:''});
 }
 
 function signOut(){
   if(Sync.token) google.accounts.oauth2.revoke(Sync.token,()=>{});
-  Sync.token=null; Sync.fileId=null;
-  localStorage.removeItem('shiftbook_userEmail');
-  localStorage.removeItem('shiftbook_hasConsented');
-  Sync.setUser(null);
+  Sync.token=null; Sync.fileId=null; Sync.setUser(null);
   toast('Signed out of Google');
 }
 
@@ -2137,18 +2120,8 @@ function _markSynced(){
 }
 
 async function syncNow(){
-  if(!getClientId()){toast('Google Client ID not configured — see setup instructions');return;}
-  if(!Sync.token){
-    _pendingSyncAfterAuth=true;
-    // If previously consented, try silent first; else show sign-in popup
-    const hasConsented=localStorage.getItem('shiftbook_hasConsented');
-    if(hasConsented&&_tokenClient){
-      _tokenClient.requestAccessToken({prompt:'none'});
-    } else {
-      signIn();
-    }
-    return;
-  }
+  if(!getClientId()){toast('Add your Google Client ID in Settings → Cloud Sync');return;}
+  if(!Sync.token){_pendingSyncAfterAuth=true;signIn();return;}
   Sync.setStatus('syncing');
   try{
     const driveData=await downloadFromDrive();
@@ -2432,6 +2405,12 @@ function updateFYOnScroll(calScroll) {
 }
 
 /* Scroll so that a given date cell is near the top of the container */
+function _offsetFromScroll(el, scrollEl) {
+  let top = 0, cur = el;
+  while (cur && cur !== scrollEl) { top += cur.offsetTop; cur = cur.offsetParent; }
+  return top;
+}
+
 function snapToDate(date) {
   const calScroll = document.getElementById('calScroll');
   if (!calScroll) return;
@@ -2444,12 +2423,8 @@ function snapToDate(date) {
   }
   if (!monthDiv) return;
 
-  // Use getBoundingClientRect diff — immune to sticky/offsetParent quirks
-  // We need to scroll so monthDiv.top === calScroll.top
-  // i.e. calScroll.scrollTop += (monthDiv.rect.top - calScroll.rect.top)
-  const containerRect = calScroll.getBoundingClientRect();
-  const monthRect     = monthDiv.getBoundingClientRect();
-  calScroll.scrollTop += (monthRect.top - containerRect.top);
+  // Scroll so top of month block sits at top of container
+  calScroll.scrollTop = _offsetFromScroll(monthDiv, calScroll);
 }
 
 
@@ -2476,15 +2451,11 @@ function initScrollCalendar() {
   const today = new Date();
   _buildScrollCalAround(today.getFullYear(), today.getMonth());
 
-  // Scroll to today's month — use rAF so layout is complete
-  requestAnimationFrame(() => {
+  // Scroll to today's month top
+  setTimeout(() => {
     const monthDiv = calScroll.querySelector(`.month[data-year="${today.getFullYear()}"][data-month="${today.getMonth()}"]`);
-    if (monthDiv) {
-      const cRect = calScroll.getBoundingClientRect();
-      const mRect = monthDiv.getBoundingClientRect();
-      calScroll.scrollTop += (mRect.top - cRect.top);
-    }
-  });
+    if (monthDiv) calScroll.scrollTop = _offsetFromScroll(monthDiv, calScroll);
+  }, 20);
 
   // ── Scroll handler ──
   calScroll.addEventListener('scroll', () => {
@@ -2557,15 +2528,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const val = jumpSel.value;
     if (!val) return;
     const [jy, jm] = val.split('-').map(Number);
-    // Make sure calendar view is active and laid out before scrolling
-    if (!document.getElementById('view-calendar').classList.contains('active')) {
-      showView('calendar');
-    }
-    // rAF ensures the view is visible and getBoundingClientRect is accurate
-    requestAnimationFrame(() => {
-      snapToDate(new Date(jy, jm, 1));
-      jumpSel.value = '';
-    });
+    snapToDate(new Date(jy, jm, 1));
+    jumpSel.value = '';
   });
 
   // Populate jump select — only months within configured FY ranges
