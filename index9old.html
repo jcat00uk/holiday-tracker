@@ -15,7 +15,7 @@
   --red:#ff4d6a;--redd:rgba(255,77,106,.12);
   --purple:#9b70ff;--purpled:rgba(155,112,255,.12);
   --grey:#6a738f;
-  --t1:#dde4f5;--t2:#a0aac0;--t3:#717a96;--t4:#545c78;
+  --t1:#dde4f5;--t2:#9aa3bf;--t3:#6a738f;--t4:#454d66;
   --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
   --r:8px;--nav-h:54px;
 }
@@ -54,20 +54,8 @@ header{background:var(--s1);border-bottom:1px solid var(--bd);height:48px;displa
 
 /* ── LAYOUT ── */
 main{padding:12px 16px;max-width:1500px;margin:0 auto;width:100%}
-body.cal-active main{padding:0;max-width:100%}
 .view{display:none}
 .view.active{display:block}
-/* When calendar is active, lock outer page scroll */
-body.cal-active{overflow:hidden}
-#view-calendar{display:none;flex-direction:column}
-#view-calendar.active{
-  display:flex;
-  height:calc(100dvh - 48px - var(--nav-h));
-  overflow:hidden;
-}
-@media(min-width:641px){
-  #view-calendar.active{height:calc(100dvh - 48px);}
-}
 
 /* ── ALERTS ── */
 .alert{border-radius:var(--r);padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;font-size:.77rem;border:1px solid}
@@ -107,7 +95,7 @@ body.cal-active{overflow:hidden}
 .rem-badge{font-family:var(--mono);font-size:.6rem;padding:2px 6px;border-radius:3px}
 
 /* ── CALENDAR ── */
-.calhdr{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;flex-shrink:0}
+.calhdr{display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap}
 .cal-mwrap{display:flex;align-items:center;gap:4px}
 .cal-lbl{font-family:var(--mono);font-size:.88rem;font-weight:500;width:180px;text-align:center}
 .cnav{background:var(--s2);border:1px solid var(--bd);color:var(--t2);width:28px;height:28px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:.9rem;transition:all .15s;flex-shrink:0}
@@ -118,14 +106,14 @@ body.cal-active{overflow:hidden}
 .cadd:hover{background:#00e8b0}
 
 .calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
-.cdh{text-align:center;padding:4px 0;font-size:.63rem;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono)}
+.cdh{text-align:center;padding:4px 0;font-size:.63rem;color:var(--t4);text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono)}
 .ccell{background:var(--s1);border:1px solid var(--bd);border-radius:5px;padding:4px 3px 3px;cursor:pointer;transition:border-color .12s;overflow:hidden;min-height:72px}
 .ccell:hover{border-color:var(--bd2)}
 .ccell.other{opacity:.22}
 .ccell.today{border-color:var(--teal)!important;box-shadow:inset 0 0 0 1px var(--teal)}
-.ccell.today .cdn{color:var(--t2);font-size:.72rem}
+.ccell.today .cdn{color:var(--teal)}
 .ccell.isbh{background:rgba(240,160,48,.04)}
-.ccell.fy-bnd{border-top:2px solid var(--teal)} .fy-bnd-lbl{font-size:.55rem;color:var(--teal);font-family:var(--mono);margin-bottom:2px}
+.ccell.fy-bnd{border-top:2px solid var(--teal)}
 .cdn{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:.68rem;color:var(--t3);margin-bottom:3px;line-height:1}
 .wdot{width:5px;height:5px;border-radius:50%;background:var(--purple);opacity:.55;flex-shrink:0}
 .bhlbl{font-size:.55rem;color:var(--amber);margin-bottom:2px;line-height:1.2;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -151,7 +139,7 @@ body.cal-active{overflow:hidden}
 /* period divider */
 .per-div{grid-column:1/-1;display:flex;align-items:center;gap:6px;padding:2px 0;margin-top:2px}
 .per-line{flex:1;height:1px;background:var(--bd2)}
-.per-lbl{font-family:var(--mono);font-size:.58rem;color:var(--t2);white-space:nowrap;padding:0 4px}
+.per-lbl{font-family:var(--mono);font-size:.58rem;color:var(--t3);white-space:nowrap;padding:0 4px}
 
 /* ── STATUS BADGES ── */
 .sbadge{font-family:var(--mono);font-size:.6rem;padding:2px 7px;border-radius:3px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
@@ -418,10 +406,13 @@ body.cal-active{overflow:hidden}
 
 /* ── SCROLL CALENDAR ── */
 .cal-scroll {
-  flex: 1;
-  min-height: 0;        /* critical for flex child to shrink below content size */
+  height: calc(100dvh - 48px - 54px - 80px);
+  min-height: 400px;
   overflow-y: auto;
   scroll-behavior: smooth;
+}
+@media(max-width:640px){
+  .cal-scroll { height: calc(100dvh - 48px - var(--nav-h) - 80px); }
 }
 
 /* Month wrapper */
@@ -853,6 +844,20 @@ body.cal-active{overflow:hidden}
       <div class="bprow total"><span class="bk">Hours to book</span><span class="bv" id="bp-total">—</span></div>
       <div class="bprow" style="margin-top:2px"><span class="bk" style="font-size:.67rem;color:var(--t3)" id="bp-ns">—</span></div>
     </div>
+    <div id="customHrsFields">
+      <div class="fr">
+        <label>Hours to book <span style="font-size:.63rem;color:var(--t3)">(auto-calculated — edit to override)</span></label>
+        <div style="display:flex;align-items:center;gap:7px">
+          <select id="f-hrs-h" style="width:70px;font-family:var(--mono)" onchange="onHrsOverride()"></select>
+          <span style="color:var(--t3);font-family:var(--mono)">:</span>
+          <select id="f-hrs-m" style="width:70px;font-family:var(--mono)" onchange="onHrsOverride()">
+            <option value="0">00</option><option value="15">15</option>
+            <option value="30">30</option><option value="45">45</option>
+          </select>
+          <span id="f-hrs-dec" style="font-family:var(--mono);font-size:.7rem;color:var(--t3)"></span>
+        </div>
+      </div>
+    </div>
     <div class="notice-box" id="noticeBox">⚠ Within minimum notice period (<span id="noticeDays">—</span> days away).</div>
     <div class="overlap-box" id="overlapBox">
       ⚠ Overlaps an existing booking.
@@ -1164,14 +1169,10 @@ function getStats(fyk){
   const ref=bk.filter(b=>b.status==='refused').reduce((s,b)=>s+(b.hoursBooked||0),0);
   const can=bk.filter(b=>b.status==='cancelled').reduce((s,b)=>s+(b.hoursBooked||0),0);
   const alloc=getFYAlloc(fyk);
-  const rem=alloc-taken-confF-submF-plan; // remaining after ALL committed hours
+  const remConf=alloc-taken-confF-submF;
+  const remIncPlan=alloc-taken-confF-submF-plan;
   const avg=parseFloat(S.settings.avgShift)||8;
-  const fullShifts=Math.floor(Math.max(0,rem)/avg);
-  const leftoverHrs=Math.max(0,rem)-(fullShifts*avg);
-  return{alloc,taken,confF,submF,plan,ref,can,
-    remConf:alloc-taken-confF-submF, // kept for backward compat (dashboard uses it)
-    rem,remIncPlan:rem,              // rem is now the main "remaining" stat
-    shiftsLeft:fullShifts, leftoverHrs, avg};
+  return{alloc,taken,confF,submF,plan,ref,can,remConf,remIncPlan,shiftsLeft:Math.max(0,Math.floor(remIncPlan/avg)),avg};
 }
 function updateStats(){
   const s=getStats(curFY);
@@ -1181,15 +1182,9 @@ function updateStats(){
   document.getElementById('sa-subm').textContent=hhmm(s.submF);
   document.getElementById('sa-plan').textContent=hhmm(s.plan);
   const remEl=document.getElementById('sa-rem');
-  remEl.textContent=hhmm(s.rem);
-  remEl.className='vl '+(s.rem<0?'c-red':s.rem<s.alloc*.1?'c-amber':'c-teal');
-  // Shifts left: show whole shifts, or hours remaining if < 1 full shift
-  const shEl=document.getElementById('sa-shifts');
-  if(s.shiftsLeft>0){
-    shEl.textContent=s.shiftsLeft+(s.leftoverHrs>0?' +'+hhmm(s.leftoverHrs):'');
-  } else {
-    shEl.textContent=s.rem>0?hhmm(s.rem):'0';
-  }
+  remEl.textContent=hhmm(s.remConf);
+  remEl.className='vl '+(s.remConf<0?'c-red':s.remConf<s.alloc*.1?'c-amber':'c-teal');
+  document.getElementById('sa-shifts').textContent=s.shiftsLeft;
   const p=x=>s.alloc>0?Math.min(100,Math.max(0,(x/s.alloc)*100))+'%':'0%';
   document.getElementById('seg-taken').style.width=p(s.taken);
   document.getElementById('seg-conf').style.width=p(s.confF);
@@ -1462,7 +1457,7 @@ function renderDash(){
   const planned=sortedByDate(S.bookings.filter(b=>b.fyKey===curFY&&b.status==='planned'),true).slice(0,6);
   document.getElementById('dash-planned').innerHTML='<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:.76rem;color:var(--t2)">Total planned</span><span style="font-family:var(--mono);font-size:.88rem;color:var(--grey)">'+(s.plan>0?hhmm(s.plan)+' ('+toDecStr(s.plan)+')':'0h')+'</span></div>'+(planned.length?'<div class="hlist">'+planned.map(b=>`<div class="hrow" onclick="openEdit('${b.id}')" style="gap:7px"><span class="hrow-date" style="font-size:.73rem">${fmtDate(b.date)}</span><span class="hrow-hrs">${hhmm(b.hoursBooked)}</span><span class="hrow-notes">${b.notes||'\u2014'}</span></div>`).join('')+'</div>':'<div style="font-size:.75rem;color:var(--t4)">No planned bookings</div>');
   // year end
-  const fyR=fyRange(curFY),daysLeft=Math.ceil((fyR.end-todayD)/864e5),rem=s.rem;
+  const fyR=fyRange(curFY),daysLeft=Math.ceil((fyR.end-todayD)/864e5),rem=s.remConf;
   document.getElementById('dash-yearend').innerHTML=
     `<div class="ye-row"><span class="yk">FY</span><span class="yv">${curFY}</span></div>`+
     `<div class="ye-row"><span class="yk">FY ends</span><span class="yv">${fmtDate(dstr(fyR.end))}</span></div>`+
@@ -1482,8 +1477,8 @@ function renderAlerts(){
   const today=new Date();today.setHours(0,0,0,0);
   const s=getStats(curFY),fyR=fyRange(curFY);
   const warnMs=(S.settings.yearEndWarnWeeks||8)*7*864e5;
-  if(s.rem<0)alerts.push(`<div class="alert a-danger">\u1f6a8 Over allocation by ${hhmm(Math.abs(s.rem))} for ${curFY}</div>`);
-  if(today>=new Date(fyR.end.getTime()-warnMs)&&today<=fyR.end)alerts.push(`<div class="alert a-warn">\u23f3 FY ends in ${Math.ceil((fyR.end-today)/864e5)} days \u2014 ${hhmm(s.rem)} remaining.</div>`);
+  if(s.remConf<0)alerts.push(`<div class="alert a-danger">\u1f6a8 Over allocation by ${hhmm(Math.abs(s.remConf))} for ${curFY}</div>`);
+  if(today>=new Date(fyR.end.getTime()-warnMs)&&today<=fyR.end)alerts.push(`<div class="alert a-warn">\u23f3 FY ends in ${Math.ceil((fyR.end-today)/864e5)} days \u2014 ${hhmm(s.remConf)} remaining.</div>`);
   const due=S.bookings.filter(b=>b.fyKey===curFY&&b.status==='planned'&&b.reminderDate&&new Date(b.reminderDate+'T00:00:00')<=today);
   if(due.length)alerts.push(`<div class="alert a-info">\ud83d\udd14 ${due.length} booking${due.length>1?'s':''} due to submit \u2014 check Dashboard</div>`);
   el.innerHTML=alerts.join('');
@@ -1617,7 +1612,7 @@ function onStatusChg(){document.getElementById('remRow').style.display=document.
 function updateAllocMini(){
   const s=getStats(curFY);
   document.getElementById('allocMini').innerHTML=
-    `<div class="alloc-mini-row"><span class="ak">Remaining (conf+subm)</span><span class="av" style="color:${s.rem<0?'var(--red)':'var(--teal)'}">${hhmm(s.rem)} (${toDecStr(s.rem)})</span></div>`+
+    `<div class="alloc-mini-row"><span class="ak">Remaining (conf+subm)</span><span class="av" style="color:${s.remConf<0?'var(--red)':'var(--teal)'}">${hhmm(s.remConf)} (${toDecStr(s.remConf)})</span></div>`+
     `<div class="alloc-mini-row"><span class="ak">Incl. planned</span><span class="av">${hhmm(Math.max(0,s.remIncPlan))} (${toDecStr(Math.max(0,s.remIncPlan))})</span></div>`+
     `<div class="alloc-mini-row"><span class="ak">Shifts left</span><span class="av c-purple">${s.shiftsLeft}</span></div>`;
 }
@@ -1714,37 +1709,15 @@ function calcProRata(){
 }
 
 // FY alloc table — now with startDate per FY
-function nextFYStartDate(fromDateStr){
-  // Given a Sunday start date string, return the date 52 weeks later as YYYY-MM-DD
-  if(!fromDateStr) return '';
-  const d=new Date(fromDateStr+'T00:00:00');
-  if(isNaN(d.getTime())) return '';
-  d.setDate(d.getDate()+364); // 52 weeks = 364 days
-  // Ensure it lands on a Sunday (should already, but guard)
-  while(d.getDay()!==0) d.setDate(d.getDate()+1);
-  return dstr(d);
-}
-
 function renderFYAllocTable(){
   const body=document.getElementById('fyAllocBody');
-  const keys=allFYKeys().sort(); // ascending for prev-lookup
+  const keys=allFYKeys().reverse();
   keys.forEach(k=>ensureFY(k));
-  const keysDesc=[...keys].reverse();
-  body.innerHTML=keysDesc.map((k,i)=>{
+  body.innerHTML=keys.map(k=>{
     const fa=S.fyAllocs[k];
-    // Auto-suggest start date from previous FY (earlier one = keys[keysDesc.length-1-i-1])
-    const prevKey=keys[keys.indexOf(k)-1];
-    const prevStart=prevKey&&S.fyAllocs[prevKey]?S.fyAllocs[prevKey].startDate:'';
-    const suggestedDate=(!fa.startDate&&prevStart)?nextFYStartDate(prevStart):'';
-    const displayDate=fa.startDate||suggestedDate;
-    // If suggested and not yet saved, auto-save it
-    if(suggestedDate&&!fa.startDate){
-      S.fyAllocs[k].startDate=suggestedDate;
-      // persist deferred — will happen on next autoSave
-    }
     return`<tr class="${k===curFY?'cfy':''}">
       <td style="font-family:var(--mono);font-size:.7rem">${k}</td>
-      <td><input type="date" value="${displayDate}" onchange="saveFYA('${k}','startDate',this.value)" title="FY start date (Sunday). Auto-calculated as 52 weeks from previous FY."></td>
+      <td><input type="date" value="${fa.startDate||''}" onchange="saveFYA('${k}','startDate',this.value)" title="FY start date (must be a Sunday)"></td>
       <td><input type="number" step="0.5" value="${fa.hours}" onchange="saveFYA('${k}','hours',this.value)"></td>
       <td><input type="number" step="0.5" value="${fa.carryOver||0}" onchange="saveFYA('${k}','carryOver',this.value)"></td>
       <td><button class="del-fy" onclick="delFY('${k}')">Del</button></td>
@@ -1939,7 +1912,6 @@ function showView(name){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.querySelectorAll('.nb,.mnb').forEach(b=>b.classList.remove('on'));
   document.getElementById('view-'+name).classList.add('active');
-  document.body.classList.toggle('cal-active', name==='calendar');
   document.getElementById('tab-'+name)&&document.getElementById('tab-'+name).classList.add('on');
   document.getElementById('mnb-'+name)&&document.getElementById('mnb-'+name).classList.add('on');
   if(name==='settings')loadSettingsUI();
@@ -1986,7 +1958,7 @@ function getDeviceId(){
 // → Credentials → OAuth 2.0 Client ID (Web application)
 // Authorised JavaScript origins: https://yourdomain.com
 // ─────────────────────────────────────────────────────────
-const GOOGLE_CLIENT_ID = '';  // ← PASTE YOUR CLIENT ID HERE
+const GOOGLE_CLIENT_ID = '836524430218-ogmqnbndtugsv6gbc74nsle3iufipgjn.apps.googleusercontent.com';  // ← PASTE YOUR CLIENT ID HERE
 
 function getClientId(){ return GOOGLE_CLIENT_ID; }
 
@@ -2153,13 +2125,7 @@ function showConflict(driveData,onKeepDrive,onKeepLocal){
   if(!el){onKeepDrive();return;}
   document.getElementById('syncConflictDriveTime').textContent=new Date(driveData.lastModified||0).toLocaleString('en-GB');
   document.getElementById('syncConflictLocalTime').textContent=new Date(S._lastModified||0).toLocaleString('en-GB');
-  // Switch to settings so the user can see the conflict UI
-  showView('settings');
-  // Small delay so the view transition completes before scrolling
-  setTimeout(()=>{
-    el.classList.add('on');
-    el.scrollIntoView({behavior:'smooth',block:'center'});
-  },120);
+  el.classList.add('on');
   document.getElementById('btnConflictDrive').onclick=()=>{el.classList.remove('on');onKeepDrive();};
   document.getElementById('btnConflictLocal').onclick=()=>{el.classList.remove('on');onKeepLocal();};
 }
@@ -2222,9 +2188,9 @@ function _applyDriveData(driveData){
     if(m.bankHolidays) S.bankHolidays=m.bankHolidays;
     S._lastModified=m.lastModified;
     persist();_markSynced();
-    // Full page reload gives cleanest state after pulling new data
-    toast('Drive data loaded — reloading…');
-    setTimeout(()=>location.reload(),900);
+    initFY();refresh();
+    if(window._populateJumpSel) window._populateJumpSel();
+    toast('Drive data loaded ✓');
   }catch(e){Sync.setStatus('error');toast('Failed to apply Drive data');console.error(e);}
 }
 
