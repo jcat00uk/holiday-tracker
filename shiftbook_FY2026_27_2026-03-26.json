@@ -1,0 +1,271 @@
+{
+  "settings": {
+    "fyStartMonth": 3,
+    "fyStartDay": 1,
+    "yearEndWarnWeeks": 8,
+    "yearsService": "gt5",
+    "nightShift": "partial",
+    "contractedHours": 33,
+    "shiftDefaultStart": "22:15",
+    "shiftDefaultDur": 8.25,
+    "noticeDays": 28,
+    "prorata": "no",
+    "prorataStart": "",
+    "rotationAnchor": "",
+    "rotation": [
+      [
+        {
+          "on": true,
+          "start": "22:15",
+          "dur": 8.75
+        },
+        {
+          "on": false,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": false,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": false,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": true,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": true,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": true,
+          "start": "23:00",
+          "dur": 8
+        }
+      ],
+      [
+        {
+          "on": true,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": false,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": false,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": false,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": true,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": true,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": true,
+          "start": "23:00",
+          "dur": 8
+        }
+      ],
+      [
+        {
+          "on": false,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": true,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": true,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": true,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": true,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": false,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": false,
+          "start": "23:00",
+          "dur": 8
+        }
+      ],
+      [
+        {
+          "on": false,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": true,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": true,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": true,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": true,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": false,
+          "start": "23:00",
+          "dur": 8
+        },
+        {
+          "on": false,
+          "start": "23:00",
+          "dur": 8
+        }
+      ]
+    ]
+  },
+  "fyAllocs": {
+    "FY2025/26": {
+      "hours": 198,
+      "carryOver": 0
+    },
+    "FY2026/27": {
+      "hours": 198,
+      "carryOver": 0
+    },
+    "FY2027/28": {
+      "hours": 219,
+      "carryOver": 0
+    },
+    "FY2028/29": {
+      "hours": 219,
+      "carryOver": 0
+    }
+  },
+  "bankHolidays": [],
+  "bookings": [
+    {
+      "id": "b1774538805291",
+      "date": "2026-03-28",
+      "startTime": "23:00",
+      "endTime": "07:00",
+      "overnight": true,
+      "hoursBooked": 7.5,
+      "status": "planned",
+      "notes": "",
+      "fyKey": "FY2026/27",
+      "reminderDate": ""
+    },
+    {
+      "id": "b1774538827965",
+      "date": "2026-03-30",
+      "startTime": "22:15",
+      "endTime": "06:30",
+      "overnight": true,
+      "hoursBooked": 7.75,
+      "status": "planned",
+      "notes": "",
+      "fyKey": "FY2026/27",
+      "reminderDate": ""
+    },
+    {
+      "id": "b1774538936336",
+      "date": "2026-03-24",
+      "startTime": "22:15",
+      "endTime": "06:30",
+      "overnight": true,
+      "hoursBooked": 7.75,
+      "status": "confirmed",
+      "notes": "",
+      "fyKey": "FY2026/27",
+      "reminderDate": ""
+    },
+    {
+      "id": "b1774538945097",
+      "date": "2026-03-25",
+      "startTime": "22:00",
+      "endTime": "06:30",
+      "overnight": true,
+      "hoursBooked": 8,
+      "status": "confirmed",
+      "notes": "",
+      "fyKey": "FY2026/27",
+      "reminderDate": ""
+    },
+    {
+      "id": "b1774539234016",
+      "date": "2026-03-17",
+      "startTime": "22:15",
+      "endTime": "06:30",
+      "overnight": true,
+      "hoursBooked": 7.75,
+      "status": "submitted",
+      "notes": "",
+      "fyKey": "FY2026/27",
+      "reminderDate": ""
+    },
+    {
+      "id": "b1774539246810",
+      "date": "2026-03-03",
+      "startTime": "22:15",
+      "endTime": "06:30",
+      "overnight": true,
+      "hoursBooked": 7.75,
+      "status": "submitted",
+      "notes": "",
+      "fyKey": "FY2026/27",
+      "reminderDate": ""
+    },
+    {
+      "id": "b1774541304392",
+      "date": "2026-03-12",
+      "startTime": "22:15",
+      "endTime": "07:00",
+      "overnight": true,
+      "hoursBooked": 8.5,
+      "status": "planned",
+      "notes": "",
+      "fyKey": "FY2026/27",
+      "reminderDate": ""
+    }
+  ]
+}
