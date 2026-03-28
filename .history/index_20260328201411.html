@@ -853,7 +853,7 @@ body.cal-active{overflow:hidden}
       <div class="bprow total"><span class="bk">Hours to book</span><span class="bv" id="bp-total">—</span></div>
       <div class="bprow" style="margin-top:2px"><span class="bk" style="font-size:.67rem;color:var(--t3)" id="bp-ns">—</span></div>
     </div>
-    <div id="customHrsFields" style="display:none">
+    <div id="customHrsFields" style="display:none"></div>
       <div class="fr">
         <div style="display:flex;align-items:center;gap:7px">
           <select id="f-hrs-h" style="width:70px;font-family:var(--mono)" onchange="onHrsOverride()"></select>
@@ -1573,8 +1573,7 @@ function setMode(mode){
   document.getElementById('modeA').classList.toggle('on',mode==='full');
   document.getElementById('modeB').classList.toggle('on',mode==='custom');
   document.getElementById('customTimeFields').style.display=mode==='custom'?'block':'none';
-  const ch = document.getElementById('customHrsFields');
-if (ch) ch.style.display = 'none';
+  document.getElementById('customHrsFields').style.display=mode==='custom'?'block':'none';
   onDateChg();
 }
 function onDateChg(){

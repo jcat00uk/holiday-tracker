@@ -1573,8 +1573,7 @@ function setMode(mode){
   document.getElementById('modeA').classList.toggle('on',mode==='full');
   document.getElementById('modeB').classList.toggle('on',mode==='custom');
   document.getElementById('customTimeFields').style.display=mode==='custom'?'block':'none';
-  const ch = document.getElementById('customHrsFields');
-if (ch) ch.style.display = 'none';
+  document.getElementById('customHrsFields').style.display=mode==='custom'?'block':'none';
   onDateChg();
 }
 function onDateChg(){
