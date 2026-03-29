@@ -2021,8 +2021,10 @@ function saveRotDay(){
 function updateRotaBookingHint(){
   const hint=document.getElementById('rotaBookingHint');
   if(!hint)return;
-  // Show hint if any booking uses rota times, regardless of status or date
-  const hasRotaBks=S.bookings.some(b=>b.mode==='full');
+  // Show hint if any booking has mode='full' (rota-based) and is in the future
+  const today=dstr(new Date());
+  const hasRotaBks=S.bookings.some(b=>b.mode==='full'&&b.date>=today&&
+    ['planned','submitted','confirmed'].includes(b.status));
   hint.style.display=hasRotaBks?'':'none';
 }
 function clearRotWeek(wi){S.settings.rotation[wi]=S.settings.rotation[wi].map(d=>({...d,on:false}));persist();renderRotEditor();}
