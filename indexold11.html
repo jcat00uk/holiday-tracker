@@ -54,34 +54,19 @@ header{background:var(--s1);border-bottom:1px solid var(--bd);height:48px;displa
 
 /* ── LAYOUT ── */
 main{padding:12px 16px;max-width:1500px;margin:0 auto;width:100%}
+body.cal-active main{padding:0;max-width:100%}
 .view{display:none}
 .view.active{display:block}
 /* When calendar is active, lock outer page scroll */
+body.cal-active{overflow:hidden}
 #view-calendar{display:none;flex-direction:column}
 #view-calendar.active{
   display:flex;
-  flex:1;           /* fills remaining height inside main flex column */
-  min-height:0;     /* allow flex child to shrink below content size */
+  height:calc(100dvh - 48px - var(--nav-h));
   overflow:hidden;
 }
-
-/* When calendar active: body locks scroll, main becomes full-height flex column */
-body.cal-active{
-  overflow:hidden;
-  height:100dvh;
-}
-body.cal-active main{
-  display:flex;
-  flex-direction:column;
-  height:calc(100dvh - 48px);        /* 48px = header */
-  overflow:hidden;
-  padding:0;
-  max-width:100%;
-}
-@media(max-width:640px){
-  body.cal-active main{
-    height:calc(100dvh - 48px - var(--nav-h));  /* subtract bottom nav on mobile */
-  }
+@media(min-width:641px){
+  #view-calendar.active{height:calc(100dvh - 48px);}
 }
 
 /* ── ALERTS ── */
@@ -324,6 +309,7 @@ body.cal-active main{
     max-width: 100vw;
     min-height: 100dvh;
     overflow-x: hidden;
+    overscroll-behavior-y: contain;
     padding-bottom: calc(var(--nav-h) + 10px);
   }
 
@@ -387,22 +373,8 @@ body.cal-active main{
 /* ── MODAL ── */
 .mbg{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(3px);z-index:1000;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s}
 .mbg.open{opacity:1;pointer-events:all}
-/* Mobile modal: cap height, ensure buttons clear bottom nav + browser chrome */
-@media(max-width:640px){
-  .modal{
-    max-height:calc(100dvh - var(--nav-h));
-  }
-  .mbody{
-    /* nav-h + safe-area-inset-bottom (home indicator / browser chrome) + generous buffer */
-    padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom, 20px) + 24px);
-  }
-  /* Extra bottom padding on btn-row so Save button is always well above nav */
-  .btn-row{
-    padding-bottom:calc(env(safe-area-inset-bottom, 16px) + 8px);
-  }
-}
 @media(min-width:641px){.mbg{align-items:center}}
-.modal{background:var(--s1);border:1px solid var(--bd2);border-radius:12px 12px 0 0;padding:0;width:100%;max-width:520px;max-height:92dvh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,.5);transform:translateY(20px);transition:transform .22s}
+.modal{background:var(--s1);border:1px solid var(--bd2);border-radius:12px 12px 0 0;padding:0;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,.5);transform:translateY(20px);transition:transform .22s}
 .mbg.open .modal{transform:translateY(0)}
 @media(min-width:641px){.modal{border-radius:12px;box-shadow:0 24px 60px rgba(0,0,0,.6)}}
 .mhdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 0}
@@ -437,8 +409,8 @@ body.cal-active main{
 .del-cf{margin-right:auto;display:none}
 
 /* ── TOAST ── */
-#toast{position:fixed;bottom:calc(var(--nav-h) + 10px);right:14px;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:8px 13px;font-size:.78rem;box-shadow:0 4px 20px rgba(0,0,0,.4);transform:translateY(50px);opacity:0;transition:all .25s;z-index:9999;pointer-events:none}
-#toast.on{pointer-events:auto;transform:translateY(0);opacity:1}
+#toast{position:fixed;bottom:calc(var(--nav-h) + 10px);right:14px;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:8px 13px;font-size:.78rem;box-shadow:0 4px 20px rgba(0,0,0,.4);transform:translateY(50px);opacity:0;transition:all .25s;z-index:9999}
+#toast.on{transform:translateY(0);opacity:1}
 @media(min-width:641px){#toast{bottom:14px}}
 
 /* colour helpers */
@@ -451,7 +423,7 @@ body.cal-active main{
   min-height: 0;        /* critical for flex child to shrink below content size */
   overflow-y: auto;
   scroll-behavior: smooth;
-  overscroll-behavior-y: contain;  /* prevent pull-to-reveal on calendar only */
+  overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -517,7 +489,7 @@ body.cal-active main{
 
 
 /* ── QUICK SETUP MODAL ── */
-.qs-modal{background:var(--s1);border:1px solid var(--bd2);border-radius:12px;padding:0;width:100%;max-width:560px;max-height:92dvh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+.qs-modal{background:var(--s1);border:1px solid var(--bd2);border-radius:12px;padding:0;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.6)}
 .qs-hdr{padding:18px 22px 0;border-bottom:1px solid var(--bd);margin-bottom:0}
 .qs-hdr h2{font-family:var(--mono);font-size:.85rem;font-weight:600;color:var(--teal);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
 .qs-hdr p{font-size:.75rem;color:var(--t3);padding-bottom:12px}
@@ -855,24 +827,11 @@ body.cal-active main{
 
       <div class="sc">
         <div class="sct">Reset &amp; Break Rules</div>
-        <p style="font-size:.73rem;color:var(--t2);margin-bottom:8px">Reset settings to defaults (bookings kept), or wipe everything including all bookings.</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <p style="font-size:.73rem;color:var(--t2);margin-bottom:8px">Reset all settings to defaults. Bookings and UK holidays are kept.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btnd" onclick="resetSettings()" style="font-size:.77rem;padding:7px 13px">Reset settings</button>
-          <button class="btnd" onclick="resetAll()" style="font-size:.77rem;padding:7px 13px;background:var(--redd);border-color:var(--red)">Reset ALL data</button>
           <button class="btng" onclick="openBreakRulesModal()" style="font-size:.77rem;padding:7px 13px">Break rules</button>
         </div>
-        <button class="btng" onclick="openQuickSetup()" style="font-size:.77rem;padding:7px 13px">⚙ Quick Setup</button>
-      </div>
-
-    </div>
-
-      <!-- Legal links -->
-      <div style="grid-column:span 2;padding:10px 0 2px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap;border-top:1px solid var(--bd);margin-top:4px">
-        <a href="https://holiday-tracker.thecrazycat.com/privacy" target="_blank" rel="noopener"
-           style="font-size:.68rem;color:var(--t3);text-decoration:none;font-family:var(--mono)">Privacy Policy</a>
-        <span style="color:var(--bd2);font-size:.68rem">·</span>
-        <a href="https://holiday-tracker.thecrazycat.com/terms" target="_blank" rel="noopener"
-           style="font-size:.68rem;color:var(--t3);text-decoration:none;font-family:var(--mono)">Terms &amp; Conditions</a>
       </div>
 
     </div>
@@ -1134,8 +1093,6 @@ function loadData(){
     if(!S.bankHolidays)S.bankHolidays=[];
     if(!S.bookings)S.bookings=[];
     if(!S._lastModified)S._lastModified=new Date().toISOString();
-    // Migrate old pixel-based scroll key to new month-based key
-    localStorage.removeItem('shiftbook_calScrollY');
     if(!S.settings.breakRules)S.settings.breakRules=[{geHrs:9,mins:45},{geHrs:8,mins:30},{geHrs:6,mins:20},{geHrs:4.5,mins:15}];
     // migrate old rotation format
     if(S.settings.rotation&&S.settings.rotation[0]){
@@ -1742,7 +1699,6 @@ function readSettings(){
   c.yearEndWarnWeeks=parseInt(document.getElementById('c-yeW').value)||8;
   c.yearsService=document.getElementById('c-ys').value;
   c.nightShift=document.getElementById('c-ns').value;
-  c.isNightWorker=document.getElementById('c-ns-toggle').checked;
   c.contractedHours=parseFloat(document.getElementById('c-chrs').value)||33;
   const avgh=parseInt(document.getElementById('c-avgh').value)||8,avgm=parseInt(document.getElementById('c-avgm').value)||0;
   c.avgShift=(avgh*60+avgm)/60;
@@ -1757,8 +1713,8 @@ function loadSettingsUI(){
   document.getElementById('c-yeW').value=c.yearEndWarnWeeks||8;
   document.getElementById('c-ys').value=c.yearsService;
   document.getElementById('c-ns').value=c.nightShift||'no';
-  // night shift toggle — on if isNightWorker=true OR nightShift is 'yes'
-  const nsOn=c.isNightWorker===true||(c.nightShift&&c.nightShift!=='no');
+  // night shift toggle — on if nightShift is not 'no'
+  const nsOn=c.nightShift&&c.nightShift!=='no';
   document.getElementById('c-ns-toggle').checked=nsOn;
   document.getElementById('nsSub').classList.toggle('dim',!nsOn);
   document.getElementById('c-chrs').value=c.contractedHours;
@@ -2008,25 +1964,6 @@ function exportICS(){
   a.download='shiftbook_'+curFY.replace('/','_')+'.ics';a.click();toast('ICS exported');
 }
 
-function resetAll(){
-  if(!confirm('RESET ALL DATA?\n\nThis permanently deletes ALL bookings, FY allocations, and settings.\nThis cannot be undone.'))return;
-  if(!confirm('Are you sure? All your bookings will be lost.'))return;
-  S={
-    settings:{
-      yearEndWarnWeeks:8,yearsService:'gt5',nightShift:'no',contractedHours:33,avgShift:8,
-      defaultStart:'23:00',defaultEnd:'07:00',noticeDays:28,prorata:'no',prorataStart:'',
-      breakRules:[{geHrs:9,mins:45},{geHrs:8,mins:30},{geHrs:6,mins:20},{geHrs:4.5,mins:15}],
-      rotation:Array(4).fill(null).map(()=>Array(7).fill(null).map(()=>({on:false,start:'23:00',end:'07:00'})))
-    },
-    fyAllocs:{},bankHolidays:[],bookings:[]
-  };
-  localStorage.removeItem('shiftbook_setupDone');
-  localStorage.removeItem('shiftbook_calScrollY');
-  localStorage.removeItem('shiftbook_calScrollFY');
-  persist();
-  location.reload();
-}
-
 function resetSettings(){
   if(!confirm('Reset all settings to defaults? Bookings and UK holidays are kept.'))return;
 
@@ -2054,14 +1991,10 @@ function resetSettings(){
     )
   };
 
-  // Clear setup flag so Quick Setup can be re-run
-  localStorage.removeItem('shiftbook_setupDone');
-
   persist();
   loadSettingsUI();
   refresh();
-  toast('Settings reset — opening Quick Setup…');
-  setTimeout(openQuickSetup, 400);
+  toast('Settings reset to defaults');
 }
 
 // VIEWS
@@ -2110,7 +2043,6 @@ document.getElementById('bhBtn').classList.add('on');
 // ═══════════════════════════════════════════════════════
 
 function openQuickSetup() {
-  // Populate avg shift hour select
   const avghEl = document.getElementById('qs-avgh');
   if (!avghEl.children.length) {
     for (let h = 0; h <= 23; h++) {
@@ -2120,28 +2052,11 @@ function openQuickSetup() {
       avghEl.appendChild(o);
     }
   }
-  // Reset to Days defaults
-  const empSel = document.getElementById('qs-emptype');
-  empSel.value = 'days';
-  document.getElementById('qs-ns-row').style.display = 'none';
-  document.getElementById('qs-ns').value = 'no';
-  document.getElementById('qs-yrs').value = S.settings.yearsService || 'gt5';
-
-  // Use existing settings as defaults if already set
-  const existingStart = S.settings.defaultStart;
-  const existingEnd   = S.settings.defaultEnd;
-  popSel(document.getElementById('qs-dstart'), existingStart || '07:00');
-  popSel(document.getElementById('qs-dend'),   existingEnd   || '15:00');
-
-  // Set FY from engine
+  popSel(document.getElementById('qs-dstart'), '23:00');
+  popSel(document.getElementById('qs-dend'), '07:00');
   const fyInfo = getFinancialYearFromDate(new Date());
   document.getElementById('qs-fyk').value = fyInfo.key;
   document.getElementById('qs-fystart').value = dstr(fyInfo.startDate);
-
-  // Reset user-edited flag on allocation input
-  const allocEl = document.getElementById('qs-fyalloc');
-  if (allocEl) allocEl._userEdited = false;
-
   qsCalcSuggestion();
   document.getElementById('qsMbg').classList.add('open');
 }
@@ -2149,21 +2064,12 @@ function openQuickSetup() {
 function closeQuickSetup() {
   document.getElementById('qsMbg').classList.remove('open');
   localStorage.setItem('shiftbook_setupDone', '1');
-  // Always switch to Settings so user can review/complete their profile
-  showView('settings');
 }
 
 function qsOnEmpType() {
   const v = document.getElementById('qs-emptype').value;
+  document.getElementById('qs-ns-row').style.display = (v==='nights'||v==='mixed') ? '' : 'none';
   const isNight = (v === 'nights');
-  const nsRow = document.getElementById('qs-ns-row');
-  nsRow.style.display = isNight ? '' : 'none';
-  // Days: force ns eligibility to not eligible
-  if (!isNight) {
-    const nsEl = document.getElementById('qs-ns');
-    if (nsEl) nsEl.value = 'no';
-  }
-  // Set default shift times
   document.getElementById('qs-dstart').value = isNight ? '23:00' : '07:00';
   document.getElementById('qs-dend').value   = isNight ? '07:00' : '15:00';
   qsCalcSuggestion();
@@ -2197,39 +2103,50 @@ function saveQuickSetup() {
   const fystart = document.getElementById('qs-fystart').value;
   const fyalloc = parseFloat(document.getElementById('qs-fyalloc').value)||allocLookup(chrs,ys,ns);
 
-  S.settings.yearsService    = ys;
-  // nightShift: 'yes' = night worker eligible, 'no' = not night worker / not eligible
-  // Settings page toggle shows when nightShift !== 'no'
-  // If nights + eligible → 'yes'; if nights + not eligible → we still enable toggle but set 'no'
-  // Use a special approach: nights+not-eligible maps to a night toggle ON but eligibility 'no'
-  // The toggle state = isNight; eligibility select = ns
-  // The simplest mapping: store nightShift as ns ('yes' or 'no')
-  // AND store a separate flag for the toggle so loadSettingsUI shows it correctly
-  S.settings.nightShift      = ns; // 'yes' or 'no'
-  S.settings.isNightWorker   = isNight; // true/false — drives the toggle display
-  S.settings.contractedHours = chrs;
-  S.settings.avgShift        = avg;
-  S.settings.defaultStart    = dstart;
-  S.settings.defaultEnd      = dend;
+  S.settings.yearsService=ys; S.settings.nightShift=ns;
+  S.settings.contractedHours=chrs; S.settings.avgShift=avg;
+  S.settings.defaultStart=dstart; S.settings.defaultEnd=dend;
 
   ensureFY(fyk);
   S.fyAllocs[fyk].hours=fyalloc;
   S.fyAllocs[fyk].startDate=fystart;
 
   persist(); initFY(); loadSettingsUI(); refresh();
-  // Re-init time dropdowns with the chosen defaults
   ['f-start','f-end','c-dstart'].forEach(id=>{const el=document.getElementById(id);if(el)popSel(el,dstart);});
   const de=document.getElementById('c-dend');if(de)popSel(de,dend);
-  closeQuickSetup();  // navigates to Settings
-  toast('Setup saved ✓  — review your settings below');
+  closeQuickSetup();
+  toast('Setup saved — you are ready to go!');
+  setTimeout(showFirstRunTooltips, 600);
 }
 
+function showFirstRunTooltips() {
+  if (localStorage.getItem('shiftbook_tooltipsDone')) return;
+  localStorage.setItem('shiftbook_tooltipsDone','1');
+  const tips=[
+    {targetId:'tab-calendar',text:'Open Calendar to view & book shifts'},
+    {targetId:'syncLbl',text:'Sign in to sync across devices'},
+    {targetId:'tab-settings',text:'Set up your rota & UK holidays here'},
+  ];
+  const layer=document.createElement('div');
+  layer.style.cssText='position:fixed;inset:0;z-index:5000;pointer-events:none';
+  document.body.appendChild(layer);
+  tips.forEach((tip,i)=>{
+    const tgt=document.getElementById(tip.targetId); if(!tgt) return;
+    const rect=tgt.getBoundingClientRect();
+    const tt=document.createElement('div');
+    tt.style.cssText=`position:fixed;background:var(--teal);color:#000;font-size:.7rem;font-weight:600;padding:5px 10px;border-radius:5px;white-space:nowrap;pointer-events:all;cursor:pointer;opacity:0;transition:opacity .3s;top:${Math.min(rect.bottom+8,window.innerHeight-40)}px;left:${Math.max(6,Math.min(rect.left,window.innerWidth-200))}px;z-index:5001`;
+    tt.textContent=tip.text+' ✕';
+    tt.onclick=()=>{tt.remove();if(!layer.children.length)layer.remove();};
+    layer.appendChild(tt);
+    setTimeout(()=>tt.style.opacity='1', i*300+200);
+  });
+  setTimeout(()=>layer.remove(), 8000);
+}
 
 function checkFirstRun() {
-  // Show setup if user has never completed it
-  if (!localStorage.getItem('shiftbook_setupDone')) {
-    setTimeout(openQuickSetup, 350);
-  }
+  const done=localStorage.getItem('shiftbook_setupDone');
+  const hasData=Object.keys(S.fyAllocs).length>0;
+  if(!done&&!hasData) setTimeout(openQuickSetup, 300);
 }
 
 checkFirstRun();
@@ -2765,6 +2682,8 @@ function _buildScrollCalAround(cy, cm) {
   calScroll.innerHTML = '';
   scrollMonths = [];
   resetPeriodTracker();
+
+  // Render 2 months before + current + 2 months after
   for (let delta = -2; delta <= 2; delta++) {
     let y = cy, m = cm + delta;
     while (m < 0)  { m += 12; y--; }
@@ -2774,68 +2693,52 @@ function _buildScrollCalAround(cy, cm) {
   }
 }
 
-/* Build with startMonth FIRST — scrollTop=0 shows that month immediately */
-function _buildCalFrom(cy, cm) {
-  const calScroll = document.getElementById('calScroll');
-  calScroll.innerHTML = '';
-  scrollMonths = [];
-  resetPeriodTracker();
-  // Render start month + 4 months ahead (no months before, so scrollTop=0 = start)
-  for (let delta = 0; delta <= 4; delta++) {
-    let y = cy, m = cm + delta;
-    while (m > 11) { m -= 12; y++; }
-    calScroll.appendChild(renderMonth(y, m));
-    scrollMonths.push({y, m});
-  }
-  calScroll.scrollTop = 0;
-}
-
 function initScrollCalendar() {
   const calScroll = document.getElementById('calScroll');
   if (!calScroll) return;
   const today = new Date();
+  _buildScrollCalAround(today.getFullYear(), today.getMonth());
 
-  // Decide which month to start from: saved month or today
-  const savedFY    = localStorage.getItem('shiftbook_calScrollFY');
-  const savedMonth = localStorage.getItem('shiftbook_calScrollMonth'); // "YYYY-M"
-  const fyStart    = getFYStartDate(curFY);
+  // Restore saved scroll position, clamped to current FY start
+  requestAnimationFrame(() => {
+    const savedFY = localStorage.getItem('shiftbook_calScrollFY');
+    const savedY  = parseInt(localStorage.getItem('shiftbook_calScrollY')||'0');
+    const fyStart = getFYStartDate(curFY);
 
-  let startY = today.getFullYear(), startM = today.getMonth();
-
-  if (savedMonth && savedFY === curFY) {
-    const parts = savedMonth.split('-');
-    const sy = parseInt(parts[0]), sm = parseInt(parts[1]);
-    // Clamp: don't restore before current FY start
-    const target = new Date(sy, sm, 1);
-    if (fyStart && target < fyStart) {
-      startY = fyStart.getFullYear();
-      startM = fyStart.getMonth();
+    // Clamp: never scroll before current FY start
+    if (fyStart && savedFY === curFY && savedY > 0) {
+      // Find FY start month div to get its minimum position
+      const fyMon = calScroll.querySelector(`.month[data-year="${fyStart.getFullYear()}"][data-month="${fyStart.getMonth()}"]`);
+      const minScroll = fyMon ? (() => {
+        const cR = calScroll.getBoundingClientRect();
+        const mR = fyMon.getBoundingClientRect();
+        return calScroll.scrollTop + (mR.top - cR.top);
+      })() : 0;
+      calScroll.scrollTop = Math.max(minScroll, savedY);
     } else {
-      startY = sy;
-      startM = sm;
+      // Default: scroll to today's month
+      const monthDiv = calScroll.querySelector(`.month[data-year="${today.getFullYear()}"][data-month="${today.getMonth()}"]`);
+      if (monthDiv) {
+        const cRect = calScroll.getBoundingClientRect();
+        const mRect = monthDiv.getBoundingClientRect();
+        calScroll.scrollTop += (mRect.top - cRect.top);
+      }
     }
-  }
-
-  // Build with the start month FIRST (delta 0..4), so scrollTop=0 lands on it
-  _buildCalFrom(startY, startM);
+  });
 
   // ── Scroll handler ──
   calScroll.addEventListener('scroll', () => {
     const scrollTop    = calScroll.scrollTop;
     const scrollHeight = calScroll.scrollHeight;
     const clientHeight = calScroll.clientHeight;
-    // Persist the topmost visible month (throttled)
+    // Persist scroll position (throttled)
     clearTimeout(calScroll._saveST);
     calScroll._saveST = setTimeout(() => {
-      const containerTop = calScroll.getBoundingClientRect().top;
-      // Find the first month whose bottom edge is below the container top
-      for (const md of calScroll.querySelectorAll('.month')) {
-        if (md.getBoundingClientRect().bottom > containerTop + 10) {
-          localStorage.setItem('shiftbook_calScrollMonth',
-            md.dataset.year + '-' + md.dataset.month);
-          localStorage.setItem('shiftbook_calScrollFY', curFY);
-          break;
-        }
+      // Save as a date string of the topmost visible month
+      const topMonth = calScroll.querySelector('.month');
+      if (topMonth) {
+        localStorage.setItem('shiftbook_calScrollY', calScroll.scrollTop);
+        localStorage.setItem('shiftbook_calScrollFY', curFY);
       }
     }, 200);
 
@@ -3014,11 +2917,12 @@ document.addEventListener('DOMContentLoaded', () => {
         <select id="qs-emptype" onchange="qsOnEmpType()">
           <option value="days">Days</option>
           <option value="nights">Nights</option>
+          <option value="mixed">Mixed / rotating</option>
         </select>
       </div>
       <div class="fr" id="qs-ns-row" style="display:none">
         <label>Night shift eligibility</label>
-        <select id="qs-ns" onchange="qsCalcSuggestion()">
+        <select id="qs-ns">
           <option value="no">Not eligible for extra allocation</option>
           <option value="yes">Eligible for extra allocation</option>
         </select>

@@ -54,34 +54,19 @@ header{background:var(--s1);border-bottom:1px solid var(--bd);height:48px;displa
 
 /* ── LAYOUT ── */
 main{padding:12px 16px;max-width:1500px;margin:0 auto;width:100%}
+body.cal-active main{padding:0;max-width:100%}
 .view{display:none}
 .view.active{display:block}
 /* When calendar is active, lock outer page scroll */
+body.cal-active{overflow:hidden}
 #view-calendar{display:none;flex-direction:column}
 #view-calendar.active{
   display:flex;
-  flex:1;           /* fills remaining height inside main flex column */
-  min-height:0;     /* allow flex child to shrink below content size */
+  height:calc(100dvh - 48px - var(--nav-h));
   overflow:hidden;
 }
-
-/* When calendar active: body locks scroll, main becomes full-height flex column */
-body.cal-active{
-  overflow:hidden;
-  height:100dvh;
-}
-body.cal-active main{
-  display:flex;
-  flex-direction:column;
-  height:calc(100dvh - 48px);        /* 48px = header */
-  overflow:hidden;
-  padding:0;
-  max-width:100%;
-}
-@media(max-width:640px){
-  body.cal-active main{
-    height:calc(100dvh - 48px - var(--nav-h));  /* subtract bottom nav on mobile */
-  }
+@media(min-width:641px){
+  #view-calendar.active{height:calc(100dvh - 48px);}
 }
 
 /* ── ALERTS ── */
@@ -387,22 +372,8 @@ body.cal-active main{
 /* ── MODAL ── */
 .mbg{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(3px);z-index:1000;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s}
 .mbg.open{opacity:1;pointer-events:all}
-/* Mobile modal: cap height, ensure buttons clear bottom nav + browser chrome */
-@media(max-width:640px){
-  .modal{
-    max-height:calc(100dvh - var(--nav-h));
-  }
-  .mbody{
-    /* nav-h + safe-area-inset-bottom (home indicator / browser chrome) + generous buffer */
-    padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom, 20px) + 24px);
-  }
-  /* Extra bottom padding on btn-row so Save button is always well above nav */
-  .btn-row{
-    padding-bottom:calc(env(safe-area-inset-bottom, 16px) + 8px);
-  }
-}
 @media(min-width:641px){.mbg{align-items:center}}
-.modal{background:var(--s1);border:1px solid var(--bd2);border-radius:12px 12px 0 0;padding:0;width:100%;max-width:520px;max-height:92dvh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,.5);transform:translateY(20px);transition:transform .22s}
+.modal{background:var(--s1);border:1px solid var(--bd2);border-radius:12px 12px 0 0;padding:0;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,.5);transform:translateY(20px);transition:transform .22s}
 .mbg.open .modal{transform:translateY(0)}
 @media(min-width:641px){.modal{border-radius:12px;box-shadow:0 24px 60px rgba(0,0,0,.6)}}
 .mhdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 0}
@@ -437,8 +408,8 @@ body.cal-active main{
 .del-cf{margin-right:auto;display:none}
 
 /* ── TOAST ── */
-#toast{position:fixed;bottom:calc(var(--nav-h) + 10px);right:14px;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:8px 13px;font-size:.78rem;box-shadow:0 4px 20px rgba(0,0,0,.4);transform:translateY(50px);opacity:0;transition:all .25s;z-index:9999;pointer-events:none}
-#toast.on{pointer-events:auto;transform:translateY(0);opacity:1}
+#toast{position:fixed;bottom:calc(var(--nav-h) + 10px);right:14px;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:8px 13px;font-size:.78rem;box-shadow:0 4px 20px rgba(0,0,0,.4);transform:translateY(50px);opacity:0;transition:all .25s;z-index:9999}
+#toast.on{transform:translateY(0);opacity:1}
 @media(min-width:641px){#toast{bottom:14px}}
 
 /* colour helpers */
@@ -451,8 +422,6 @@ body.cal-active main{
   min-height: 0;        /* critical for flex child to shrink below content size */
   overflow-y: auto;
   scroll-behavior: smooth;
-  overscroll-behavior-y: contain;  /* prevent pull-to-reveal on calendar only */
-  -webkit-overflow-scrolling: touch;
 }
 
 /* Month wrapper */
@@ -502,8 +471,6 @@ body.cal-active main{
 .sync-btn:disabled{opacity:.45;cursor:not-allowed}
 .sync-btn.syncing{border-color:var(--amber);color:var(--amber)}
 .sync-btn.synced{border-color:var(--teal);color:var(--teal)}
-.sync-btn.glow{border-color:rgba(0,200,150,.6);box-shadow:0 0 8px rgba(0,200,150,.25);animation:syncglow 2s ease-in-out infinite}
-@keyframes syncglow{0%,100%{box-shadow:0 0 4px rgba(0,200,150,.15)}50%{box-shadow:0 0 12px rgba(0,200,150,.4)}}
 .sc-sync{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);padding:14px}
 .sc-sync .sct{font-family:var(--mono);font-size:.63rem;color:var(--teal);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--bd)}
 .sync-user{font-size:.77rem;color:var(--t1);margin-bottom:9px}
@@ -514,20 +481,6 @@ body.cal-active main{
 .sync-conflict-btns{display:flex;gap:7px;margin-top:8px;flex-wrap:wrap}
 .clientid-hint{font-size:.65rem;color:var(--t4);margin-top:5px;line-height:1.5}
 .clientid-hint a{color:var(--blue);text-decoration:none}
-
-
-/* ── QUICK SETUP MODAL ── */
-.qs-modal{background:var(--s1);border:1px solid var(--bd2);border-radius:12px;padding:0;width:100%;max-width:560px;max-height:92dvh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.6)}
-.qs-hdr{padding:18px 22px 0;border-bottom:1px solid var(--bd);margin-bottom:0}
-.qs-hdr h2{font-family:var(--mono);font-size:.85rem;font-weight:600;color:var(--teal);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
-.qs-hdr p{font-size:.75rem;color:var(--t3);padding-bottom:12px}
-.qs-body{padding:16px 22px 22px}
-.qs-section{font-family:var(--mono);font-size:.6rem;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin:14px 0 7px;padding-bottom:4px;border-bottom:1px solid var(--bd)}
-.qs-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}
-.qs-row.full{grid-template-columns:1fr}
-.qs-info{background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:10px 12px;font-size:.72rem;color:var(--t2);line-height:1.6;margin-top:10px}
-.qs-info strong{color:var(--t1)}
-.qs-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:12px;border-top:1px solid var(--bd)}
 
 </style>
 </head>
@@ -618,9 +571,6 @@ body.cal-active main{
     <button class="sync-btn sync-now-btn" onclick="syncNow()" style="margin-left:auto">☁ Sync Now</button>
   </div>
 
-  <div id="calFYStrip" style="flex-shrink:0;background:var(--s2);border-bottom:1px solid var(--bd);padding:3px 10px;font-family:var(--mono);font-size:.63rem;color:var(--teal);display:flex;align-items:center;gap:8px">
-    <span id="calFYLabel">Financial Year —</span>
-  </div>
   <div id="calScroll" class="cal-scroll"></div>
 </div>
 
@@ -855,24 +805,18 @@ body.cal-active main{
 
       <div class="sc">
         <div class="sct">Reset &amp; Break Rules</div>
-        <p style="font-size:.73rem;color:var(--t2);margin-bottom:8px">Reset settings to defaults (bookings kept), or wipe everything including all bookings.</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <p style="font-size:.73rem;color:var(--t2);margin-bottom:8px">Reset all settings to defaults. Bookings and UK holidays are kept.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btnd" onclick="resetSettings()" style="font-size:.77rem;padding:7px 13px">Reset settings</button>
-          <button class="btnd" onclick="resetAll()" style="font-size:.77rem;padding:7px 13px;background:var(--redd);border-color:var(--red)">Reset ALL data</button>
           <button class="btng" onclick="openBreakRulesModal()" style="font-size:.77rem;padding:7px 13px">Break rules</button>
+          <!-- Privacy Policy Link -->
+<div class="privacy-link" style="text-align:center; margin:1rem 0;">
+  <a href="https://holiday-tracker.thecrazycat.com/privacy.html" target="_blank" 
+     style="color:#007acc; text-decoration:underline; font-size:0.9rem;">
+    Privacy Policy
+  </a>
+</div>
         </div>
-        <button class="btng" onclick="openQuickSetup()" style="font-size:.77rem;padding:7px 13px">⚙ Quick Setup</button>
-      </div>
-
-    </div>
-
-      <!-- Legal links -->
-      <div style="grid-column:span 2;padding:10px 0 2px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap;border-top:1px solid var(--bd);margin-top:4px">
-        <a href="https://holiday-tracker.thecrazycat.com/privacy" target="_blank" rel="noopener"
-           style="font-size:.68rem;color:var(--t3);text-decoration:none;font-family:var(--mono)">Privacy Policy</a>
-        <span style="color:var(--bd2);font-size:.68rem">·</span>
-        <a href="https://holiday-tracker.thecrazycat.com/terms" target="_blank" rel="noopener"
-           style="font-size:.68rem;color:var(--t3);text-decoration:none;font-family:var(--mono)">Terms &amp; Conditions</a>
       </div>
 
     </div>
@@ -916,7 +860,19 @@ body.cal-active main{
       <div class="bprow total"><span class="bk">Hours to book</span><span class="bv" id="bp-total">—</span></div>
       <div class="bprow" style="margin-top:2px"><span class="bk" style="font-size:.67rem;color:var(--t3)" id="bp-ns">—</span></div>
     </div>
-
+    <div id="customHrsFields" style="display:none">
+      <div class="fr">
+        <div style="display:flex;align-items:center;gap:7px">
+          <select id="f-hrs-h" style="width:70px;font-family:var(--mono)" onchange="onHrsOverride()"></select>
+          <span style="color:var(--t3);font-family:var(--mono)">:</span>
+          <select id="f-hrs-m" style="width:70px;font-family:var(--mono)" onchange="onHrsOverride()">
+            <option value="0">00</option><option value="15">15</option>
+            <option value="30">30</option><option value="45">45</option>
+          </select>
+          <span id="f-hrs-dec" style="font-family:var(--mono);font-size:.7rem;color:var(--t3)"></span>
+        </div>
+      </div>
+    </div>
     <div class="notice-box" id="noticeBox">⚠ Within minimum notice period (<span id="noticeDays">—</span> days away).</div>
     <div class="overlap-box" id="overlapBox">
       ⚠ Overlaps an existing booking.
@@ -1004,7 +960,12 @@ let S={
     yearsService:'gt5',nightShift:'no',contractedHours:33,avgShift:8,
     defaultStart:'23:00',defaultEnd:'07:00',
     noticeDays:28,prorata:'no',prorataStart:'',
-    rotation:Array(4).fill(null).map(()=>Array(7).fill(null).map(()=>({on:false,start:'23:00',end:'07:00'}))),
+    rotation:[
+      [{on:false,start:'23:00',end:'07:00'},{on:true,start:'23:00',end:'07:00'},{on:true,start:'23:00',end:'07:00'},{on:true,start:'23:00',end:'07:00'},{on:true,start:'23:00',end:'07:00'},{on:false,start:'23:00',end:'07:00'},{on:false,start:'23:00',end:'07:00'}],
+      [{on:false,start:'23:00',end:'07:00'},{on:true,start:'23:00',end:'07:00'},{on:true,start:'23:00',end:'07:00'},{on:true,start:'23:00',end:'07:00'},{on:true,start:'23:00',end:'07:00'},{on:false,start:'23:00',end:'07:00'},{on:false,start:'23:00',end:'07:00'}],
+      [{on:false,start:'23:00',end:'07:00'},{on:true,start:'23:00',end:'07:00'},{on:true,start:'23:00',end:'07:00'},{on:true,start:'23:00',end:'07:00'},{on:true,start:'23:00',end:'07:00'},{on:false,start:'23:00',end:'07:00'},{on:false,start:'23:00',end:'07:00'}],
+      [{on:false,start:'23:00',end:'07:00'},{on:true,start:'23:00',end:'07:00'},{on:true,start:'23:00',end:'07:00'},{on:true,start:'23:00',end:'07:00'},{on:true,start:'23:00',end:'07:00'},{on:false,start:'23:00',end:'07:00'},{on:false,start:'23:00',end:'07:00'}],
+    ],
     breakRules:[{geHrs:9,mins:45},{geHrs:8,mins:30},{geHrs:6,mins:20},{geHrs:4.5,mins:15}]
   },
   // fyAllocs: {fyKey: {hours, carryOver, startDate}}
@@ -1041,7 +1002,10 @@ function sortedByDate(arr,asc=true){
 
 const TIME_OPTS=[];for(let m=0;m<1440;m+=15)TIME_OPTS.push(fromMins(m));
 function popSel(el,val){el.innerHTML=TIME_OPTS.map(t=>`<option value="${t}"${t===val?' selected':''}>${t}</option>`).join('');}
-
+function popHH(val){
+  const el=document.getElementById('f-hrs-h');if(!el)return;el.innerHTML='';
+  for(let h=0;h<=23;h++)el.appendChild(Object.assign(document.createElement('option'),{value:h,textContent:String(h).padStart(2,'0'),selected:h===val}));
+}
 
 // ═══════════════════════════════════════
 // BREAK CALC
@@ -1058,69 +1022,6 @@ function breakNote(sh){
   return'none';
 }
 
-
-// ═══════════════════════════════════════
-// CENTRAL 52-WEEK FY ENGINE
-// ═══════════════════════════════════════
-// Anchor: Sunday 01 March 2026 = start of FY 2026-2027
-const FY_ANCHOR = new Date('2026-03-01T00:00:00'); // Must be a Sunday
-
-/**
- * getFinancialYearFromDate(date) — THE single source of truth for FY logic.
- * Returns { key, startDate, endDate, label } for any date.
- * Calculation: floor((date - anchor) / 364 days) * 364 days + anchor
- */
-function getFinancialYearFromDate(date) {
-  const d = (date instanceof Date) ? date : new Date(date + 'T00:00:00');
-  const diffMs = d.getTime() - FY_ANCHOR.getTime();
-  const diffDays = diffMs / 864e5;
-  const fyIndex = Math.floor(diffDays / 364); // can be negative for past FYs
-  const startMs = FY_ANCHOR.getTime() + fyIndex * 364 * 864e5;
-  const startDate = new Date(startMs);
-  const endDate = new Date(startMs + 363 * 864e5); // 364 days - 1
-  const startYear = startDate.getFullYear();
-  const endYear = endDate.getFullYear();
-  // Label: StartYear-EndYear (e.g. 2026-2027)
-  const key = 'FY' + startYear + '/' + String(endYear).slice(2);
-  return { key, startDate, endDate, startYear, endYear };
-}
-
-/**
- * getFYKeyForDate(dateStr) — returns just the key string (e.g. 'FY2026/27')
- * Prefers per-FY startDate overrides stored in S.fyAllocs if present,
- * otherwise falls back to 52-week engine.
- */
-function getFYKeyForDate(dateStr) {
-  const d = new Date(dateStr + 'T00:00:00');
-  // Check manually configured FY start dates first (they take precedence)
-  const keys = Object.keys(S.fyAllocs).sort();
-  let best = null;
-  for (const k of keys) {
-    const fa = S.fyAllocs[k];
-    if (!fa || !fa.startDate) continue;
-    const start = new Date(fa.startDate + 'T00:00:00');
-    if (d >= start) best = k;
-  }
-  if (best) return best;
-  // Fall back to 52-week engine
-  return getFinancialYearFromDate(d).key;
-}
-
-/**
- * getAutoFYStartDate(fyKey) — returns computed start Date for a given key
- * using 52-week engine, ignoring manual overrides.
- */
-function getAutoFYStartDate(fyKey) {
-  // Parse year from key like 'FY2026/27'
-  const yr = parseInt(fyKey.slice(2, 6));
-  if (isNaN(yr)) return null;
-  // Find the FY from anchor that has startYear === yr
-  // anchor is FY2026/27, so offset = yr - 2026
-  const offset = yr - 2026;
-  const startMs = FY_ANCHOR.getTime() + offset * 364 * 864e5;
-  return new Date(startMs);
-}
-
 // ═══════════════════════════════════════
 // PERSIST
 // ═══════════════════════════════════════
@@ -1134,8 +1035,6 @@ function loadData(){
     if(!S.bankHolidays)S.bankHolidays=[];
     if(!S.bookings)S.bookings=[];
     if(!S._lastModified)S._lastModified=new Date().toISOString();
-    // Migrate old pixel-based scroll key to new month-based key
-    localStorage.removeItem('shiftbook_calScrollY');
     if(!S.settings.breakRules)S.settings.breakRules=[{geHrs:9,mins:45},{geHrs:8,mins:30},{geHrs:6,mins:20},{geHrs:4.5,mins:15}];
     // migrate old rotation format
     if(S.settings.rotation&&S.settings.rotation[0]){
@@ -1156,7 +1055,6 @@ function loadData(){
 let _st=null;
 function autoSave(){
   readSettings();persist();
-  clearSettingsDirty();
   const f=document.getElementById('savedFlash');f.classList.add('on');
   clearTimeout(_st);_st=setTimeout(()=>f.classList.remove('on'),1600);
   initFY();refresh();
@@ -1164,52 +1062,70 @@ function autoSave(){
 }
 
 // ═══════════════════════════════════════
-// FY — wrappers around central engine
+// FY — per-FY start dates
 // ═══════════════════════════════════════
-
-/** Returns start Date for fyk, preferring manual override then engine */
 function getFYStartDate(fyk){
+  // Returns Date for the start of the given FY, using per-FY startDate if set
   const fa=S.fyAllocs[fyk];
-  if(fa&&fa.startDate) return new Date(fa.startDate+'T00:00:00');
-  return getAutoFYStartDate(fyk);
+  if(fa&&fa.startDate){return new Date(fa.startDate+'T00:00:00');}
+  // fallback: derive from FY key year + global pattern
+  return null;
 }
-
-/** All known FY keys from bookings + fyAllocs, always ascending */
+function fyKeyFromDate(ds){
+  // allFYKeys() returns ascending sort (FY2025/26, FY2026/27, ...)
+  // Walk ascending: find the last FY whose startDate is <= d
+  const d=new Date(ds+'T00:00:00');
+  const keys=allFYKeys(); // ascending
+  let best=null;
+  for(let i=0;i<keys.length;i++){
+    const k=keys[i];
+    const fa=S.fyAllocs[k];if(!fa||!fa.startDate)continue;
+    const start=new Date(fa.startDate+'T00:00:00');
+    if(d>=start) best=k; // keep updating — last one that fits is the answer
+  }
+  return best||curFY||keys[keys.length-1]||'FY2026/27';
+}
+function fyKey(ds){return fyKeyFromDate(ds);}
+function curFYKey(){
+  return fyKeyFromDate(dstr(new Date()));
+}
+function fyRange(fyk){
+  // Use per-FY start date + next FY's start date - 1
+  const fa=S.fyAllocs[fyk];
+  const keys=allFYKeys().sort(); // asc
+  const idx=keys.indexOf(fyk);
+  let start,end;
+  if(fa&&fa.startDate){
+    start=new Date(fa.startDate+'T00:00:00');
+  } else {
+    // fallback
+    const yr=parseInt(fyk.slice(2,6));
+    start=new Date(yr,3,1);
+  }
+  // end = next FY start - 1 day
+  const nextKey=keys[idx+1];
+  if(nextKey&&S.fyAllocs[nextKey]&&S.fyAllocs[nextKey].startDate){
+    end=new Date(S.fyAllocs[nextKey].startDate+'T00:00:00');
+    end.setDate(end.getDate()-1);
+  } else {
+    // end = 1 year after start - 1 day
+    end=new Date(start);end.setFullYear(end.getFullYear()+1);end.setDate(end.getDate()-1);
+  }
+  return{start,end};
+}
 function allFYKeys(){
   const keys=new Set([...S.bookings.map(b=>b.fyKey)].filter(Boolean));
   Object.keys(S.fyAllocs).forEach(k=>keys.add(k));
-  if(keys.size===0){
-    // Bootstrap from engine
-    keys.add(getFinancialYearFromDate(new Date()).key);
-  }
+  if(keys.size===0)keys.add('FY2026/27');
   return[...keys].sort();
-}
-
-/** Key for any date string — uses manual overrides first, then engine */
-function fyKeyFromDate(ds){ return getFYKeyForDate(ds); }
-function fyKey(ds){ return getFYKeyForDate(ds); }
-function curFYKey(){ return getFYKeyForDate(dstr(new Date())); }
-
-/** Start+end range for a given FY key */
-function fyRange(fyk){
-  const start=getFYStartDate(fyk)||new Date();
-  // end = 364 days after start - 1 day = start + 363 days
-  const end=new Date(start.getTime()+363*864e5);
-  return{start,end};
 }
 function ensureFY(fyk){
   if(!S.fyAllocs[fyk]){
     const ns=S.settings.nightShift==='auto'?'no':S.settings.nightShift;
-    // Auto-compute start date from engine
-    const autoStart=getAutoFYStartDate(fyk);
-    const startDate=autoStart?dstr(autoStart):'';
-    S.fyAllocs[fyk]={hours:allocLookup(S.settings.contractedHours,S.settings.yearsService,ns),carryOver:0,startDate};
+    S.fyAllocs[fyk]={hours:allocLookup(S.settings.contractedHours,S.settings.yearsService,ns),carryOver:0,startDate:''};
     persist();
   }
-  if(!S.fyAllocs[fyk].hasOwnProperty('startDate')){
-    const autoStart=getAutoFYStartDate(fyk);
-    S.fyAllocs[fyk].startDate=autoStart?dstr(autoStart):'';
-  }
+  if(!S.fyAllocs[fyk].hasOwnProperty('startDate'))S.fyAllocs[fyk].startDate='';
 }
 function getFYAlloc(fyk){ensureFY(fyk);return(parseFloat(S.fyAllocs[fyk].hours)||0)+(parseFloat(S.fyAllocs[fyk].carryOver)||0);}
 function initFY(){
@@ -1650,6 +1566,9 @@ function openEdit(id){
   document.getElementById('delCf').style.display='none';
   document.getElementById('overlapBox').style.display='none';
   setMode(b.mode||'custom');onStatusChg();
+  const hh=Math.floor(b.hoursBooked),mm=Math.round((b.hoursBooked-hh)*60);
+  popHH(hh);document.getElementById('f-hrs-m').value=mm;
+  document.getElementById('f-hrs-dec').textContent='('+toDecStr(b.hoursBooked)+')';
   onTimeChg();onDateChg();
   document.getElementById('mbg').classList.add('open');
 }
@@ -1661,7 +1580,8 @@ function setMode(mode){
   document.getElementById('modeA').classList.toggle('on',mode==='full');
   document.getElementById('modeB').classList.toggle('on',mode==='custom');
   document.getElementById('customTimeFields').style.display=mode==='custom'?'block':'none';
-  const _chf=document.getElementById('customHrsFields');if(_chf)_chf.style.display=mode==='custom'?'block':'none';
+  const ch = document.getElementById('customHrsFields');
+if (ch) ch.style.display = 'none';
   onDateChg();
 }
 function onDateChg(){
@@ -1700,13 +1620,19 @@ function onTimeChg(){
   document.getElementById('bp-total').textContent=hhmm(booked)+' ('+toDecStr(booked)+')';
   const nsElig=S.settings.nightShift==='auto'?sh>=(S.settings.avgShift||8):S.settings.nightShift==='yes';
   document.getElementById('bp-ns').textContent='Night shift: '+(nsElig?'eligible for extra allocation':'not eligible');
+  popHH(Math.floor(booked));
+  document.getElementById('f-hrs-m').value=Math.round((booked-Math.floor(booked))*60);
+  document.getElementById('f-hrs-dec').textContent='('+toDecStr(booked)+')';
   checkOverlap();
 }
-
+function onHrsOverride(){
+  const hh=parseInt(document.getElementById('f-hrs-h').value)||0,mm=parseInt(document.getElementById('f-hrs-m').value)||0;
+  document.getElementById('f-hrs-dec').textContent='('+toDecStr((hh*60+mm)/60)+')';
+}
 function getBookedHrs(){
-  // Always derive from time selectors — custom override fields removed
-  const{booked}=bookedHrs(document.getElementById('f-start').value,document.getElementById('f-end').value);
-  return booked;
+  if(bookingMode==='full'){const{booked}=bookedHrs(document.getElementById('f-start').value,document.getElementById('f-end').value);return booked;}
+  const hh=parseInt(document.getElementById('f-hrs-h').value)||0,mm=parseInt(document.getElementById('f-hrs-m').value)||0;
+  return(hh*60+mm)/60;
 }
 function onStatusChg(){document.getElementById('remRow').style.display=document.getElementById('f-status').value==='planned'?'block':'none';}
 function updateAllocMini(){
@@ -1742,7 +1668,6 @@ function readSettings(){
   c.yearEndWarnWeeks=parseInt(document.getElementById('c-yeW').value)||8;
   c.yearsService=document.getElementById('c-ys').value;
   c.nightShift=document.getElementById('c-ns').value;
-  c.isNightWorker=document.getElementById('c-ns-toggle').checked;
   c.contractedHours=parseFloat(document.getElementById('c-chrs').value)||33;
   const avgh=parseInt(document.getElementById('c-avgh').value)||8,avgm=parseInt(document.getElementById('c-avgm').value)||0;
   c.avgShift=(avgh*60+avgm)/60;
@@ -1757,8 +1682,8 @@ function loadSettingsUI(){
   document.getElementById('c-yeW').value=c.yearEndWarnWeeks||8;
   document.getElementById('c-ys').value=c.yearsService;
   document.getElementById('c-ns').value=c.nightShift||'no';
-  // night shift toggle — on if isNightWorker=true OR nightShift is 'yes'
-  const nsOn=c.isNightWorker===true||(c.nightShift&&c.nightShift!=='no');
+  // night shift toggle — on if nightShift is not 'no'
+  const nsOn=c.nightShift&&c.nightShift!=='no';
   document.getElementById('c-ns-toggle').checked=nsOn;
   document.getElementById('nsSub').classList.toggle('dim',!nsOn);
   document.getElementById('c-chrs').value=c.contractedHours;
@@ -1797,19 +1722,7 @@ function calcSuggest(){
   const ys=document.getElementById('c-ys').value,ns=document.getElementById('c-ns').value==='auto'?'no':document.getElementById('c-ns').value;
   const sugg=allocLookup(chrs,ys,ns);
   const rn=(ys==='gt5')?(ns==='yes'?'≥5yrs night':'≥5yrs day'):(ns==='yes'?'<5yrs night':'<5yrs day');
-  // Check if current FY allocation differs from suggestion
-  const curAlloc=parseFloat((S.fyAllocs[curFY]||{}).hours)||0;
-  const showUpdate=(curAlloc>0&&curAlloc!==sugg);
-  document.getElementById('sugBox').innerHTML=
-    `Suggested: <span class="big">${sugg}h</span><br><small>${rn} · ${chrs}h/wk</small>`+
-    (showUpdate?`<br><button class="btng" onclick="applyAllocSuggestion(${sugg})" style="font-size:.7rem;padding:3px 9px;margin-top:5px">↑ Update ${curFY} allocation to ${sugg}h</button>`:'');
-}
-function applyAllocSuggestion(hrs){
-  if(!S.fyAllocs[curFY])ensureFY(curFY);
-  S.fyAllocs[curFY].hours=hrs;
-  persist();renderFYAllocTable();updateStats();
-  calcSuggest();
-  toast('Allocation for '+curFY+' updated to '+hrs+'h');
+  document.getElementById('sugBox').innerHTML=`Suggested: <span class="big">${sugg}h</span><br><small>${rn} · ${chrs}h/wk — override in allocation table</small>`;
 }
 function toggleProRata(){document.getElementById('prSection').style.display=document.getElementById('c-prorata').value==='yes'?'block':'none';}
 function calcProRata(){
@@ -1823,13 +1736,14 @@ function calcProRata(){
 
 // FY alloc table — now with startDate per FY
 function nextFYStartDate(fromDateStr){
+  // Given a Sunday start date string, return the date 52 weeks later as YYYY-MM-DD
   if(!fromDateStr) return '';
   const d=new Date(fromDateStr+'T00:00:00');
   if(isNaN(d.getTime())) return '';
-  // Get the FY that contains this date, then get the NEXT FY's start
-  const thisFY=getFinancialYearFromDate(d);
-  const nextStart=new Date(thisFY.startDate.getTime()+364*864e5);
-  return dstr(nextStart);
+  d.setDate(d.getDate()+364); // 52 weeks = 364 days
+  // Ensure it lands on a Sunday (should already, but guard)
+  while(d.getDay()!==0) d.setDate(d.getDate()+1);
+  return dstr(d);
 }
 
 function renderFYAllocTable(){
@@ -2008,25 +1922,6 @@ function exportICS(){
   a.download='shiftbook_'+curFY.replace('/','_')+'.ics';a.click();toast('ICS exported');
 }
 
-function resetAll(){
-  if(!confirm('RESET ALL DATA?\n\nThis permanently deletes ALL bookings, FY allocations, and settings.\nThis cannot be undone.'))return;
-  if(!confirm('Are you sure? All your bookings will be lost.'))return;
-  S={
-    settings:{
-      yearEndWarnWeeks:8,yearsService:'gt5',nightShift:'no',contractedHours:33,avgShift:8,
-      defaultStart:'23:00',defaultEnd:'07:00',noticeDays:28,prorata:'no',prorataStart:'',
-      breakRules:[{geHrs:9,mins:45},{geHrs:8,mins:30},{geHrs:6,mins:20},{geHrs:4.5,mins:15}],
-      rotation:Array(4).fill(null).map(()=>Array(7).fill(null).map(()=>({on:false,start:'23:00',end:'07:00'})))
-    },
-    fyAllocs:{},bankHolidays:[],bookings:[]
-  };
-  localStorage.removeItem('shiftbook_setupDone');
-  localStorage.removeItem('shiftbook_calScrollY');
-  localStorage.removeItem('shiftbook_calScrollFY');
-  persist();
-  location.reload();
-}
-
 function resetSettings(){
   if(!confirm('Reset all settings to defaults? Bookings and UK holidays are kept.'))return;
 
@@ -2054,27 +1949,14 @@ function resetSettings(){
     )
   };
 
-  // Clear setup flag so Quick Setup can be re-run
-  localStorage.removeItem('shiftbook_setupDone');
-
   persist();
   loadSettingsUI();
   refresh();
-  toast('Settings reset — opening Quick Setup…');
-  setTimeout(openQuickSetup, 400);
+  toast('Settings reset to defaults');
 }
 
 // VIEWS
 function showView(name){
-  // Unsaved settings guard — inline check, no wrapper needed
-  if(_settingsDirty && name !== 'settings'){
-    if(!confirm('You have unsaved settings changes.\n\nContinue without saving?')){
-      return;
-    }
-    loadSettingsUI(); // discard changes
-  }
-  clearSettingsDirty();
-
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.querySelectorAll('.nb,.mnb').forEach(b=>b.classList.remove('on'));
   document.getElementById('view-'+name).classList.add('active');
@@ -2102,142 +1984,9 @@ loadData();
 // init time selects
 ['f-start','f-end','c-dstart','c-dend'].forEach(id=>{const el=document.getElementById(id);if(el)popSel(el,S.settings.defaultStart||'23:00');});
 popSel(document.getElementById('c-dend'),S.settings.defaultEnd||'07:00');
+popHH(7);
 initFY();loadSettingsUI();renderDash();updateStats();renderAlerts();
 document.getElementById('bhBtn').classList.add('on');
-
-// ═══════════════════════════════════════════════════════
-// QUICK SETUP
-// ═══════════════════════════════════════════════════════
-
-function openQuickSetup() {
-  // Populate avg shift hour select
-  const avghEl = document.getElementById('qs-avgh');
-  if (!avghEl.children.length) {
-    for (let h = 0; h <= 23; h++) {
-      const o = document.createElement('option');
-      o.value = h; o.textContent = String(h).padStart(2,'0');
-      if (h === 8) o.selected = true;
-      avghEl.appendChild(o);
-    }
-  }
-  // Reset to Days defaults
-  const empSel = document.getElementById('qs-emptype');
-  empSel.value = 'days';
-  document.getElementById('qs-ns-row').style.display = 'none';
-  document.getElementById('qs-ns').value = 'no';
-  document.getElementById('qs-yrs').value = S.settings.yearsService || 'gt5';
-
-  // Use existing settings as defaults if already set
-  const existingStart = S.settings.defaultStart;
-  const existingEnd   = S.settings.defaultEnd;
-  popSel(document.getElementById('qs-dstart'), existingStart || '07:00');
-  popSel(document.getElementById('qs-dend'),   existingEnd   || '15:00');
-
-  // Set FY from engine
-  const fyInfo = getFinancialYearFromDate(new Date());
-  document.getElementById('qs-fyk').value = fyInfo.key;
-  document.getElementById('qs-fystart').value = dstr(fyInfo.startDate);
-
-  // Reset user-edited flag on allocation input
-  const allocEl = document.getElementById('qs-fyalloc');
-  if (allocEl) allocEl._userEdited = false;
-
-  qsCalcSuggestion();
-  document.getElementById('qsMbg').classList.add('open');
-}
-
-function closeQuickSetup() {
-  document.getElementById('qsMbg').classList.remove('open');
-  localStorage.setItem('shiftbook_setupDone', '1');
-  // Always switch to Settings so user can review/complete their profile
-  showView('settings');
-}
-
-function qsOnEmpType() {
-  const v = document.getElementById('qs-emptype').value;
-  const isNight = (v === 'nights');
-  const nsRow = document.getElementById('qs-ns-row');
-  nsRow.style.display = isNight ? '' : 'none';
-  // Days: force ns eligibility to not eligible
-  if (!isNight) {
-    const nsEl = document.getElementById('qs-ns');
-    if (nsEl) nsEl.value = 'no';
-  }
-  // Set default shift times
-  document.getElementById('qs-dstart').value = isNight ? '23:00' : '07:00';
-  document.getElementById('qs-dend').value   = isNight ? '07:00' : '15:00';
-  qsCalcSuggestion();
-}
-
-function qsCalcSuggestion() {
-  const chrs = parseFloat(document.getElementById('qs-chrs').value)||33;
-  const ys   = document.getElementById('qs-yrs').value;
-  const nsEl = document.getElementById('qs-ns');
-  const ns   = nsEl ? nsEl.value : 'no';
-  const sugg = allocLookup(chrs, ys, ns);
-  const el   = document.getElementById('qs-sugg');
-  if (el) el.textContent = sugg + 'h';
-  const allocEl = document.getElementById('qs-fyalloc');
-  if (allocEl && !allocEl._userEdited) allocEl.value = sugg;
-}
-
-function saveQuickSetup() {
-  const emptype = document.getElementById('qs-emptype').value;
-  const isNight = (emptype === 'nights');
-  const nsEl    = document.getElementById('qs-ns');
-  const ns      = (isNight && nsEl) ? (nsEl.value||'no') : 'no';
-  const ys      = document.getElementById('qs-yrs').value;
-  const chrs    = parseFloat(document.getElementById('qs-chrs').value)||33;
-  const avgh    = parseInt(document.getElementById('qs-avgh').value)||8;
-  const avgm    = parseInt(document.getElementById('qs-avgm').value)||0;
-  const avg     = (avgh*60+avgm)/60;
-  const dstart  = document.getElementById('qs-dstart').value;
-  const dend    = document.getElementById('qs-dend').value;
-  const fyk     = document.getElementById('qs-fyk').value;
-  const fystart = document.getElementById('qs-fystart').value;
-  const fyalloc = parseFloat(document.getElementById('qs-fyalloc').value)||allocLookup(chrs,ys,ns);
-
-  S.settings.yearsService    = ys;
-  // nightShift: 'yes' = night worker eligible, 'no' = not night worker / not eligible
-  // Settings page toggle shows when nightShift !== 'no'
-  // If nights + eligible → 'yes'; if nights + not eligible → we still enable toggle but set 'no'
-  // Use a special approach: nights+not-eligible maps to a night toggle ON but eligibility 'no'
-  // The toggle state = isNight; eligibility select = ns
-  // The simplest mapping: store nightShift as ns ('yes' or 'no')
-  // AND store a separate flag for the toggle so loadSettingsUI shows it correctly
-  S.settings.nightShift      = ns; // 'yes' or 'no'
-  S.settings.isNightWorker   = isNight; // true/false — drives the toggle display
-  S.settings.contractedHours = chrs;
-  S.settings.avgShift        = avg;
-  S.settings.defaultStart    = dstart;
-  S.settings.defaultEnd      = dend;
-
-  ensureFY(fyk);
-  S.fyAllocs[fyk].hours=fyalloc;
-  S.fyAllocs[fyk].startDate=fystart;
-
-  persist(); initFY(); loadSettingsUI(); refresh();
-  // Re-init time dropdowns with the chosen defaults
-  ['f-start','f-end','c-dstart'].forEach(id=>{const el=document.getElementById(id);if(el)popSel(el,dstart);});
-  const de=document.getElementById('c-dend');if(de)popSel(de,dend);
-  closeQuickSetup();  // navigates to Settings
-  toast('Setup saved ✓  — review your settings below');
-}
-
-
-function checkFirstRun() {
-  // Show setup if user has never completed it
-  if (!localStorage.getItem('shiftbook_setupDone')) {
-    setTimeout(openQuickSetup, 350);
-  }
-}
-
-checkFirstRun();
-
-// ── Unsaved settings warning ──
-let _settingsDirty = false;
-function markSettingsDirty(){ _settingsDirty = true; }
-function clearSettingsDirty(){ _settingsDirty = false; }
 
 // ═══════════════════════════════════════════════════════
 // GOOGLE DRIVE SYNC
@@ -2258,7 +2007,7 @@ function getDeviceId(){
 // → Credentials → OAuth 2.0 Client ID (Web application)
 // Authorised JavaScript origins: https://yourdomain.com
 // ─────────────────────────────────────────────────────────
-const GOOGLE_CLIENT_ID = '836524430218-ogmqnbndtugsv6gbc74nsle3iufipgjn.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = '836524430218-ogmqnbndtugsv6gbc74nsle3iufipgjn.apps.googleusercontent.com';  // ← PASTE YOUR CLIENT ID HERE
 
 function getClientId(){ return GOOGLE_CLIENT_ID; }
 
@@ -2276,8 +2025,7 @@ const Sync={
     if(lbl) lbl.textContent=msg||labels[s]||'☁';
     btns.forEach(b=>{
       b.disabled=(s==='syncing');
-      const glowClass=(s==='idle'&&this.userEmail)?'glow':'';
-      b.className='sync-btn sync-now-btn '+(s==='syncing'?'syncing':s==='synced'?'synced':glowClass);
+      b.className='sync-btn sync-now-btn '+(s==='syncing'?'syncing':s==='synced'?'synced':'');
       b.textContent=s==='syncing'?'☁ Syncing…':'☁ Sync Now';
     });
     const lastEl=document.getElementById('syncLastTime');
@@ -2422,16 +2170,19 @@ async function uploadToDrive(payload){
 }
 
 function showConflict(driveData,onKeepDrive,onKeepLocal){
-  document.getElementById('conflictLocalTime').textContent=
-    new Date(S._lastModified||0).toLocaleString('en-GB');
-  document.getElementById('conflictCloudTime').textContent=
-    new Date(driveData.lastModified||0).toLocaleString('en-GB');
-  document.getElementById('conflictMbg').classList.add('open');
-  document.getElementById('conflictBtnCloud').onclick=()=>{closeConflictModal();onKeepDrive();};
-  document.getElementById('conflictBtnLocal').onclick=()=>{closeConflictModal();onKeepLocal();};
-}
-function closeConflictModal(){
-  document.getElementById('conflictMbg').classList.remove('open');
+  const el=document.getElementById('syncConflict');
+  if(!el){onKeepDrive();return;}
+  document.getElementById('syncConflictDriveTime').textContent=new Date(driveData.lastModified||0).toLocaleString('en-GB');
+  document.getElementById('syncConflictLocalTime').textContent=new Date(S._lastModified||0).toLocaleString('en-GB');
+  // Switch to settings so the user can see the conflict UI
+  showView('settings');
+  // Small delay so the view transition completes before scrolling
+  setTimeout(()=>{
+    el.classList.add('on');
+    el.scrollIntoView({behavior:'smooth',block:'center'});
+  },120);
+  document.getElementById('btnConflictDrive').onclick=()=>{el.classList.remove('on');onKeepDrive();};
+  document.getElementById('btnConflictLocal').onclick=()=>{el.classList.remove('on');onKeepLocal();};
 }
 
 function _markSynced(){
@@ -2717,20 +2468,18 @@ function updateFYOnScroll(calScroll) {
   const monthDivs = calScroll.querySelectorAll('.month');
   for (const monthDiv of monthDivs) {
     const rect = monthDiv.getBoundingClientRect();
+    // First month whose bottom is below the container top = topmost visible month
     if (rect.bottom > containerTop + 10) {
       const fy = monthDiv.dataset.fy;
-      if (fy) {
-        // Update calendar FY strip always
-        const strip = document.getElementById('calFYLabel');
-        if (strip) strip.textContent = 'Financial Year ' + fy.replace('FY','').replace('/','–');
-        if (fy !== curFY) {
-          curFY = fy;
-          const fyPill   = document.getElementById('fyPill');
-          if (fyPill) fyPill.textContent = fy;
-          populateFYSel();
-          updateStats();
-          renderAlerts();
-        }
+      if (fy && fy !== curFY) {
+        curFY = fy;
+        const fyPill   = document.getElementById('fyPill');
+        const fySelect = document.getElementById('fySelect');
+        if (fyPill) fyPill.textContent = fy;
+        // Re-populate so the correct option is marked selected
+        populateFYSel();
+        updateStats();
+        renderAlerts();
       }
       break;
     }
@@ -2765,6 +2514,8 @@ function _buildScrollCalAround(cy, cm) {
   calScroll.innerHTML = '';
   scrollMonths = [];
   resetPeriodTracker();
+
+  // Render 2 months before + current + 2 months after
   for (let delta = -2; delta <= 2; delta++) {
     let y = cy, m = cm + delta;
     while (m < 0)  { m += 12; y--; }
@@ -2774,70 +2525,27 @@ function _buildScrollCalAround(cy, cm) {
   }
 }
 
-/* Build with startMonth FIRST — scrollTop=0 shows that month immediately */
-function _buildCalFrom(cy, cm) {
-  const calScroll = document.getElementById('calScroll');
-  calScroll.innerHTML = '';
-  scrollMonths = [];
-  resetPeriodTracker();
-  // Render start month + 4 months ahead (no months before, so scrollTop=0 = start)
-  for (let delta = 0; delta <= 4; delta++) {
-    let y = cy, m = cm + delta;
-    while (m > 11) { m -= 12; y++; }
-    calScroll.appendChild(renderMonth(y, m));
-    scrollMonths.push({y, m});
-  }
-  calScroll.scrollTop = 0;
-}
-
 function initScrollCalendar() {
   const calScroll = document.getElementById('calScroll');
   if (!calScroll) return;
   const today = new Date();
+  _buildScrollCalAround(today.getFullYear(), today.getMonth());
 
-  // Decide which month to start from: saved month or today
-  const savedFY    = localStorage.getItem('shiftbook_calScrollFY');
-  const savedMonth = localStorage.getItem('shiftbook_calScrollMonth'); // "YYYY-M"
-  const fyStart    = getFYStartDate(curFY);
-
-  let startY = today.getFullYear(), startM = today.getMonth();
-
-  if (savedMonth && savedFY === curFY) {
-    const parts = savedMonth.split('-');
-    const sy = parseInt(parts[0]), sm = parseInt(parts[1]);
-    // Clamp: don't restore before current FY start
-    const target = new Date(sy, sm, 1);
-    if (fyStart && target < fyStart) {
-      startY = fyStart.getFullYear();
-      startM = fyStart.getMonth();
-    } else {
-      startY = sy;
-      startM = sm;
+  // Scroll to today's month — use rAF so layout is complete
+  requestAnimationFrame(() => {
+    const monthDiv = calScroll.querySelector(`.month[data-year="${today.getFullYear()}"][data-month="${today.getMonth()}"]`);
+    if (monthDiv) {
+      const cRect = calScroll.getBoundingClientRect();
+      const mRect = monthDiv.getBoundingClientRect();
+      calScroll.scrollTop += (mRect.top - cRect.top);
     }
-  }
-
-  // Build with the start month FIRST (delta 0..4), so scrollTop=0 lands on it
-  _buildCalFrom(startY, startM);
+  });
 
   // ── Scroll handler ──
   calScroll.addEventListener('scroll', () => {
     const scrollTop    = calScroll.scrollTop;
     const scrollHeight = calScroll.scrollHeight;
     const clientHeight = calScroll.clientHeight;
-    // Persist the topmost visible month (throttled)
-    clearTimeout(calScroll._saveST);
-    calScroll._saveST = setTimeout(() => {
-      const containerTop = calScroll.getBoundingClientRect().top;
-      // Find the first month whose bottom edge is below the container top
-      for (const md of calScroll.querySelectorAll('.month')) {
-        if (md.getBoundingClientRect().bottom > containerTop + 10) {
-          localStorage.setItem('shiftbook_calScrollMonth',
-            md.dataset.year + '-' + md.dataset.month);
-          localStorage.setItem('shiftbook_calScrollFY', curFY);
-          break;
-        }
-      }
-    }, 200);
 
     // Append next month when near bottom
     if (scrollTop + clientHeight > scrollHeight - 200) {
@@ -2949,18 +2657,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Re-populate whenever FY settings change
   window._populateJumpSel = populateJumpSel;
 
-  // Dirty settings tracking — event delegation on settings view
-  const settingsView = document.getElementById('view-settings');
-  if (settingsView) {
-    settingsView.addEventListener('input', e => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
-        // Don't mark dirty for elements that immediately call autoSave
-        const noAutoSave = !e.target.getAttribute('onchange') && !e.target.getAttribute('oninput');
-        if (noAutoSave) markSettingsDirty();
-      }
-    });
-  }
-
   // Restore last view
   const lastView = window._restoreView;
   if (lastView && lastView !== 'dash') showView(lastView);
@@ -2997,137 +2693,6 @@ document.addEventListener('DOMContentLoaded', () => {
 /* end scroll calendar */
 
 </script>
-
-
-<!-- QUICK SETUP MODAL -->
-<div class="mbg" id="qsMbg" style="z-index:1500;align-items:center">
-<div class="qs-modal">
-  <div class="qs-hdr">
-    <h2>👋 Welcome to ShiftBook</h2>
-    <p>Let's set up your profile. You can change everything later in Settings.</p>
-  </div>
-  <div class="qs-body">
-    <div class="qs-section">Employment Type</div>
-    <div class="qs-row">
-      <div class="fr">
-        <label>Shift pattern</label>
-        <select id="qs-emptype" onchange="qsOnEmpType()">
-          <option value="days">Days</option>
-          <option value="nights">Nights</option>
-        </select>
-      </div>
-      <div class="fr" id="qs-ns-row" style="display:none">
-        <label>Night shift eligibility</label>
-        <select id="qs-ns" onchange="qsCalcSuggestion()">
-          <option value="no">Not eligible for extra allocation</option>
-          <option value="yes">Eligible for extra allocation</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="qs-section">Contract</div>
-    <div class="qs-row">
-      <div class="fr">
-        <label>Years of service</label>
-        <select id="qs-yrs" onchange="qsCalcSuggestion()">
-          <option value="lt5">Less than 5 years</option>
-          <option value="gt5" selected>5 years or more</option>
-        </select>
-      </div>
-      <div class="fr">
-        <label>Contracted hours / week</label>
-        <input type="number" id="qs-chrs" value="33" oninput="qsCalcSuggestion()" min="1" max="60" step="0.5">
-      </div>
-    </div>
-    <div class="qs-row">
-      <div class="fr">
-        <label>Avg shift length</label>
-        <div style="display:flex;align-items:center;gap:6px">
-          <select id="qs-avgh" style="width:70px;font-family:var(--mono)"></select>
-          <span style="color:var(--t3);font-family:var(--mono)">h</span>
-          <select id="qs-avgm" style="width:70px;font-family:var(--mono)">
-            <option value="0">00</option><option value="15">15</option>
-            <option value="30">30</option><option value="45">45</option>
-          </select>
-          <span style="color:var(--t3);font-family:var(--mono)">m</span>
-        </div>
-      </div>
-      <div class="fr" id="qs-alloc-row">
-        <label>Suggested allocation</label>
-        <div id="qs-sugg" style="font-family:var(--mono);font-size:1rem;color:var(--teal);padding-top:6px">—</div>
-      </div>
-    </div>
-
-    <div class="qs-section">Shift Defaults</div>
-    <div class="qs-row" id="qs-shift-times">
-      <div class="fr">
-        <label>Default start</label>
-        <select id="qs-dstart" style="font-family:var(--mono)"></select>
-      </div>
-      <div class="fr">
-        <label>Default end</label>
-        <select id="qs-dend" style="font-family:var(--mono)"></select>
-      </div>
-    </div>
-
-    <div class="qs-section">Financial Year</div>
-    <div class="qs-row">
-      <div class="fr">
-        <label>FY label</label>
-        <input type="text" id="qs-fyk" readonly style="font-family:var(--mono);background:var(--s3);cursor:default">
-      </div>
-      <div class="fr">
-        <label>FY start date (auto-calculated)</label>
-        <input type="date" id="qs-fystart">
-      </div>
-    </div>
-    <div class="fr">
-      <label>Allocation hours</label>
-      <input type="number" id="qs-fyalloc" oninput="this._userEdited=true" step="0.5" min="0">
-      <span class="hint">Auto-filled from suggestion above — editable</span>
-    </div>
-
-    <div class="qs-info">
-      <strong>4-week rota</strong> — set your shift pattern in Settings → 4-Week Shift Rotation after setup.<br>
-      <strong>UK holidays</strong> — add via Settings → UK Holidays → click year buttons.<br>
-      <strong>Google Sync</strong> — sign in via Settings → Cloud Sync to sync between devices.<br>
-      <strong>Import / Export</strong> — use Settings → Data to back up or restore your data.
-    </div>
-
-    <div class="qs-footer">
-      <button class="btn btng" onclick="closeQuickSetup()">Skip for now</button>
-      <button class="btn btnp" onclick="saveQuickSetup()">Save &amp; Start</button>
-    </div>
-  </div>
-</div>
-</div>
-
-<!-- SYNC CONFLICT MODAL -->
-<div class="mbg" id="conflictMbg" style="z-index:2000">
-<div class="modal" style="max-width:420px">
-  <div class="mhdr">
-    <h2>☁ Sync Conflict</h2>
-  </div>
-  <div class="mbody">
-    <p style="font-size:.77rem;color:var(--t2);margin-bottom:12px">Both devices have changes. Choose which version to keep:</p>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-      <div style="background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:10px;font-size:.73rem">
-        <div style="font-family:var(--mono);font-size:.6rem;color:var(--t3);margin-bottom:4px;text-transform:uppercase">Local version</div>
-        <div id="conflictLocalTime" style="font-family:var(--mono);color:var(--t1)">—</div>
-      </div>
-      <div style="background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:10px;font-size:.73rem">
-        <div style="font-family:var(--mono);font-size:.6rem;color:var(--t3);margin-bottom:4px;text-transform:uppercase">Cloud version</div>
-        <div id="conflictCloudTime" style="font-family:var(--mono);color:var(--teal)">—</div>
-      </div>
-    </div>
-    <div class="btn-row" style="margin-top:0">
-      <button class="btn btng" id="conflictBtnCancel" onclick="closeConflictModal()">Cancel</button>
-      <button class="btn btng" id="conflictBtnLocal" style="border-color:var(--grey);color:var(--grey)">Keep Local</button>
-      <button class="btn btnp" id="conflictBtnCloud">Use Cloud</button>
-    </div>
-  </div>
-</div>
-</div>
 
 <script src="https://accounts.google.com/gsi/client" async defer onload="window._onGISLoad&&window._onGISLoad()"></script>
 </body>

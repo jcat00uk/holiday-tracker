@@ -387,18 +387,13 @@ body.cal-active main{
 /* ── MODAL ── */
 .mbg{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(3px);z-index:1000;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s}
 .mbg.open{opacity:1;pointer-events:all}
-/* Mobile modal: cap height, ensure buttons clear bottom nav + browser chrome */
+/* Mobile modal: cap height to exclude bottom nav, pad bottom so buttons clear the nav */
 @media(max-width:640px){
   .modal{
     max-height:calc(100dvh - var(--nav-h));
   }
   .mbody{
-    /* nav-h + safe-area-inset-bottom (home indicator / browser chrome) + generous buffer */
-    padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom, 20px) + 24px);
-  }
-  /* Extra bottom padding on btn-row so Save button is always well above nav */
-  .btn-row{
-    padding-bottom:calc(env(safe-area-inset-bottom, 16px) + 8px);
+    padding-bottom:calc(var(--nav-h) * 2);  /* generous clearance above bottom nav */
   }
 }
 @media(min-width:641px){.mbg{align-items:center}}
@@ -437,8 +432,8 @@ body.cal-active main{
 .del-cf{margin-right:auto;display:none}
 
 /* ── TOAST ── */
-#toast{position:fixed;bottom:calc(var(--nav-h) + 10px);right:14px;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:8px 13px;font-size:.78rem;box-shadow:0 4px 20px rgba(0,0,0,.4);transform:translateY(50px);opacity:0;transition:all .25s;z-index:9999;pointer-events:none}
-#toast.on{pointer-events:auto;transform:translateY(0);opacity:1}
+#toast{position:fixed;bottom:calc(var(--nav-h) + 10px);right:14px;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:8px 13px;font-size:.78rem;box-shadow:0 4px 20px rgba(0,0,0,.4);transform:translateY(50px);opacity:0;transition:all .25s;z-index:9999}
+#toast.on{transform:translateY(0);opacity:1}
 @media(min-width:641px){#toast{bottom:14px}}
 
 /* colour helpers */
@@ -2765,6 +2760,8 @@ function _buildScrollCalAround(cy, cm) {
   calScroll.innerHTML = '';
   scrollMonths = [];
   resetPeriodTracker();
+
+  // Render 2 months before + current + 2 months after
   for (let delta = -2; delta <= 2; delta++) {
     let y = cy, m = cm + delta;
     while (m < 0)  { m += 12; y--; }
@@ -2774,50 +2771,41 @@ function _buildScrollCalAround(cy, cm) {
   }
 }
 
-/* Build with startMonth FIRST — scrollTop=0 shows that month immediately */
-function _buildCalFrom(cy, cm) {
-  const calScroll = document.getElementById('calScroll');
-  calScroll.innerHTML = '';
-  scrollMonths = [];
-  resetPeriodTracker();
-  // Render start month + 4 months ahead (no months before, so scrollTop=0 = start)
-  for (let delta = 0; delta <= 4; delta++) {
-    let y = cy, m = cm + delta;
-    while (m > 11) { m -= 12; y++; }
-    calScroll.appendChild(renderMonth(y, m));
-    scrollMonths.push({y, m});
-  }
-  calScroll.scrollTop = 0;
-}
-
 function initScrollCalendar() {
   const calScroll = document.getElementById('calScroll');
   if (!calScroll) return;
   const today = new Date();
+  _buildScrollCalAround(today.getFullYear(), today.getMonth());
 
-  // Decide which month to start from: saved month or today
-  const savedFY    = localStorage.getItem('shiftbook_calScrollFY');
-  const savedMonth = localStorage.getItem('shiftbook_calScrollMonth'); // "YYYY-M"
-  const fyStart    = getFYStartDate(curFY);
+  // Restore saved scroll position by month+year
+  requestAnimationFrame(() => {
+    const savedFY    = localStorage.getItem('shiftbook_calScrollFY');
+    const savedMonth = localStorage.getItem('shiftbook_calScrollMonth'); // "YYYY-M"
+    const fyStart    = getFYStartDate(curFY);
 
-  let startY = today.getFullYear(), startM = today.getMonth();
-
-  if (savedMonth && savedFY === curFY) {
-    const parts = savedMonth.split('-');
-    const sy = parseInt(parts[0]), sm = parseInt(parts[1]);
-    // Clamp: don't restore before current FY start
-    const target = new Date(sy, sm, 1);
-    if (fyStart && target < fyStart) {
-      startY = fyStart.getFullYear();
-      startM = fyStart.getMonth();
+    if (savedMonth && savedFY === curFY) {
+      // Parse saved month
+      const parts = savedMonth.split('-');
+      const sy = parseInt(parts[0]), sm = parseInt(parts[1]);
+      // Rebuild calendar centred on the saved month (replaces today-centred build)
+      _buildScrollCalAround(sy, sm);
+      // Snap to the saved month — use rAF so layout is complete after rebuild
+      requestAnimationFrame(() => {
+        const targetDate = new Date(sy, sm, 1);
+        // Clamp: don't go before FY start
+        const clampedDate = fyStart && targetDate < fyStart ? fyStart : targetDate;
+        snapToDate(clampedDate);
+      });
     } else {
-      startY = sy;
-      startM = sm;
+      // Default: scroll to today
+      const monthDiv = calScroll.querySelector(`.month[data-year="${today.getFullYear()}"][data-month="${today.getMonth()}"]`);
+      if (monthDiv) {
+        const cRect = calScroll.getBoundingClientRect();
+        const mRect = monthDiv.getBoundingClientRect();
+        calScroll.scrollTop += (mRect.top - cRect.top);
+      }
     }
-  }
-
-  // Build with the start month FIRST (delta 0..4), so scrollTop=0 lands on it
-  _buildCalFrom(startY, startM);
+  });
 
   // ── Scroll handler ──
   calScroll.addEventListener('scroll', () => {

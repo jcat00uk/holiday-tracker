@@ -387,22 +387,8 @@ body.cal-active main{
 /* ── MODAL ── */
 .mbg{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(3px);z-index:1000;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .18s}
 .mbg.open{opacity:1;pointer-events:all}
-/* Mobile modal: cap height, ensure buttons clear bottom nav + browser chrome */
-@media(max-width:640px){
-  .modal{
-    max-height:calc(100dvh - var(--nav-h));
-  }
-  .mbody{
-    /* nav-h + safe-area-inset-bottom (home indicator / browser chrome) + generous buffer */
-    padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom, 20px) + 24px);
-  }
-  /* Extra bottom padding on btn-row so Save button is always well above nav */
-  .btn-row{
-    padding-bottom:calc(env(safe-area-inset-bottom, 16px) + 8px);
-  }
-}
 @media(min-width:641px){.mbg{align-items:center}}
-.modal{background:var(--s1);border:1px solid var(--bd2);border-radius:12px 12px 0 0;padding:0;width:100%;max-width:520px;max-height:92dvh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,.5);transform:translateY(20px);transition:transform .22s}
+.modal{background:var(--s1);border:1px solid var(--bd2);border-radius:12px 12px 0 0;padding:0;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,.5);transform:translateY(20px);transition:transform .22s}
 .mbg.open .modal{transform:translateY(0)}
 @media(min-width:641px){.modal{border-radius:12px;box-shadow:0 24px 60px rgba(0,0,0,.6)}}
 .mhdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 0}
@@ -437,8 +423,8 @@ body.cal-active main{
 .del-cf{margin-right:auto;display:none}
 
 /* ── TOAST ── */
-#toast{position:fixed;bottom:calc(var(--nav-h) + 10px);right:14px;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:8px 13px;font-size:.78rem;box-shadow:0 4px 20px rgba(0,0,0,.4);transform:translateY(50px);opacity:0;transition:all .25s;z-index:9999;pointer-events:none}
-#toast.on{pointer-events:auto;transform:translateY(0);opacity:1}
+#toast{position:fixed;bottom:calc(var(--nav-h) + 10px);right:14px;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:8px 13px;font-size:.78rem;box-shadow:0 4px 20px rgba(0,0,0,.4);transform:translateY(50px);opacity:0;transition:all .25s;z-index:9999}
+#toast.on{transform:translateY(0);opacity:1}
 @media(min-width:641px){#toast{bottom:14px}}
 
 /* colour helpers */
@@ -517,7 +503,7 @@ body.cal-active main{
 
 
 /* ── QUICK SETUP MODAL ── */
-.qs-modal{background:var(--s1);border:1px solid var(--bd2);border-radius:12px;padding:0;width:100%;max-width:560px;max-height:92dvh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+.qs-modal{background:var(--s1);border:1px solid var(--bd2);border-radius:12px;padding:0;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.6)}
 .qs-hdr{padding:18px 22px 0;border-bottom:1px solid var(--bd);margin-bottom:0}
 .qs-hdr h2{font-family:var(--mono);font-size:.85rem;font-weight:600;color:var(--teal);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
 .qs-hdr p{font-size:.75rem;color:var(--t3);padding-bottom:12px}
@@ -1134,8 +1120,6 @@ function loadData(){
     if(!S.bankHolidays)S.bankHolidays=[];
     if(!S.bookings)S.bookings=[];
     if(!S._lastModified)S._lastModified=new Date().toISOString();
-    // Migrate old pixel-based scroll key to new month-based key
-    localStorage.removeItem('shiftbook_calScrollY');
     if(!S.settings.breakRules)S.settings.breakRules=[{geHrs:9,mins:45},{geHrs:8,mins:30},{geHrs:6,mins:20},{geHrs:4.5,mins:15}];
     // migrate old rotation format
     if(S.settings.rotation&&S.settings.rotation[0]){
@@ -2765,6 +2749,8 @@ function _buildScrollCalAround(cy, cm) {
   calScroll.innerHTML = '';
   scrollMonths = [];
   resetPeriodTracker();
+
+  // Render 2 months before + current + 2 months after
   for (let delta = -2; delta <= 2; delta++) {
     let y = cy, m = cm + delta;
     while (m < 0)  { m += 12; y--; }
@@ -2774,68 +2760,52 @@ function _buildScrollCalAround(cy, cm) {
   }
 }
 
-/* Build with startMonth FIRST — scrollTop=0 shows that month immediately */
-function _buildCalFrom(cy, cm) {
-  const calScroll = document.getElementById('calScroll');
-  calScroll.innerHTML = '';
-  scrollMonths = [];
-  resetPeriodTracker();
-  // Render start month + 4 months ahead (no months before, so scrollTop=0 = start)
-  for (let delta = 0; delta <= 4; delta++) {
-    let y = cy, m = cm + delta;
-    while (m > 11) { m -= 12; y++; }
-    calScroll.appendChild(renderMonth(y, m));
-    scrollMonths.push({y, m});
-  }
-  calScroll.scrollTop = 0;
-}
-
 function initScrollCalendar() {
   const calScroll = document.getElementById('calScroll');
   if (!calScroll) return;
   const today = new Date();
+  _buildScrollCalAround(today.getFullYear(), today.getMonth());
 
-  // Decide which month to start from: saved month or today
-  const savedFY    = localStorage.getItem('shiftbook_calScrollFY');
-  const savedMonth = localStorage.getItem('shiftbook_calScrollMonth'); // "YYYY-M"
-  const fyStart    = getFYStartDate(curFY);
+  // Restore saved scroll position, clamped to current FY start
+  requestAnimationFrame(() => {
+    const savedFY = localStorage.getItem('shiftbook_calScrollFY');
+    const savedY  = parseInt(localStorage.getItem('shiftbook_calScrollY')||'0');
+    const fyStart = getFYStartDate(curFY);
 
-  let startY = today.getFullYear(), startM = today.getMonth();
-
-  if (savedMonth && savedFY === curFY) {
-    const parts = savedMonth.split('-');
-    const sy = parseInt(parts[0]), sm = parseInt(parts[1]);
-    // Clamp: don't restore before current FY start
-    const target = new Date(sy, sm, 1);
-    if (fyStart && target < fyStart) {
-      startY = fyStart.getFullYear();
-      startM = fyStart.getMonth();
+    // Clamp: never scroll before current FY start
+    if (fyStart && savedFY === curFY && savedY > 0) {
+      // Find FY start month div to get its minimum position
+      const fyMon = calScroll.querySelector(`.month[data-year="${fyStart.getFullYear()}"][data-month="${fyStart.getMonth()}"]`);
+      const minScroll = fyMon ? (() => {
+        const cR = calScroll.getBoundingClientRect();
+        const mR = fyMon.getBoundingClientRect();
+        return calScroll.scrollTop + (mR.top - cR.top);
+      })() : 0;
+      calScroll.scrollTop = Math.max(minScroll, savedY);
     } else {
-      startY = sy;
-      startM = sm;
+      // Default: scroll to today's month
+      const monthDiv = calScroll.querySelector(`.month[data-year="${today.getFullYear()}"][data-month="${today.getMonth()}"]`);
+      if (monthDiv) {
+        const cRect = calScroll.getBoundingClientRect();
+        const mRect = monthDiv.getBoundingClientRect();
+        calScroll.scrollTop += (mRect.top - cRect.top);
+      }
     }
-  }
-
-  // Build with the start month FIRST (delta 0..4), so scrollTop=0 lands on it
-  _buildCalFrom(startY, startM);
+  });
 
   // ── Scroll handler ──
   calScroll.addEventListener('scroll', () => {
     const scrollTop    = calScroll.scrollTop;
     const scrollHeight = calScroll.scrollHeight;
     const clientHeight = calScroll.clientHeight;
-    // Persist the topmost visible month (throttled)
+    // Persist scroll position (throttled)
     clearTimeout(calScroll._saveST);
     calScroll._saveST = setTimeout(() => {
-      const containerTop = calScroll.getBoundingClientRect().top;
-      // Find the first month whose bottom edge is below the container top
-      for (const md of calScroll.querySelectorAll('.month')) {
-        if (md.getBoundingClientRect().bottom > containerTop + 10) {
-          localStorage.setItem('shiftbook_calScrollMonth',
-            md.dataset.year + '-' + md.dataset.month);
-          localStorage.setItem('shiftbook_calScrollFY', curFY);
-          break;
-        }
+      // Save as a date string of the topmost visible month
+      const topMonth = calScroll.querySelector('.month');
+      if (topMonth) {
+        localStorage.setItem('shiftbook_calScrollY', calScroll.scrollTop);
+        localStorage.setItem('shiftbook_calScrollFY', curFY);
       }
     }, 200);
 
