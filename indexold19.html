@@ -658,7 +658,6 @@ body.cal-active main{
         <option value="cancelled">Cancelled</option>
       </select>
       <button class="bulk-btn bb-status" onclick="previewBulkStatus()">Preview change</button>
-      <button class="bulk-btn" onclick="previewBulkRotaSync()" style="background:var(--purpled);border:1px solid var(--purple);color:var(--purple)">↻ Update to rota times</button>
       <button class="bulk-btn bb-del" onclick="previewBulkDelete()">Delete selected</button>
       <button class="bulk-btn bb-cancel" onclick="bulkCancel()">Cancel</button>
     </div>
@@ -823,13 +822,8 @@ body.cal-active main{
             </div>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap">
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
           <button class="btng" onclick="clearAllRot()" style="font-size:.7rem;padding:4px 9px">Clear all</button>
-          <span id="rotaBookingHint" style="font-size:.65rem;color:var(--amber);display:none">
-            ⚠ You have bookings using rota times —
-            <button onclick="showView('list')" style="background:none;border:none;color:var(--amber);font-size:.65rem;cursor:pointer;text-decoration:underline;padding:0">update in Bookings</button>
-            using ↻ Update to rota times
-          </span>
         </div>
       </div>
 
@@ -1515,60 +1509,11 @@ function executeBulkAction(){
   } else if(bulkAction.type==='status'){
     S.bookings=S.bookings.map(b=>bulkSelected.has(b.id)?{...b,status:bulkAction.status}:b);
     toast('Status updated');
-  } else if(bulkAction.type==='rotaSync'){
-    let updated=0;
-    S.bookings=S.bookings.map(b=>{
-      if(!bulkSelected.has(b.id))return b;
-      const rd=getRotDay(b.date);
-      if(!rd||!rd.on)return b; // no rota for this day — skip
-      const{booked}=bookedHrs(rd.start,rd.end);
-      updated++;
-      return{...b,startTime:rd.start,endTime:rd.end,overnight:isON(rd.start,rd.end),hoursBooked:booked,mode:'full'};
-    });
-    toast(updated+' booking'+(updated>1?'s':'')+' updated to rota times');
   }
   bulkSelected.clear();persist();bulkAction=null;
   document.getElementById('selAllCb').checked=false;
   closePreviewPanel();refresh();
 }
-function previewBulkRotaSync(){
-  const items=S.bookings.filter(b=>bulkSelected.has(b.id));
-  if(!items.length)return;
-  // Calculate what each booking's rota times would be
-  const previews=items.map(b=>{
-    const rd=getRotDay(b.date);
-    if(!rd||!rd.on) return{b,noRota:true};
-    const{booked}=bookedHrs(rd.start,rd.end);
-    const changed=(b.startTime!==rd.start||b.endTime!==rd.end);
-    return{b,rd,booked,changed};
-  });
-  const updatable=previews.filter(p=>!p.noRota&&p.changed);
-  const already=previews.filter(p=>!p.noRota&&!p.changed);
-  const noRota=previews.filter(p=>p.noRota);
-  if(!updatable.length){
-    toast(already.length?'Selected bookings already match rota times':'No rota found for selected dates');
-    return;
-  }
-  document.getElementById('previewPanelTitle').textContent=
-    'Update '+updatable.length+' booking'+(updatable.length>1?'s':'')+' to rota times'
-    +(noRota.length?' ('+noRota.length+' skipped — no rota)':'')
-    +(already.length?' ('+already.length+' already correct)':'');
-  document.getElementById('previewPanelList').innerHTML=updatable.map(({b,rd,booked})=>
-    `<div class="preview-row">
-      <span style="font-family:var(--mono);font-size:.72rem;min-width:88px">${fmtDate(b.date)}</span>
-      <span style="font-family:var(--mono);font-size:.7rem;color:var(--t3)">${b.startTime}–${b.endTime}</span>
-      <span class="preview-arrow">→</span>
-      <span style="font-family:var(--mono);font-size:.7rem;color:var(--purple)">${rd.start}–${rd.end} (${hhmm(booked)})</span>
-    </div>`
-  ).join('');
-  const btn=document.getElementById('previewConfirmBtn');
-  btn.textContent='Update ('+updatable.length+')';
-  btn.className='bulk-btn';
-  btn.style.cssText='background:var(--purpled);border:1px solid var(--purple);color:var(--purple)';
-  bulkAction={type:'rotaSync'};
-  document.getElementById('previewPanel').classList.add('on');
-}
-
 function showDelAll(){
   document.getElementById('delAllFY').textContent=curFY;
   document.getElementById('delAllPanel').classList.add('on');
@@ -1983,9 +1928,7 @@ function renderRotEditor(){
           </div>`).join('')}
       </div>
     </div>`).join('');
-  setTimeout(updateRotaBookingHint, 0);
 }
-
 function clickRotDay(wi,di){
   const d=S.settings.rotation[wi][di];
   if(!d.on){
@@ -2015,17 +1958,6 @@ function saveRotDay(){
   d.start=document.getElementById('rot-start').value;
   d.end=document.getElementById('rot-end').value;
   persist();renderRotEditor();flashSaved();
-  updateRotaBookingHint();
-}
-
-function updateRotaBookingHint(){
-  const hint=document.getElementById('rotaBookingHint');
-  if(!hint)return;
-  // Show hint if any booking has mode='full' (rota-based) and is in the future
-  const today=dstr(new Date());
-  const hasRotaBks=S.bookings.some(b=>b.mode==='full'&&b.date>=today&&
-    ['planned','submitted','confirmed'].includes(b.status));
-  hint.style.display=hasRotaBks?'':'none';
 }
 function clearRotWeek(wi){S.settings.rotation[wi]=S.settings.rotation[wi].map(d=>({...d,on:false}));persist();renderRotEditor();}
 function clearAllRot(){S.settings.rotation=S.settings.rotation.map(w=>w.map(d=>({...d,on:false})));persist();renderRotEditor();}
