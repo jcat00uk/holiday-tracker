@@ -1296,20 +1296,12 @@ function changeFY(){
   curFY=document.getElementById('fySelect').value;
   syncAllFYSelectors();
   ensureFY(curFY);
-
-  const calActive = document.getElementById('view-calendar').classList.contains('active');
-  if(calActive){
-    // Set lock BEFORE any DOM work — prevents updateFYOnScroll overwriting curFY
-    _fyNavLock = curFY;
-    // Update stats/alerts for the new FY without triggering refreshScrollCal
-    updateStats(); renderAlerts(); populateFYSel();
-    // Jump to the new FY start date directly
-    const fyS = getFYStartDate(curFY);
-    if(fyS) snapToDate(fyS);
-    // Release lock after scroll settles
-    setTimeout(()=>{ _fyNavLock = null; }, 600);
-  } else {
-    refresh();
+  refresh();
+  // If calendar is visible, scroll to FY start (suppress updateFYOnScroll override)
+  const fyS=getFYStartDate(curFY);
+  if(fyS && document.getElementById('view-calendar').classList.contains('active')){
+    _fyNavLock = curFY; // prevent updateFYOnScroll from overwriting during scroll
+    setTimeout(()=>{ snapToDate(fyS); setTimeout(()=>{ _fyNavLock=null; },500); },50);
   }
 }
 
@@ -2252,15 +2244,12 @@ function showView(name){
   if(name==='settings')loadSettingsUI();
   if(name==='calendar'){if(!scrollCalInited){initScrollCalendar();scrollCalInited=true;}else refreshScrollCal();}
   if(name==='list'){
-    // On first visit, default to today's FY; thereafter respect the user's selection
-    const listSel = document.getElementById('listFYSel');
-    const isFirstVisit = !listSel || !listSel.value;
-    if(isFirstVisit){
-      const todayFYKey = getFinancialYearFromDate(new Date()).key;
-      if(todayFYKey && S.fyAllocs[todayFYKey]){
-        curFY = todayFYKey;
-        syncAllFYSelectors();
-      }
+    // Switch to today's actual FY when entering Bookings
+    const todayFYKey = getFinancialYearFromDate(new Date()).key;
+    if(todayFYKey && S.fyAllocs[todayFYKey] && curFY !== todayFYKey){
+      curFY = todayFYKey;
+      const pill = document.getElementById('fyPill');
+      if(pill) pill.textContent = curFY;
     }
     populateListFYSel();
     renderList();

@@ -69,8 +69,6 @@ main{padding:12px 16px;max-width:1500px;margin:0 auto;width:100%}
 body.cal-active{
   overflow:hidden;
   height:100dvh;
-  /* Kill body padding so calendar fills exactly to the nav bar edge */
-  padding-bottom:0 !important;
 }
 body.cal-active main{
   display:flex;
@@ -83,11 +81,6 @@ body.cal-active main{
 @media(max-width:640px){
   body.cal-active main{
     height:calc(100dvh - 48px - var(--nav-h));  /* subtract bottom nav on mobile */
-  }
-  /* Also ensure body position is fixed to prevent iOS rubber-band revealing content below */
-  body.cal-active{
-    position:fixed;
-    width:100%;
   }
 }
 
@@ -142,8 +135,6 @@ body.cal-active main{
 .calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
 .cdh{text-align:center;padding:4px 0;font-size:.63rem;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono)}
 .ccell{background:var(--s1);border:1px solid var(--bd);border-radius:5px;padding:4px 3px 3px;cursor:pointer;transition:border-color .12s;overflow:hidden;min-height:72px}
-.ccell.fy-oob{background:repeating-linear-gradient(135deg,var(--s1) 0px,var(--s1) 4px,var(--bg) 4px,var(--bg) 8px)!important;cursor:default!important;opacity:.45;pointer-events:none}
-.fy-boundary-row{grid-column:1/-1;background:var(--s2);border-top:2px solid var(--amber);border-bottom:2px solid var(--amber);padding:4px 8px;font-family:var(--mono);font-size:.63rem;color:var(--amber);display:flex;align-items:center;gap:6px}
 .ccell:hover{border-color:var(--bd2)}
 .ccell.other{opacity:.22}
 .ccell.today{border-color:var(--teal)!important;box-shadow:inset 0 0 0 1px var(--teal)}
@@ -184,7 +175,6 @@ body.cal-active main{
 .s-confirmed{background:#9FE1CB;color:#04342C}
 .s-refused  {background:#F7C1C1;color:#501313}
 .s-cancelled{background:#D3D1C7;color:#444441;opacity:.7}
-.s-taken    {background:#8a8a8a;color:#fff}
 
 /* ── LIST ── */
 .ltoolbar{display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap}
@@ -646,16 +636,16 @@ body.cal-active main{
         <button class="fc" onclick="setF('cancelled',this)">Cancelled</button>
         <button class="fc" onclick="setF('taken',this)">Taken</button>
       </div>
-      <select class="fy-sel" id="listFYSel" onchange="setListFY(this.value)" style="font-family:var(--mono);font-size:.75rem"></select>
       <select class="lsort" id="lsort" onchange="renderList()">
         <option value="date-asc">Date ↑</option>
         <option value="date-desc">Date ↓</option>
         <option value="status">Status</option>
         <option value="hours">Hours</option>
       </select>
+      <button class="btnd" onclick="showDelAll()" style="font-size:.72rem;padding:4px 10px">Delete all…</button>
       <button class="cadd" onclick="openAdd()" style="margin-left:0">+ Book</button>
-      <button class="btng" onclick="openReportModal()" style="font-size:.72rem;padding:4px 10px">🖨 Print Report</button>
       <button class="sync-btn sync-now-btn" onclick="syncNow()">☁ Sync Now</button>
+      <button class="btng" onclick="openReportModal()" style="font-size:.72rem;padding:4px 10px">📄 Export Report</button>
     </div>
     <!-- Bulk bar -->
     <div class="bulk-bar" id="bulkBar">
@@ -706,10 +696,6 @@ body.cal-active main{
       <span class="sel-hdr-lbl">Select all</span>
     </div>
     <div class="hlist" id="hList"></div>
-    <!-- Delete all button — sits below all bookings -->
-    <div id="delAllBtnRow" style="padding:10px 0 4px;display:flex;justify-content:flex-start">
-      <button class="btnd" onclick="showDelAll()" style="font-size:.72rem;padding:4px 10px">🗑 Delete all in <span id="delAllFYLbl"></span>…</button>
-    </div>
   </div>
 
   <!-- SETTINGS -->
@@ -1197,15 +1183,11 @@ function getFYStartDate(fyk){
 
 /** All known FY keys from bookings + fyAllocs, always ascending */
 function allFYKeys(){
-  // Only return FYs explicitly defined in fyAllocs
-  // Do NOT auto-bootstrap — avoids creating unwanted FYs
-  const keys=new Set(Object.keys(S.fyAllocs).filter(Boolean));
-  // Also include FYs referenced by bookings (orphan safety)
-  S.bookings.forEach(b=>{if(b.fyKey&&S.fyAllocs[b.fyKey])keys.add(b.fyKey);});
+  const keys=new Set([...S.bookings.map(b=>b.fyKey)].filter(Boolean));
+  Object.keys(S.fyAllocs).forEach(k=>keys.add(k));
   if(keys.size===0){
-    // Only bootstrap on first ever load with no data at all
-    const cur=getFinancialYearFromDate(new Date()).key;
-    if(Object.keys(S.fyAllocs).length===0)keys.add(cur);
+    // Bootstrap from engine
+    keys.add(getFinancialYearFromDate(new Date()).key);
   }
   return[...keys].sort();
 }
@@ -1251,65 +1233,26 @@ function ensureFY(fyk){
     S.fyAllocs[fyk].startDate=autoStart?dstr(autoStart):'';
   }
 }
-function getFYAlloc(fyk){if(!S.fyAllocs[fyk])return 0;return(parseFloat(S.fyAllocs[fyk].hours)||0)+(parseFloat(S.fyAllocs[fyk].carryOver)||0);}
+function getFYAlloc(fyk){ensureFY(fyk);return(parseFloat(S.fyAllocs[fyk].hours)||0)+(parseFloat(S.fyAllocs[fyk].carryOver)||0);}
 function initFY(){
   curFY=curFYKey();
   ensureFY(curFY);
   populateFYSel();
   document.getElementById('fyPill').textContent=curFY;
 }
-
-// ── FY option label: "FY2026/27 (5) (Current)" ──
-function fyOptionLabel(k) {
-  const todayKey = getFinancialYearFromDate(new Date()).key;
-  const keys = allFYKeys().sort(); // ascending
-  const todayIdx = keys.indexOf(todayKey);
-  const nextKey = todayIdx >= 0 && todayIdx + 1 < keys.length ? keys[todayIdx + 1] : null;
-  const n = S.bookings.filter(b => b.fyKey === k).length;
-  let label = k;
-  if (n > 0) label += ' (' + n + ')';
-  if (k === todayKey) label += ' (Current)';
-  else if (k === nextKey) label += ' (Next)';
-  return label;
-}
-
-// Sync all FY picker UIs to the current curFY without rebuilding options
-function syncAllFYSelectors() {
-  const pill = document.getElementById('fyPill');
-  if (pill) pill.textContent = curFY;
-  const fySelect = document.getElementById('fySelect');
-  if (fySelect) fySelect.value = curFY;
-  const listSel = document.getElementById('listFYSel');
-  if (listSel) listSel.value = curFY;
-}
-
 function populateFYSel(){
   const sel=document.getElementById('fySelect'),keys=allFYKeys().reverse();
-  sel.innerHTML=keys.map(k=>
-    `<option value="${k}"${k===curFY?' selected':''}>${fyOptionLabel(k)}</option>`
-  ).join('');
-  populateListFYSel();
-  syncAllFYSelectors(); // ensure value attributes match curFY after rebuild
+  sel.innerHTML=keys.map(k=>`<option value="${k}"${k===curFY?' selected':''}>${k}</option>`).join('');
 }
-
 function changeFY(){
   curFY=document.getElementById('fySelect').value;
-  syncAllFYSelectors();
+  document.getElementById('fyPill').textContent=curFY;
   ensureFY(curFY);
-
-  const calActive = document.getElementById('view-calendar').classList.contains('active');
-  if(calActive){
-    // Set lock BEFORE any DOM work — prevents updateFYOnScroll overwriting curFY
-    _fyNavLock = curFY;
-    // Update stats/alerts for the new FY without triggering refreshScrollCal
-    updateStats(); renderAlerts(); populateFYSel();
-    // Jump to the new FY start date directly
-    const fyS = getFYStartDate(curFY);
-    if(fyS) snapToDate(fyS);
-    // Release lock after scroll settles
-    setTimeout(()=>{ _fyNavLock = null; }, 600);
-  } else {
-    refresh();
+  refresh();
+  // If calendar is visible, jump to FY start
+  const fyS=getFYStartDate(curFY);
+  if(fyS && document.getElementById('view-calendar').classList.contains('active')){
+    setTimeout(()=>snapToDate(fyS),50);
   }
 }
 
@@ -1340,7 +1283,7 @@ function isWorkDay(ds){const rd=getRotDay(ds);return!!(rd&&rd.on);}
 function getStats(fyk){
   const today=dstr(new Date());
   const bk=S.bookings.filter(b=>b.fyKey===fyk);
-  const taken=bk.filter(b=>b.status==='confirmed'&&b.date<today).reduce((s,b)=>s+(b.hoursBooked||0),0);
+  const taken=bk.filter(b=>['confirmed','submitted'].includes(b.status)&&b.date<today).reduce((s,b)=>s+(b.hoursBooked||0),0);
   const confF=bk.filter(b=>b.status==='confirmed'&&b.date>=today).reduce((s,b)=>s+(b.hoursBooked||0),0);
   const submF=bk.filter(b=>b.status==='submitted'&&b.date>=today).reduce((s,b)=>s+(b.hoursBooked||0),0);
   const plan=bk.filter(b=>b.status==='planned').reduce((s,b)=>s+(b.hoursBooked||0),0);
@@ -1500,23 +1443,6 @@ function getFYForDate(dateStr) {
 let bulkSelected=new Set();
 let bulkAction=null; // {type:'status'|'delete', status?}
 
-function setListFY(fyk) {
-  curFY = fyk;
-  syncAllFYSelectors(); // keep abar fySelect and fyPill in sync
-  updateStats();
-  renderAlerts();
-  renderList();
-}
-
-function populateListFYSel() {
-  const sel = document.getElementById('listFYSel');
-  if (!sel) return;
-  const keys = allFYKeys().reverse();
-  sel.innerHTML = keys.map(k =>
-    `<option value="${k}"${k===curFY?' selected':''}>${fyOptionLabel(k)}</option>`
-  ).join('');
-}
-
 function renderList(){
   const el=document.getElementById('hList');
   const sort=document.getElementById('lsort').value||'date-asc';
@@ -1661,8 +1587,6 @@ function previewBulkRotaSync(){
 
 function showDelAll(){
   document.getElementById('delAllFY').textContent=curFY;
-  const lbl=document.getElementById('delAllFYLbl');
-  if(lbl)lbl.textContent=curFY;
   document.getElementById('delAllPanel').classList.add('on');
 }
 function closeDelAll(){document.getElementById('delAllPanel').classList.remove('on');}
@@ -1867,11 +1791,6 @@ function updateAllocMini(){
 }
 function saveBooking(){
   const date=document.getElementById('f-date').value;if(!date){toast('Please set a date');return;}
-  // Validate date is within a defined FY
-  const fkCheck=fyKey(date);
-  if(fkCheck&&!S.fyAllocs[fkCheck]){
-    toast('This date is outside any defined financial year — add the FY in Settings first');return;
-  }
   if(document.getElementById('overlapBox').style.display==='flex'){toast('Resolve the overlap warning first');return;}
   const start=document.getElementById('f-start').value,end=document.getElementById('f-end').value;
   const hrs=getBookedHrs();if(!hrs||hrs<=0){toast('Hours must be > 0');return;}
@@ -2022,9 +1941,6 @@ function saveFYA(fyk,field,val){
   updateStats();renderAlerts();
 }
 function delFY(fyk){
-  // Protect the FY that contains today's date (not just the UI-selected FY)
-  const todayFYKey = getFinancialYearFromDate(new Date()).key;
-  if(fyk===todayFYKey){toast('Cannot delete the current financial year (contains today)');return;}
   if(!confirm('Delete '+fyk+'?\n\nThe allocation record and start date will be removed.\nBookings tagged to this FY are kept but will need reassigning.'))return;
   delete S.fyAllocs[fyk];
   // If we deleted the current FY, switch to another
@@ -2251,31 +2167,8 @@ function showView(name){
   document.getElementById('mnb-'+name)&&document.getElementById('mnb-'+name).classList.add('on');
   if(name==='settings')loadSettingsUI();
   if(name==='calendar'){if(!scrollCalInited){initScrollCalendar();scrollCalInited=true;}else refreshScrollCal();}
-  if(name==='list'){
-    // On first visit, default to today's FY; thereafter respect the user's selection
-    const listSel = document.getElementById('listFYSel');
-    const isFirstVisit = !listSel || !listSel.value;
-    if(isFirstVisit){
-      const todayFYKey = getFinancialYearFromDate(new Date()).key;
-      if(todayFYKey && S.fyAllocs[todayFYKey]){
-        curFY = todayFYKey;
-        syncAllFYSelectors();
-      }
-    }
-    populateListFYSel();
-    renderList();
-  }
-  if(name==='dash'){
-    // Switch to today's actual FY when entering Dashboard
-    const _todayFYKey = getFinancialYearFromDate(new Date()).key;
-    if(_todayFYKey && S.fyAllocs[_todayFYKey] && curFY !== _todayFYKey){
-      curFY = _todayFYKey;
-      const _pill = document.getElementById('fyPill');
-      if(_pill) _pill.textContent = curFY;
-      populateFYSel();
-    }
-    renderDash();
-  }
+  if(name==='list')renderList();
+  if(name==='dash')renderDash();
   localStorage.setItem('shiftbook_lastView', name);
 }
 
@@ -2339,10 +2232,11 @@ function openQuickSetup() {
   document.getElementById('qs-ns').value = 'no';
   document.getElementById('qs-yrs').value = S.settings.yearsService || 'gt5';
 
-  // Default times match the selected emptype (Days = 07:00/15:00, Nights = 23:00/07:00)
-  // Since we always reset to Days above, always start with day times
-  popSel(document.getElementById('qs-dstart'), '07:00');
-  popSel(document.getElementById('qs-dend'),   '15:00');
+  // Use existing settings as defaults if already set
+  const existingStart = S.settings.defaultStart;
+  const existingEnd   = S.settings.defaultEnd;
+  popSel(document.getElementById('qs-dstart'), existingStart || '07:00');
+  popSel(document.getElementById('qs-dend'),   existingEnd   || '15:00');
 
   // Set FY from engine
   const fyInfo = getFinancialYearFromDate(new Date());
@@ -2468,74 +2362,20 @@ function confirmNotRotad() {
   }
 }
 
-// ── Add FY inline banner (injected at bottom of calScroll) ──
-function showAddFYTopBanner() {
-  const calScroll = document.getElementById('calScroll');
-  if (!calScroll || document.getElementById('addFYTopBanner')) return;
-  const banner = document.createElement('div');
-  banner.id = 'addFYTopBanner';
-  banner.style.cssText = [
-    'padding:16px',
-    'text-align:center',
-    'background:var(--s2)',
-    'border-bottom:2px solid var(--bd)',
-    'margin-bottom:8px',
-  ].join(';');
-  banner.innerHTML = `
-    <div style="font-size:.72rem;color:var(--t3)">
-      Beginning of recorded financial years
-    </div>`;
-  calScroll.prepend(banner);
+// ── Add FY prompt ──
+function showAddFYPrompt() {
+  document.getElementById('addFYPromptMbg').classList.add('open');
 }
-
-function removeAddFYTopBanner() {
-  const b = document.getElementById('addFYTopBanner');
-  if (b) b.remove();
-}
-
-function showAddFYBanner() {
-  const calScroll = document.getElementById('calScroll');
-  if (!calScroll || document.getElementById('addFYBanner')) return;
-  const banner = document.createElement('div');
-  banner.id = 'addFYBanner';
-  banner.style.cssText = [
-    'padding:20px 16px',
-    'text-align:center',
-    'background:var(--s2)',
-    'border-top:2px solid var(--amber)',
-    'margin-top:8px',
-  ].join(';');
-  banner.innerHTML = `
-    <div style="font-family:var(--mono);font-size:.75rem;color:var(--amber);font-weight:600;margin-bottom:6px">
-      Financial Year Not Set Up
-    </div>
-    <div style="font-size:.72rem;color:var(--t2);margin-bottom:12px">
-      This financial year has not been created yet.<br>Would you like to add it?
-    </div>
-    <button class="btnp" onclick="goAddFY()"
-      style="font-size:.75rem;padding:6px 16px">
-      + Add Financial Year
-    </button>`;
-  calScroll.appendChild(banner);
-}
-
-function removeAddFYBanner() {
-  const b = document.getElementById('addFYBanner');
-  if (b) b.remove();
+function closeAddFYPrompt() {
+  document.getElementById('addFYPromptMbg').classList.remove('open');
   const calScroll = document.getElementById('calScroll');
   if (calScroll) calScroll._addFYPromptShown = false;
 }
-
 function goAddFY() {
-  removeAddFYBanner();
+  closeAddFYPrompt();
   addFYRow();
-  persist();
-  // Stay on calendar — refresh so new FY months are available
-  refreshScrollCal();
-  populateFYSel();
-  // Refresh jump-to month list so new FY months appear immediately
-  if (window._populateJumpSel) window._populateJumpSel();
-  toast('Financial year added — scroll down to continue, or visit Settings to set allocation');
+  showView('settings');
+  toast('New FY added — set the start date and allocation below');
 }
 
 
@@ -2547,9 +2387,9 @@ function openReportModal() {
   // Populate FY select
   const sel = document.getElementById('rpt-fy');
   sel.innerHTML = allFYKeys().reverse().map(k =>
-    `<option value="${k}"${k===curFY?' selected':''}>${fyOptionLabel(k)}</option>`
+    `<option value="${k}"${k===curFY?' selected':''}>${k}</option>`
   ).join('');
-  rptOnFYChange(); // calls rptValidate which sets live count
+  rptOnFYChange();
   document.getElementById('reportMbg').classList.add('open');
 }
 
@@ -2565,10 +2405,6 @@ function rptOnFYChange() {
   from.min = dstr(r.start); from.max = dstr(r.end); from.value = dstr(r.start);
   to.min   = dstr(r.start); to.max   = dstr(r.end); to.value   = dstr(r.end);
   rptValidate();
-}
-
-function rptResetDateRange() {
-  rptOnFYChange(); // resets both inputs to FY boundaries
 }
 
 function rptValidate() {
@@ -2588,21 +2424,6 @@ function rptValidate() {
   err.style.display = errMsg ? '' : 'none';
   pdfBtn.disabled   = !!errMsg;
   printBtn.disabled = !!errMsg;
-
-  // Live record count
-  const countEl = document.getElementById('rpt-count');
-  if (countEl) {
-    if (!errMsg && from && to) {
-      const fyk = document.getElementById('rpt-fy').value;
-      const statuses = new Set([...document.querySelectorAll('#rpt-statuses input:checked')].map(i => i.value));
-      const n = S.bookings.filter(b =>
-        b.fyKey === fyk && statuses.has(b.status) && b.date >= from && b.date <= to
-      ).length;
-      countEl.textContent = n + ' booking' + (n !== 1 ? 's' : '') + ' will be included';
-    } else {
-      countEl.textContent = '';
-    }
-  }
 }
 
 function rptGetBookings() {
@@ -2673,60 +2494,40 @@ function rptBuildHTML(forPrint = false) {
 
   const summaryHtml = !incSummary ? '' : `
     <div class="rpt-summary">
-      <h3>Summary</h3>
-      <div class="rpt-sum-grid">
-        <div class="rpt-sum-row"><span>Total entries: </span><strong>${bks.length}</strong></div>
-        <div class="rpt-sum-row"><span>Total hours: </span><strong>${hhmm(totalHrs)} (${toDecStr(totalHrs)})</strong></div>
-        ${alloc > 0 ? `<div class="rpt-sum-row"><span>Remaining: </span><strong>${hhmm(alloc - totalHrs)}</strong></div>` : '<div></div>'}
-        ${Object.entries(byStatus).map(([st,h]) =>
-          `<div class="rpt-sum-row"><span>${statusLabel[st]||st}: </span><strong>${hhmm(h)}</strong></div>`
-        ).join('')}
-      </div>
+      <div class="rpt-sum-row"><span>Total entries</span><strong>${bks.length}</strong></div>
+      <div class="rpt-sum-row"><span>Total hours</span><strong>${hhmm(totalHrs)} (${toDecStr(totalHrs)})</strong></div>
+      ${Object.entries(byStatus).map(([st,h]) =>
+        `<div class="rpt-sum-row"><span>${statusLabel[st]||st}</span><strong>${hhmm(h)}</strong></div>`
+      ).join('')}
+      ${alloc > 0 ? `<div class="rpt-sum-row"><span>Remaining allocation</span><strong>${hhmm(alloc - totalHrs)}</strong></div>` : ''}
     </div>`;
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <title>Holiday Report ${fyk}</title>
 <style>
-  /* All values explicit — no CSS variables, ensures white bg in PDF */
-  *{box-sizing:border-box;margin:0;padding:0}
-  html,body{background:#ffffff!important;color:#111111!important;font-family:Arial,Helvetica,sans-serif;font-size:10pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  body{padding:14px 20px}
-  h1{font-size:18pt;font-weight:700;text-align:center;margin-bottom:3px;color:#111111}
-  .rpt-meta{text-align:center;font-size:8.5pt;color:#555555;margin-bottom:14px;line-height:1.7;border-bottom:1px solid #cccccc;padding-bottom:10px}
-  /* Summary block */
-  .rpt-summary{background:#f5f5f5;border:1px solid #cccccc;border-radius:3px;padding:10px 14px;margin-bottom:14px}
-  .rpt-summary h3{font-size:8pt;font-weight:700;margin-bottom:6px;color:#444444;text-transform:uppercase;letter-spacing:.06em}
-  .rpt-sum-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 16px}
-  .rpt-sum-row{font-size:8.5pt;color:#333333}
-  .rpt-sum-row span{color:#666666}
-  .rpt-sum-row strong{font-weight:700;color:#111111}
-  /* Table */
-  table{width:100%;border-collapse:collapse;font-size:9pt}
-  thead th{background:#2c3e50;color:#ffffff;font-weight:700;padding:7px 9px;text-align:left;font-size:8.5pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  tbody td{padding:6px 9px;border-bottom:1px solid #dddddd;vertical-align:middle;color:#111111;background:#ffffff;font-size:9pt}
-  tbody tr:nth-child(even) td{background:#f8f8f8}
-  /* Group header row */
-  .rpt-grp-hdr td{background:#e4e9ef!important;font-weight:700;padding:7px 9px;color:#2c3e50;font-size:9pt;border-top:2px solid #2c3e50;border-bottom:1px solid #b8c4ce;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  /* Status badges */
-  .rpt-badge{display:inline-block;padding:2px 7px;border-radius:3px;font-size:7.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.02em;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .rpt-planned  {background:#e5e3d8;color:#2c2c2a}
-  .rpt-submitted{background:#c5dcf5;color:#042c53}
-  .rpt-confirmed{background:#b5edd5;color:#043c2c}
-  .rpt-refused  {background:#f5cdcd;color:#501313}
-  .rpt-cancelled{background:#dcdcdc;color:#555555;text-decoration:line-through}
-  .rpt-taken    {background:#cccccc;color:#333333}
-  .rpt-nodata{text-align:center;padding:30px;color:#888888;font-size:11pt}
-  /* Print / PDF page rules */
-  @page{size:A4 portrait;margin:10mm 12mm}
-  @media print{
-    html,body{padding:0;background:#ffffff!important}
-    thead{display:table-header-group}
-    tfoot{display:table-footer-group}
-    tr{page-break-inside:avoid}
-    .rpt-grp-hdr{page-break-after:avoid}
-  }
+  body{font-family:Arial,sans-serif;font-size:11px;color:#111;margin:20px 28px}
+  h1{font-size:18px;font-weight:700;text-align:center;margin-bottom:2px}
+  .rpt-meta{text-align:center;font-size:10px;color:#555;margin-bottom:16px;line-height:1.7}
+  .rpt-summary{background:#f5f5f5;border:1px solid #ddd;border-radius:4px;padding:10px 14px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:8px 24px}
+  .rpt-sum-row{display:flex;align-items:center;gap:8px;font-size:10px}
+  .rpt-sum-row span{color:#555}
+  .rpt-sum-row strong{font-weight:700}
+  table{width:100%;border-collapse:collapse;font-size:10px}
+  th{background:#1a1a2e;color:#fff;font-weight:600;padding:5px 7px;text-align:left;font-size:10px}
+  td{padding:4px 7px;border-bottom:1px solid #e5e5e5;vertical-align:middle}
+  tr:nth-child(even) td{background:#fafafa}
+  .rpt-grp-hdr td{background:#e8e8f0;font-weight:700;padding:6px 7px;color:#333;font-size:10px;border-top:2px solid #bbb}
+  .rpt-badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;text-transform:uppercase}
+  .rpt-planned  {background:#D3D1C7;color:#2C2C2A}
+  .rpt-submitted{background:#B5D4F4;color:#042C53}
+  .rpt-confirmed{background:#9FE1CB;color:#04342C}
+  .rpt-refused  {background:#F7C1C1;color:#501313}
+  .rpt-cancelled{background:#D3D1C7;color:#444441;text-decoration:line-through}
+  .rpt-taken    {background:#c8c8c8;color:#333}
+  @media print{body{margin:10mm 12mm}@page{size:A4 portrait;margin:10mm 12mm}}
+  .rpt-nodata{text-align:center;padding:30px;color:#888;font-size:12px}
 </style>
-<\/head><body>
+</head><body>
 <h1>Holiday Report</h1>
 <div class="rpt-meta">
   Financial Year: ${fyk.replace('FY','').replace('/','\u2013')}<br>
@@ -2745,7 +2546,7 @@ ${bks.length === 0
     <tbody>${rows}</tbody>
   </table>`
 }
-<\/body><\/html>`;
+</body></html>`;
 }
 
 function runReport(mode) {
@@ -2779,34 +2580,31 @@ function generatePDF(html, fyk) {
   pdfBtn.textContent = '⏳ Generating…';
   pdfBtn.disabled = true;
 
-  const fname = 'Holiday_Report_' + fyk.replace('FY','').replace('/','-') + '.pdf';
+  const el = document.createElement('div');
+  el.innerHTML = html;
+  el.style.cssText = 'position:absolute;left:-9999px;top:0;width:210mm';
+  document.body.appendChild(el);
 
-  // Use html2pdf string mode — renders in an isolated context,
-  // completely separate from the app's dark-theme CSS variables.
-  // This prevents the dark background bleeding into the PDF.
+  const fname = 'Holiday_Report_' + fyk.replace('FY','').replace('/','-') + '.pdf';
   html2pdf().set({
     margin: [10, 12, 10, 12],
     filename: fname,
-    image: {type:'jpeg', quality:0.98},
-    html2canvas: {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      logging: false,
-      backgroundColor: '#ffffff'
-    },
+    image: {type:'jpeg', quality:0.95},
+    html2canvas: {scale:2, useCORS:true},
     jsPDF: {unit:'mm', format:'a4', orientation:'portrait'},
-    pagebreak: {mode:'css', avoid:'tr'}
-  }).from(html, 'string').save().then(() => {
+    pagebreak: {mode:['avoid-all','css','legacy']}
+  }).from(el).save().then(() => {
+    document.body.removeChild(el);
     pdfBtn.textContent = '⬇ PDF';
     pdfBtn.disabled = false;
     closeReportModal();
     toast('PDF saved: ' + fname);
   }).catch(err => {
+    document.body.removeChild(el);
     pdfBtn.textContent = '⬇ PDF';
     pdfBtn.disabled = false;
-    toast('PDF generation failed — try Print instead');
-    console.error('PDF error:', err);
+    toast('PDF generation failed');
+    console.error(err);
   });
 }
 
@@ -3090,7 +2888,6 @@ function _applyDriveData(driveData){
 
 let scrollMonths = []; // tracks rendered months {y, m}
 let scrollCalInited = false;
-let _fyNavLock = null; // set during programmatic FY navigation to suppress updateFYOnScroll override
 
 
 /* ── RENDER SINGLE MONTH ── */
@@ -3164,40 +2961,8 @@ function renderMonth(y, m) {
   // FY boundary dates for teal top-border
   const fyStartDates = new Set(Object.values(S.fyAllocs).map(fa => fa.startDate).filter(Boolean));
 
-  // Pre-compute FY bounds for cell-level clamping
-  const {earliest: fyEarliest, latest: fyLatest} = getFYBounds();
-  // Normalise to midnight for clean date comparison
-  const fyEarliestDay = fyEarliest ? new Date(fyEarliest.getFullYear(), fyEarliest.getMonth(), fyEarliest.getDate()) : null;
-  const fyLatestDay   = fyLatest   ? new Date(fyLatest.getFullYear(),   fyLatest.getMonth(),   fyLatest.getDate())   : null;
-  let _boundaryAfterShown  = false; // injected "FY Not Set Up" divider at end boundary
-  let _boundaryBeforeShown = false; // injected boundary divider at start boundary
-
   cells.forEach(({d, other}) => {
     const ds = dstr(d);
-
-    // ── FY boundary: check if this cell is outside all configured FYs ──
-    if (!other) {
-      const cellDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      const afterBound  = fyLatestDay   && cellDay > fyLatestDay;
-      const beforeBound = fyEarliestDay && cellDay < fyEarliestDay;
-
-      // Inject inline boundary row at the first cell beyond the latest FY end
-      if (afterBound && !_boundaryAfterShown) {
-        _boundaryAfterShown = true;
-        const brow = document.createElement('div');
-        brow.className = 'fy-boundary-row';
-        brow.innerHTML = '⚠ Financial Year Not Set Up &nbsp;·&nbsp; <span style="opacity:.7">dates beyond this point are not in any configured FY</span>';
-        grid.appendChild(brow);
-      }
-      // Inject inline boundary row at the first cell before the earliest FY start
-      if (beforeBound && !_boundaryBeforeShown) {
-        _boundaryBeforeShown = true;
-        const brow = document.createElement('div');
-        brow.className = 'fy-boundary-row';
-        brow.innerHTML = '⚠ Before earliest Financial Year';
-        grid.appendChild(brow);
-      }
-    }
 
     // ── Period divider: show on first Sunday of each period, AND at FY start ──
     if (!other) {
@@ -3229,15 +2994,9 @@ function renderMonth(y, m) {
 
     // ── Cell ──
     const cell = document.createElement('div');
-    // Determine if this cell is outside all configured FY ranges
-    const _cellDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    const _isOob = !other && (
-      (fyLatestDay   && _cellDay > fyLatestDay) ||
-      (fyEarliestDay && _cellDay < fyEarliestDay)
-    );
-    let cls = 'ccell' + (other ? ' other' : '') + (_isOob ? ' fy-oob' : '');
-    if(!other && !_isOob && d.getTime() === today.getTime()) cls += ' today';
-    if(!other && !_isOob && showBH && bhMap[ds]) cls += ' isbh';
+    let cls = 'ccell' + (other ? ' other' : '');
+    if(!other && d.getTime() === today.getTime()) cls += ' today';
+    if(!other && showBH && bhMap[ds]) cls += ' isbh';
     if(!other && fyStartDates.has(ds)) cls += ' fy-bnd';
     if(!other && d.getDay() === 0 || d.getDay() === 6) cls += ' weekend';
     cell.className = cls;
@@ -3246,21 +3005,21 @@ function renderMonth(y, m) {
     // Date number row
     const cdn = document.createElement('div'); cdn.className = 'cdn';
     cdn.appendChild(document.createTextNode(d.getDate()));
-    if (!other && !_isOob && isWorkDay(ds)) {
+    if (!other && isWorkDay(ds)) {
       const dot = document.createElement('div'); dot.className = 'wdot';
       cdn.appendChild(dot);
     }
     cell.appendChild(cdn);
 
     // Bank holiday label
-    if (!other && !_isOob && showBH && bhMap[ds]) {
+    if (!other && showBH && bhMap[ds]) {
       const bl = document.createElement('div'); bl.className = 'bhlbl';
       bl.textContent = bhMap[ds];
       cell.appendChild(bl);
     }
 
-    // Booking chips — not shown for out-of-bounds cells
-    const slots = _isOob ? [] : (sm[ds] || []);
+    // Booking chips
+    const slots = sm[ds] || [];
     if (slots.length) {
       const slotsEl = document.createElement('div'); slotsEl.className = 'slots';
       slots.forEach(bid => {
@@ -3286,13 +3045,11 @@ function renderMonth(y, m) {
       cell.appendChild(slotsEl);
     }
 
-    if (!_isOob) {
-      cell.onclick = e => {
-        if (e.target === cell || e.target === cdn || e.target.className === 'cdn' ||
-            e.target.className === 'bhlbl' || e.target.className === 'wdot')
-          openAddOnDateWithCheck(ds);
-      };
-    }
+    cell.onclick = e => {
+      if (e.target === cell || e.target === cdn || e.target.className === 'cdn' ||
+          e.target.className === 'bhlbl' || e.target.className === 'wdot')
+        openAddOnDateWithCheck(ds);
+    };
 
     grid.appendChild(cell);
   });
@@ -3340,13 +3097,14 @@ function updateFYOnScroll(calScroll) {
     if (rect.bottom > containerTop + 10) {
       const fy = monthDiv.dataset.fy;
       if (fy) {
-        // Always update the FY strip label
+        // Update calendar FY strip always
         const strip = document.getElementById('calFYLabel');
         if (strip) strip.textContent = 'Financial Year ' + fy.replace('FY','').replace('/','–');
-        // Only update curFY from scroll if not locked by a programmatic navigation
-        if (fy !== curFY && !_fyNavLock) {
+        if (fy !== curFY) {
           curFY = fy;
-          populateFYSel(); // rebuilds options and calls syncAllFYSelectors
+          const fyPill   = document.getElementById('fyPill');
+          if (fyPill) fyPill.textContent = fy;
+          populateFYSel();
           updateStats();
           renderAlerts();
         }
@@ -3369,65 +3127,12 @@ function snapToDate(date) {
   }
   if (!monthDiv) return;
 
-  // Enforce FY bounds: remove months outside configured FY range
-  // and show the appropriate banner at each boundary
-  _clampRenderedMonths();
-
-  // Re-query after potential DOM changes from clamping
-  monthDiv = calScroll.querySelector(`.month[data-year="${y}"][data-month="${m}"]`);
-  if (!monthDiv) return;
-
+  // Use getBoundingClientRect diff — immune to sticky/offsetParent quirks
+  // We need to scroll so monthDiv.top === calScroll.top
+  // i.e. calScroll.scrollTop += (monthDiv.rect.top - calScroll.rect.top)
   const containerRect = calScroll.getBoundingClientRect();
   const monthRect     = monthDiv.getBoundingClientRect();
   calScroll.scrollTop += (monthRect.top - containerRect.top);
-}
-
-/* Remove rendered months outside FY bounds; show banners at boundaries */
-function _clampRenderedMonths() {
-  const calScroll = document.getElementById('calScroll');
-  if (!calScroll) return;
-  const {earliest, latest} = getFYBounds();
-  if (!earliest || !latest) return;
-
-  const earliestMonth = new Date(earliest.getFullYear(), earliest.getMonth(), 1);
-  const latestMonth   = new Date(latest.getFullYear(),   latest.getMonth(),   1);
-
-  // Remove months before earliest FY and after latest FY
-  [...calScroll.querySelectorAll('.month')].forEach(md => {
-    const my = parseInt(md.dataset.year);
-    const mm = parseInt(md.dataset.month);
-    const mDate = new Date(my, mm, 1);
-    if (mDate < earliestMonth || mDate > latestMonth) {
-      // Remove from scrollMonths tracking too
-      const idx = scrollMonths.findIndex(s => s.y === my && s.m === mm);
-      if (idx !== -1) scrollMonths.splice(idx, 1);
-      md.remove();
-    }
-  });
-
-  // If the last rendered month is the latest FY month, show the "Add FY" banner
-  const last = scrollMonths[scrollMonths.length - 1];
-  if (last) {
-    const lastDate = new Date(last.y, last.m, 1);
-    if (lastDate.getTime() === latestMonth.getTime()) {
-      if (!document.getElementById('addFYBanner')) {
-        calScroll._addFYPromptShown = true;
-        showAddFYBanner();
-      }
-    }
-  }
-
-  // If the first rendered month is the earliest FY month, show the top banner
-  const first = scrollMonths[0];
-  if (first) {
-    const firstDate = new Date(first.y, first.m, 1);
-    if (firstDate.getTime() === earliestMonth.getTime()) {
-      if (!document.getElementById('addFYTopBanner')) {
-        calScroll._topBannerShown = true;
-        showAddFYTopBanner();
-      }
-    }
-  }
 }
 
 
@@ -3520,10 +3225,10 @@ function initScrollCalendar() {
       if (latest) {
         const nextDate = new Date(ny, nm, 1);
         if (nextDate > latest) {
-          // Past the end of all defined FYs — show inline banner
+          // Past the end of all defined FYs — offer to add next FY
           if (!calScroll._addFYPromptShown) {
             calScroll._addFYPromptShown = true;
-            showAddFYBanner();
+            showAddFYPrompt();
           }
         } else {
           calScroll._addFYPromptShown = false;
@@ -3546,14 +3251,8 @@ function initScrollCalendar() {
         const prevDate = new Date(py, pm, 1);
         const earliestMonth = new Date(earliest.getFullYear(), earliest.getMonth(), 1);
         if (prevDate < earliestMonth) {
-          // At earliest FY boundary — show top banner if not shown
-          if (!calScroll._topBannerShown) {
-            calScroll._topBannerShown = true;
-            showAddFYTopBanner();
-          }
+          // Already at earliest — don't prepend
         } else {
-          calScroll._topBannerShown = false;
-          removeAddFYTopBanner();
           const heightBefore = calScroll.scrollHeight;
           const newMonth = renderMonth(py, pm);
           calScroll.prepend(newMonth);
@@ -3562,11 +3261,12 @@ function initScrollCalendar() {
           calScroll.scrollTop = scrollTop + added;
         }
       } else {
-        // No FY bounds configured — block upward scroll entirely
-        if (!calScroll._topBannerShown) {
-          calScroll._topBannerShown = true;
-          showAddFYTopBanner();
-        }
+        const heightBefore = calScroll.scrollHeight;
+        const newMonth = renderMonth(py, pm);
+        calScroll.prepend(newMonth);
+        scrollMonths.unshift({y: py, m: pm});
+        const added = calScroll.scrollHeight - heightBefore;
+        calScroll.scrollTop = scrollTop + added;
       }
     }
 
@@ -3629,10 +3329,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Clear existing options except placeholder
     while (jumpSel.options.length > 1) jumpSel.remove(1);
     const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const keys = allFYKeys();
+    const keys = allFYKeys(); // ascending
     if (!keys.length) return;
 
-    // Collect all months across all FY ranges
+    // Find overall date range: earliest FY start → latest FY end
     let earliest = null, latest = null;
     keys.forEach(k => {
       const r = fyRange(k);
@@ -3641,41 +3341,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     if (!earliest || !latest) return;
 
-    const allMonths = [];
+    const now = new Date();
     let y = earliest.getFullYear(), m = earliest.getMonth();
     const endY = latest.getFullYear(), endM = latest.getMonth();
     while (y < endY || (y === endY && m <= endM)) {
-      allMonths.push({y, m, label: MONTHS[m] + ' ' + y, val: y + '-' + m});
+      const opt = document.createElement('option');
+      opt.value = y + '-' + m;
+      opt.textContent = MONTHS[m] + ' ' + y;
+      if (y === now.getFullYear() && m === now.getMonth()) opt.selected = true;
+      jumpSel.appendChild(opt);
       m++; if (m > 11) { m = 0; y++; }
     }
-
-    // Reorder: today first, then future months, then past months at bottom
-    // This puts today at the top of the list so it is always immediately visible
-    const now = new Date();
-    const todayVal = now.getFullYear() + '-' + now.getMonth();
-    const todayIdx = allMonths.findIndex(o => o.val === todayVal);
-    const reordered = todayIdx >= 0
-      ? [...allMonths.slice(todayIdx), ...allMonths.slice(0, todayIdx)]
-      : allMonths;
-
-    reordered.forEach(({val, label}) => {
-      const opt = document.createElement('option');
-      opt.value = val;
-      opt.textContent = label;
-      jumpSel.appendChild(opt);
-    });
-    // Keep value='' so placeholder "Jump to…" always shows as the label
   }
   populateJumpSel();
-  // Jump-to: "Jump to…" always shows as the label (value stays '').
-  // Options are ordered today-first so today is always at the top of the list.
-  // No mousedown manipulation — any option click fires 'change' cleanly.
-  if (jumpSel) {
-    jumpSel.addEventListener('blur', () => {
-      // User dismissed without picking — restore placeholder
-      jumpSel.value = '';
-    });
-  }
   // Re-populate whenever FY settings change
   window._populateJumpSel = populateJumpSel;
 
@@ -3871,7 +3549,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <div class="mbg" id="reportMbg" style="z-index:1300" onclick="if(event.target===this)closeReportModal()">
 <div class="modal" style="max-width:500px">
   <div class="mhdr">
-    <h2>🖨 Print Report</h2>
+    <h2>📄 Export / Print Report</h2>
     <button class="mclose" onclick="closeReportModal()">✕</button>
   </div>
   <div class="mbody">
@@ -3894,12 +3572,9 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="fr"><!-- spacer --></div>
     </div>
     <!-- Date range -->
-    <div style="margin-bottom:10px">
-      <div class="fr2" style="margin-bottom:4px">
-        <div class="fr"><label>From</label><input type="date" id="rpt-from" onchange="rptValidate()"></div>
-        <div class="fr"><label>To</label>  <input type="date" id="rpt-to"   onchange="rptValidate()"></div>
-      </div>
-      <button onclick="rptResetDateRange()" style="font-size:.65rem;padding:2px 8px;background:none;border:1px solid var(--bd2);border-radius:4px;color:var(--t3);cursor:pointer">↺ Reset to full FY range</button>
+    <div class="fr2" style="margin-bottom:10px">
+      <div class="fr"><label>From</label><input type="date" id="rpt-from" onchange="rptValidate()"></div>
+      <div class="fr"><label>To</label>  <input type="date" id="rpt-to"   onchange="rptValidate()"></div>
     </div>
     <!-- Options -->
     <div style="font-size:.63rem;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);margin-bottom:6px">Options</div>
@@ -3908,8 +3583,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <label style="display:flex;align-items:center;gap:6px;font-size:.75rem;cursor:pointer"><input type="checkbox" id="rpt-group"> Group by status</label>
       <label style="display:flex;align-items:center;gap:6px;font-size:.75rem;cursor:pointer"><input type="checkbox" id="rpt-period" checked> Include period number</label>
     </div>
-    <div id="rpt-err" style="font-size:.73rem;color:var(--red);margin-bottom:6px;display:none"></div>
-    <div id="rpt-count" style="font-size:.72rem;color:var(--teal);margin-bottom:8px;font-family:var(--mono)"></div>
+    <div id="rpt-err" style="font-size:.73rem;color:var(--red);margin-bottom:8px;display:none"></div>
     <div class="btn-row" style="margin-top:0">
       <button class="btn btng" onclick="closeReportModal()">Cancel</button>
       <button class="btn btng" id="rpt-print-btn" onclick="runReport('print')">🖨 Print</button>
@@ -3935,6 +3609,20 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 </div>
 
-<!-- Add FY inline banner — injected into calScroll by JS -->
+<!-- ADD FY PROMPT MODAL -->
+<div class="mbg" id="addFYPromptMbg" style="z-index:1200">
+<div class="modal" style="max-width:380px">
+  <div class="mhdr">
+    <h2>Financial Year Not Set Up</h2>
+  </div>
+  <div class="mbody">
+    <p style="font-size:.82rem;color:var(--t1);margin-bottom:14px">This financial year has not been created yet. Would you like to add it?</p>
+    <div class="btn-row" style="margin-top:0">
+      <button class="btn btng" onclick="closeAddFYPrompt()">Cancel</button>
+      <button class="btn btnp" onclick="goAddFY()">Add Financial Year</button>
+    </div>
+  </div>
+</div>
+</div>
 </body>
 </html>

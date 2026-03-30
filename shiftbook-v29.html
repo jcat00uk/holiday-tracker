@@ -1273,43 +1273,23 @@ function fyOptionLabel(k) {
   return label;
 }
 
-// Sync all FY picker UIs to the current curFY without rebuilding options
-function syncAllFYSelectors() {
-  const pill = document.getElementById('fyPill');
-  if (pill) pill.textContent = curFY;
-  const fySelect = document.getElementById('fySelect');
-  if (fySelect) fySelect.value = curFY;
-  const listSel = document.getElementById('listFYSel');
-  if (listSel) listSel.value = curFY;
-}
-
 function populateFYSel(){
   const sel=document.getElementById('fySelect'),keys=allFYKeys().reverse();
   sel.innerHTML=keys.map(k=>
     `<option value="${k}"${k===curFY?' selected':''}>${fyOptionLabel(k)}</option>`
   ).join('');
   populateListFYSel();
-  syncAllFYSelectors(); // ensure value attributes match curFY after rebuild
 }
 
 function changeFY(){
   curFY=document.getElementById('fySelect').value;
-  syncAllFYSelectors();
+  document.getElementById('fyPill').textContent=curFY;
   ensureFY(curFY);
-
-  const calActive = document.getElementById('view-calendar').classList.contains('active');
-  if(calActive){
-    // Set lock BEFORE any DOM work — prevents updateFYOnScroll overwriting curFY
-    _fyNavLock = curFY;
-    // Update stats/alerts for the new FY without triggering refreshScrollCal
-    updateStats(); renderAlerts(); populateFYSel();
-    // Jump to the new FY start date directly
-    const fyS = getFYStartDate(curFY);
-    if(fyS) snapToDate(fyS);
-    // Release lock after scroll settles
-    setTimeout(()=>{ _fyNavLock = null; }, 600);
-  } else {
-    refresh();
+  refresh();
+  // If calendar is visible, jump to FY start
+  const fyS=getFYStartDate(curFY);
+  if(fyS && document.getElementById('view-calendar').classList.contains('active')){
+    setTimeout(()=>snapToDate(fyS),50);
   }
 }
 
@@ -1502,7 +1482,9 @@ let bulkAction=null; // {type:'status'|'delete', status?}
 
 function setListFY(fyk) {
   curFY = fyk;
-  syncAllFYSelectors(); // keep abar fySelect and fyPill in sync
+  // Sync global FY pill
+  const pill = document.getElementById('fyPill');
+  if (pill) pill.textContent = fyk;
   updateStats();
   renderAlerts();
   renderList();
@@ -2252,15 +2234,12 @@ function showView(name){
   if(name==='settings')loadSettingsUI();
   if(name==='calendar'){if(!scrollCalInited){initScrollCalendar();scrollCalInited=true;}else refreshScrollCal();}
   if(name==='list'){
-    // On first visit, default to today's FY; thereafter respect the user's selection
-    const listSel = document.getElementById('listFYSel');
-    const isFirstVisit = !listSel || !listSel.value;
-    if(isFirstVisit){
-      const todayFYKey = getFinancialYearFromDate(new Date()).key;
-      if(todayFYKey && S.fyAllocs[todayFYKey]){
-        curFY = todayFYKey;
-        syncAllFYSelectors();
-      }
+    // Switch to today's actual FY when entering Bookings
+    const todayFYKey = getFinancialYearFromDate(new Date()).key;
+    if(todayFYKey && S.fyAllocs[todayFYKey] && curFY !== todayFYKey){
+      curFY = todayFYKey;
+      const pill = document.getElementById('fyPill');
+      if(pill) pill.textContent = curFY;
     }
     populateListFYSel();
     renderList();
@@ -3090,7 +3069,6 @@ function _applyDriveData(driveData){
 
 let scrollMonths = []; // tracks rendered months {y, m}
 let scrollCalInited = false;
-let _fyNavLock = null; // set during programmatic FY navigation to suppress updateFYOnScroll override
 
 
 /* ── RENDER SINGLE MONTH ── */
@@ -3340,13 +3318,14 @@ function updateFYOnScroll(calScroll) {
     if (rect.bottom > containerTop + 10) {
       const fy = monthDiv.dataset.fy;
       if (fy) {
-        // Always update the FY strip label
+        // Update calendar FY strip always
         const strip = document.getElementById('calFYLabel');
         if (strip) strip.textContent = 'Financial Year ' + fy.replace('FY','').replace('/','–');
-        // Only update curFY from scroll if not locked by a programmatic navigation
-        if (fy !== curFY && !_fyNavLock) {
+        if (fy !== curFY) {
           curFY = fy;
-          populateFYSel(); // rebuilds options and calls syncAllFYSelectors
+          const fyPill   = document.getElementById('fyPill');
+          if (fyPill) fyPill.textContent = fy;
+          populateFYSel();
           updateStats();
           renderAlerts();
         }

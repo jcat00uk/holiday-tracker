@@ -69,8 +69,6 @@ main{padding:12px 16px;max-width:1500px;margin:0 auto;width:100%}
 body.cal-active{
   overflow:hidden;
   height:100dvh;
-  /* Kill body padding so calendar fills exactly to the nav bar edge */
-  padding-bottom:0 !important;
 }
 body.cal-active main{
   display:flex;
@@ -83,11 +81,6 @@ body.cal-active main{
 @media(max-width:640px){
   body.cal-active main{
     height:calc(100dvh - 48px - var(--nav-h));  /* subtract bottom nav on mobile */
-  }
-  /* Also ensure body position is fixed to prevent iOS rubber-band revealing content below */
-  body.cal-active{
-    position:fixed;
-    width:100%;
   }
 }
 
@@ -142,8 +135,6 @@ body.cal-active main{
 .calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
 .cdh{text-align:center;padding:4px 0;font-size:.63rem;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono)}
 .ccell{background:var(--s1);border:1px solid var(--bd);border-radius:5px;padding:4px 3px 3px;cursor:pointer;transition:border-color .12s;overflow:hidden;min-height:72px}
-.ccell.fy-oob{background:repeating-linear-gradient(135deg,var(--s1) 0px,var(--s1) 4px,var(--bg) 4px,var(--bg) 8px)!important;cursor:default!important;opacity:.45;pointer-events:none}
-.fy-boundary-row{grid-column:1/-1;background:var(--s2);border-top:2px solid var(--amber);border-bottom:2px solid var(--amber);padding:4px 8px;font-family:var(--mono);font-size:.63rem;color:var(--amber);display:flex;align-items:center;gap:6px}
 .ccell:hover{border-color:var(--bd2)}
 .ccell.other{opacity:.22}
 .ccell.today{border-color:var(--teal)!important;box-shadow:inset 0 0 0 1px var(--teal)}
@@ -1251,65 +1242,32 @@ function ensureFY(fyk){
     S.fyAllocs[fyk].startDate=autoStart?dstr(autoStart):'';
   }
 }
-function getFYAlloc(fyk){if(!S.fyAllocs[fyk])return 0;return(parseFloat(S.fyAllocs[fyk].hours)||0)+(parseFloat(S.fyAllocs[fyk].carryOver)||0);}
+function getFYAlloc(fyk){ensureFY(fyk);return(parseFloat(S.fyAllocs[fyk].hours)||0)+(parseFloat(S.fyAllocs[fyk].carryOver)||0);}
 function initFY(){
   curFY=curFYKey();
   ensureFY(curFY);
   populateFYSel();
   document.getElementById('fyPill').textContent=curFY;
 }
-
-// ── FY option label: "FY2026/27 (5) (Current)" ──
-function fyOptionLabel(k) {
-  const todayKey = getFinancialYearFromDate(new Date()).key;
-  const keys = allFYKeys().sort(); // ascending
-  const todayIdx = keys.indexOf(todayKey);
-  const nextKey = todayIdx >= 0 && todayIdx + 1 < keys.length ? keys[todayIdx + 1] : null;
-  const n = S.bookings.filter(b => b.fyKey === k).length;
-  let label = k;
-  if (n > 0) label += ' (' + n + ')';
-  if (k === todayKey) label += ' (Current)';
-  else if (k === nextKey) label += ' (Next)';
-  return label;
-}
-
-// Sync all FY picker UIs to the current curFY without rebuilding options
-function syncAllFYSelectors() {
-  const pill = document.getElementById('fyPill');
-  if (pill) pill.textContent = curFY;
-  const fySelect = document.getElementById('fySelect');
-  if (fySelect) fySelect.value = curFY;
-  const listSel = document.getElementById('listFYSel');
-  if (listSel) listSel.value = curFY;
-}
-
 function populateFYSel(){
   const sel=document.getElementById('fySelect'),keys=allFYKeys().reverse();
-  sel.innerHTML=keys.map(k=>
-    `<option value="${k}"${k===curFY?' selected':''}>${fyOptionLabel(k)}</option>`
-  ).join('');
+  sel.innerHTML=keys.map(k=>{
+    const n=S.bookings.filter(b=>b.fyKey===k).length;
+    const label=k+(n>0?' ('+n+')':'');
+    return`<option value="${k}"${k===curFY?' selected':''}>${label}</option>`;
+  }).join('');
   populateListFYSel();
-  syncAllFYSelectors(); // ensure value attributes match curFY after rebuild
 }
 
 function changeFY(){
   curFY=document.getElementById('fySelect').value;
-  syncAllFYSelectors();
+  document.getElementById('fyPill').textContent=curFY;
   ensureFY(curFY);
-
-  const calActive = document.getElementById('view-calendar').classList.contains('active');
-  if(calActive){
-    // Set lock BEFORE any DOM work — prevents updateFYOnScroll overwriting curFY
-    _fyNavLock = curFY;
-    // Update stats/alerts for the new FY without triggering refreshScrollCal
-    updateStats(); renderAlerts(); populateFYSel();
-    // Jump to the new FY start date directly
-    const fyS = getFYStartDate(curFY);
-    if(fyS) snapToDate(fyS);
-    // Release lock after scroll settles
-    setTimeout(()=>{ _fyNavLock = null; }, 600);
-  } else {
-    refresh();
+  refresh();
+  // If calendar is visible, jump to FY start
+  const fyS=getFYStartDate(curFY);
+  if(fyS && document.getElementById('view-calendar').classList.contains('active')){
+    setTimeout(()=>snapToDate(fyS),50);
   }
 }
 
@@ -1502,7 +1460,9 @@ let bulkAction=null; // {type:'status'|'delete', status?}
 
 function setListFY(fyk) {
   curFY = fyk;
-  syncAllFYSelectors(); // keep abar fySelect and fyPill in sync
+  // Sync global FY pill
+  const pill = document.getElementById('fyPill');
+  if (pill) pill.textContent = fyk;
   updateStats();
   renderAlerts();
   renderList();
@@ -1512,9 +1472,11 @@ function populateListFYSel() {
   const sel = document.getElementById('listFYSel');
   if (!sel) return;
   const keys = allFYKeys().reverse();
-  sel.innerHTML = keys.map(k =>
-    `<option value="${k}"${k===curFY?' selected':''}>${fyOptionLabel(k)}</option>`
-  ).join('');
+  sel.innerHTML = keys.map(k => {
+    const n = S.bookings.filter(b => b.fyKey === k).length;
+    const label = k + (n > 0 ? ' – ' + n + ' booking' + (n!==1?'s':'') : '');
+    return `<option value="${k}"${k===curFY?' selected':''}>${label}</option>`;
+  }).join('');
 }
 
 function renderList(){
@@ -2252,30 +2214,17 @@ function showView(name){
   if(name==='settings')loadSettingsUI();
   if(name==='calendar'){if(!scrollCalInited){initScrollCalendar();scrollCalInited=true;}else refreshScrollCal();}
   if(name==='list'){
-    // On first visit, default to today's FY; thereafter respect the user's selection
-    const listSel = document.getElementById('listFYSel');
-    const isFirstVisit = !listSel || !listSel.value;
-    if(isFirstVisit){
-      const todayFYKey = getFinancialYearFromDate(new Date()).key;
-      if(todayFYKey && S.fyAllocs[todayFYKey]){
-        curFY = todayFYKey;
-        syncAllFYSelectors();
-      }
+    // Switch to today's actual FY when entering Bookings
+    const todayFYKey = getFinancialYearFromDate(new Date()).key;
+    if(todayFYKey && S.fyAllocs[todayFYKey] && curFY !== todayFYKey){
+      curFY = todayFYKey;
+      const pill = document.getElementById('fyPill');
+      if(pill) pill.textContent = curFY;
     }
     populateListFYSel();
     renderList();
   }
-  if(name==='dash'){
-    // Switch to today's actual FY when entering Dashboard
-    const _todayFYKey = getFinancialYearFromDate(new Date()).key;
-    if(_todayFYKey && S.fyAllocs[_todayFYKey] && curFY !== _todayFYKey){
-      curFY = _todayFYKey;
-      const _pill = document.getElementById('fyPill');
-      if(_pill) _pill.textContent = curFY;
-      populateFYSel();
-    }
-    renderDash();
-  }
+  if(name==='dash')renderDash();
   localStorage.setItem('shiftbook_lastView', name);
 }
 
@@ -2339,10 +2288,11 @@ function openQuickSetup() {
   document.getElementById('qs-ns').value = 'no';
   document.getElementById('qs-yrs').value = S.settings.yearsService || 'gt5';
 
-  // Default times match the selected emptype (Days = 07:00/15:00, Nights = 23:00/07:00)
-  // Since we always reset to Days above, always start with day times
-  popSel(document.getElementById('qs-dstart'), '07:00');
-  popSel(document.getElementById('qs-dend'),   '15:00');
+  // Use existing settings as defaults if already set
+  const existingStart = S.settings.defaultStart;
+  const existingEnd   = S.settings.defaultEnd;
+  popSel(document.getElementById('qs-dstart'), existingStart || '07:00');
+  popSel(document.getElementById('qs-dend'),   existingEnd   || '15:00');
 
   // Set FY from engine
   const fyInfo = getFinancialYearFromDate(new Date());
@@ -2533,8 +2483,6 @@ function goAddFY() {
   // Stay on calendar — refresh so new FY months are available
   refreshScrollCal();
   populateFYSel();
-  // Refresh jump-to month list so new FY months appear immediately
-  if (window._populateJumpSel) window._populateJumpSel();
   toast('Financial year added — scroll down to continue, or visit Settings to set allocation');
 }
 
@@ -2547,7 +2495,7 @@ function openReportModal() {
   // Populate FY select
   const sel = document.getElementById('rpt-fy');
   sel.innerHTML = allFYKeys().reverse().map(k =>
-    `<option value="${k}"${k===curFY?' selected':''}>${fyOptionLabel(k)}</option>`
+    `<option value="${k}"${k===curFY?' selected':''}>${k}</option>`
   ).join('');
   rptOnFYChange(); // calls rptValidate which sets live count
   document.getElementById('reportMbg').classList.add('open');
@@ -2726,7 +2674,7 @@ function rptBuildHTML(forPrint = false) {
     .rpt-grp-hdr{page-break-after:avoid}
   }
 </style>
-<\/head><body>
+</head><body>
 <h1>Holiday Report</h1>
 <div class="rpt-meta">
   Financial Year: ${fyk.replace('FY','').replace('/','\u2013')}<br>
@@ -2745,7 +2693,7 @@ ${bks.length === 0
     <tbody>${rows}</tbody>
   </table>`
 }
-<\/body><\/html>`;
+</body></html>`;
 }
 
 function runReport(mode) {
@@ -3090,7 +3038,6 @@ function _applyDriveData(driveData){
 
 let scrollMonths = []; // tracks rendered months {y, m}
 let scrollCalInited = false;
-let _fyNavLock = null; // set during programmatic FY navigation to suppress updateFYOnScroll override
 
 
 /* ── RENDER SINGLE MONTH ── */
@@ -3164,40 +3111,8 @@ function renderMonth(y, m) {
   // FY boundary dates for teal top-border
   const fyStartDates = new Set(Object.values(S.fyAllocs).map(fa => fa.startDate).filter(Boolean));
 
-  // Pre-compute FY bounds for cell-level clamping
-  const {earliest: fyEarliest, latest: fyLatest} = getFYBounds();
-  // Normalise to midnight for clean date comparison
-  const fyEarliestDay = fyEarliest ? new Date(fyEarliest.getFullYear(), fyEarliest.getMonth(), fyEarliest.getDate()) : null;
-  const fyLatestDay   = fyLatest   ? new Date(fyLatest.getFullYear(),   fyLatest.getMonth(),   fyLatest.getDate())   : null;
-  let _boundaryAfterShown  = false; // injected "FY Not Set Up" divider at end boundary
-  let _boundaryBeforeShown = false; // injected boundary divider at start boundary
-
   cells.forEach(({d, other}) => {
     const ds = dstr(d);
-
-    // ── FY boundary: check if this cell is outside all configured FYs ──
-    if (!other) {
-      const cellDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      const afterBound  = fyLatestDay   && cellDay > fyLatestDay;
-      const beforeBound = fyEarliestDay && cellDay < fyEarliestDay;
-
-      // Inject inline boundary row at the first cell beyond the latest FY end
-      if (afterBound && !_boundaryAfterShown) {
-        _boundaryAfterShown = true;
-        const brow = document.createElement('div');
-        brow.className = 'fy-boundary-row';
-        brow.innerHTML = '⚠ Financial Year Not Set Up &nbsp;·&nbsp; <span style="opacity:.7">dates beyond this point are not in any configured FY</span>';
-        grid.appendChild(brow);
-      }
-      // Inject inline boundary row at the first cell before the earliest FY start
-      if (beforeBound && !_boundaryBeforeShown) {
-        _boundaryBeforeShown = true;
-        const brow = document.createElement('div');
-        brow.className = 'fy-boundary-row';
-        brow.innerHTML = '⚠ Before earliest Financial Year';
-        grid.appendChild(brow);
-      }
-    }
 
     // ── Period divider: show on first Sunday of each period, AND at FY start ──
     if (!other) {
@@ -3229,15 +3144,9 @@ function renderMonth(y, m) {
 
     // ── Cell ──
     const cell = document.createElement('div');
-    // Determine if this cell is outside all configured FY ranges
-    const _cellDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    const _isOob = !other && (
-      (fyLatestDay   && _cellDay > fyLatestDay) ||
-      (fyEarliestDay && _cellDay < fyEarliestDay)
-    );
-    let cls = 'ccell' + (other ? ' other' : '') + (_isOob ? ' fy-oob' : '');
-    if(!other && !_isOob && d.getTime() === today.getTime()) cls += ' today';
-    if(!other && !_isOob && showBH && bhMap[ds]) cls += ' isbh';
+    let cls = 'ccell' + (other ? ' other' : '');
+    if(!other && d.getTime() === today.getTime()) cls += ' today';
+    if(!other && showBH && bhMap[ds]) cls += ' isbh';
     if(!other && fyStartDates.has(ds)) cls += ' fy-bnd';
     if(!other && d.getDay() === 0 || d.getDay() === 6) cls += ' weekend';
     cell.className = cls;
@@ -3246,21 +3155,21 @@ function renderMonth(y, m) {
     // Date number row
     const cdn = document.createElement('div'); cdn.className = 'cdn';
     cdn.appendChild(document.createTextNode(d.getDate()));
-    if (!other && !_isOob && isWorkDay(ds)) {
+    if (!other && isWorkDay(ds)) {
       const dot = document.createElement('div'); dot.className = 'wdot';
       cdn.appendChild(dot);
     }
     cell.appendChild(cdn);
 
     // Bank holiday label
-    if (!other && !_isOob && showBH && bhMap[ds]) {
+    if (!other && showBH && bhMap[ds]) {
       const bl = document.createElement('div'); bl.className = 'bhlbl';
       bl.textContent = bhMap[ds];
       cell.appendChild(bl);
     }
 
-    // Booking chips — not shown for out-of-bounds cells
-    const slots = _isOob ? [] : (sm[ds] || []);
+    // Booking chips
+    const slots = sm[ds] || [];
     if (slots.length) {
       const slotsEl = document.createElement('div'); slotsEl.className = 'slots';
       slots.forEach(bid => {
@@ -3286,13 +3195,11 @@ function renderMonth(y, m) {
       cell.appendChild(slotsEl);
     }
 
-    if (!_isOob) {
-      cell.onclick = e => {
-        if (e.target === cell || e.target === cdn || e.target.className === 'cdn' ||
-            e.target.className === 'bhlbl' || e.target.className === 'wdot')
-          openAddOnDateWithCheck(ds);
-      };
-    }
+    cell.onclick = e => {
+      if (e.target === cell || e.target === cdn || e.target.className === 'cdn' ||
+          e.target.className === 'bhlbl' || e.target.className === 'wdot')
+        openAddOnDateWithCheck(ds);
+    };
 
     grid.appendChild(cell);
   });
@@ -3340,13 +3247,14 @@ function updateFYOnScroll(calScroll) {
     if (rect.bottom > containerTop + 10) {
       const fy = monthDiv.dataset.fy;
       if (fy) {
-        // Always update the FY strip label
+        // Update calendar FY strip always
         const strip = document.getElementById('calFYLabel');
         if (strip) strip.textContent = 'Financial Year ' + fy.replace('FY','').replace('/','–');
-        // Only update curFY from scroll if not locked by a programmatic navigation
-        if (fy !== curFY && !_fyNavLock) {
+        if (fy !== curFY) {
           curFY = fy;
-          populateFYSel(); // rebuilds options and calls syncAllFYSelectors
+          const fyPill   = document.getElementById('fyPill');
+          if (fyPill) fyPill.textContent = fy;
+          populateFYSel();
           updateStats();
           renderAlerts();
         }
@@ -3369,65 +3277,12 @@ function snapToDate(date) {
   }
   if (!monthDiv) return;
 
-  // Enforce FY bounds: remove months outside configured FY range
-  // and show the appropriate banner at each boundary
-  _clampRenderedMonths();
-
-  // Re-query after potential DOM changes from clamping
-  monthDiv = calScroll.querySelector(`.month[data-year="${y}"][data-month="${m}"]`);
-  if (!monthDiv) return;
-
+  // Use getBoundingClientRect diff — immune to sticky/offsetParent quirks
+  // We need to scroll so monthDiv.top === calScroll.top
+  // i.e. calScroll.scrollTop += (monthDiv.rect.top - calScroll.rect.top)
   const containerRect = calScroll.getBoundingClientRect();
   const monthRect     = monthDiv.getBoundingClientRect();
   calScroll.scrollTop += (monthRect.top - containerRect.top);
-}
-
-/* Remove rendered months outside FY bounds; show banners at boundaries */
-function _clampRenderedMonths() {
-  const calScroll = document.getElementById('calScroll');
-  if (!calScroll) return;
-  const {earliest, latest} = getFYBounds();
-  if (!earliest || !latest) return;
-
-  const earliestMonth = new Date(earliest.getFullYear(), earliest.getMonth(), 1);
-  const latestMonth   = new Date(latest.getFullYear(),   latest.getMonth(),   1);
-
-  // Remove months before earliest FY and after latest FY
-  [...calScroll.querySelectorAll('.month')].forEach(md => {
-    const my = parseInt(md.dataset.year);
-    const mm = parseInt(md.dataset.month);
-    const mDate = new Date(my, mm, 1);
-    if (mDate < earliestMonth || mDate > latestMonth) {
-      // Remove from scrollMonths tracking too
-      const idx = scrollMonths.findIndex(s => s.y === my && s.m === mm);
-      if (idx !== -1) scrollMonths.splice(idx, 1);
-      md.remove();
-    }
-  });
-
-  // If the last rendered month is the latest FY month, show the "Add FY" banner
-  const last = scrollMonths[scrollMonths.length - 1];
-  if (last) {
-    const lastDate = new Date(last.y, last.m, 1);
-    if (lastDate.getTime() === latestMonth.getTime()) {
-      if (!document.getElementById('addFYBanner')) {
-        calScroll._addFYPromptShown = true;
-        showAddFYBanner();
-      }
-    }
-  }
-
-  // If the first rendered month is the earliest FY month, show the top banner
-  const first = scrollMonths[0];
-  if (first) {
-    const firstDate = new Date(first.y, first.m, 1);
-    if (firstDate.getTime() === earliestMonth.getTime()) {
-      if (!document.getElementById('addFYTopBanner')) {
-        calScroll._topBannerShown = true;
-        showAddFYTopBanner();
-      }
-    }
-  }
 }
 
 
@@ -3629,10 +3484,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Clear existing options except placeholder
     while (jumpSel.options.length > 1) jumpSel.remove(1);
     const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const keys = allFYKeys();
+    const keys = allFYKeys(); // ascending
     if (!keys.length) return;
 
-    // Collect all months across all FY ranges
+    // Find overall date range: earliest FY start → latest FY end
     let earliest = null, latest = null;
     keys.forEach(k => {
       const r = fyRange(k);
@@ -3641,39 +3496,40 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     if (!earliest || !latest) return;
 
-    const allMonths = [];
+    const now = new Date();
     let y = earliest.getFullYear(), m = earliest.getMonth();
     const endY = latest.getFullYear(), endM = latest.getMonth();
     while (y < endY || (y === endY && m <= endM)) {
-      allMonths.push({y, m, label: MONTHS[m] + ' ' + y, val: y + '-' + m});
+      const opt = document.createElement('option');
+      opt.value = y + '-' + m;
+      opt.textContent = MONTHS[m] + ' ' + y;
+      // Note: no pre-selection — placeholder 'Jump to…' shows by default
+      jumpSel.appendChild(opt);
       m++; if (m > 11) { m = 0; y++; }
     }
-
-    // Reorder: today first, then future months, then past months at bottom
-    // This puts today at the top of the list so it is always immediately visible
-    const now = new Date();
-    const todayVal = now.getFullYear() + '-' + now.getMonth();
-    const todayIdx = allMonths.findIndex(o => o.val === todayVal);
-    const reordered = todayIdx >= 0
-      ? [...allMonths.slice(todayIdx), ...allMonths.slice(0, todayIdx)]
-      : allMonths;
-
-    reordered.forEach(({val, label}) => {
-      const opt = document.createElement('option');
-      opt.value = val;
-      opt.textContent = label;
-      jumpSel.appendChild(opt);
-    });
-    // Keep value='' so placeholder "Jump to…" always shows as the label
   }
   populateJumpSel();
-  // Jump-to: "Jump to…" always shows as the label (value stays '').
-  // Options are ordered today-first so today is always at the top of the list.
-  // No mousedown manipulation — any option click fires 'change' cleanly.
+  // Wire mousedown/focus: temporarily select today's option so the dropdown
+  // opens scrolled to today's month, then reset to placeholder after close.
   if (jumpSel) {
+    jumpSel.addEventListener('mousedown', () => {
+      // Set to today so browser opens the list scrolled there
+      const now = new Date();
+      const todayVal = now.getFullYear() + '-' + now.getMonth();
+      if (jumpSel.value === '' && [...jumpSel.options].some(o => o.value === todayVal)) {
+        jumpSel.value = todayVal;
+        // Will be reset to '' if user dismisses without choosing (handled in change)
+      }
+    });
     jumpSel.addEventListener('blur', () => {
-      // User dismissed without picking — restore placeholder
-      jumpSel.value = '';
+      // If user opened and dismissed without selecting, restore placeholder
+      if (jumpSel.value !== '') {
+        // Only reset if the change handler didn't already clear it
+        // (change handler sets value='' after navigating)
+        requestAnimationFrame(() => {
+          if (jumpSel.value !== '') jumpSel.value = '';
+        });
+      }
     });
   }
   // Re-populate whenever FY settings change
