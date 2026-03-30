@@ -1294,50 +1294,40 @@ function populateFYSel(){
   syncAllFYSelectors(); // ensure value attributes match curFY after rebuild
 }
 
-// Scroll calendar to the first visible month of a given FY key
+// Scroll calendar so the first month of a given FY is at the top.
+// Strategy: find the month AFTER the previous FY ends, or use the FY start date.
+// Uses _buildCalFrom so that month is rendered first with scrollTop=0 — no measurement needed.
 function snapToFY(fyk) {
   const calScroll = document.getElementById('calScroll');
   if (!calScroll) return;
 
-  // Use auto-computed start as a position hint (may be in prev FY by a few days)
-  const hint = getFYStartDate(fyk) || new Date();
-  const hy = hint.getFullYear(), hm = hint.getMonth();
+  // Work out which month to put at the top.
+  // Prefer: day after the previous FY's end date.
+  // Fallback: getFYStartDate for the target FY.
+  const sortedKeys = allFYKeys().sort(); // ascending
+  const fykIdx = sortedKeys.indexOf(fyk);
+  let targetDate;
 
-  // Build around the hint position if target month not already rendered
-  if (!calScroll.querySelector(`.month[data-year="${hy}"][data-month="${hm}"]`)) {
-    _buildScrollCalAround(hy, hm);
+  if (fykIdx > 0) {
+    // There is a previous FY — start from the day after it ends
+    const prevFY = sortedKeys[fykIdx - 1];
+    const prevEnd = fyRange(prevFY).end;  // end date of previous FY
+    targetDate = new Date(prevEnd.getTime() + 864e5); // +1 day = first day of new FY
+  } else {
+    // No previous FY — use the configured or auto-computed start date
+    targetDate = getFYStartDate(fyk) || new Date();
   }
 
-  // Enforce bounds
+  const ty = targetDate.getFullYear();
+  const tm = targetDate.getMonth();
+
+  // _buildCalFrom renders this month FIRST with scrollTop=0
+  // so it appears at the top of the scroll container immediately — no measurement needed
+  _buildCalFrom(ty, tm);
   _clampRenderedMonths();
 
+  // Update FY UI strip and floating month label
   requestAnimationFrame(() => {
-    // Find the first rendered month belonging to the target FY
-    let target = null;
-    for (const md of calScroll.querySelectorAll('.month')) {
-      if (md.dataset.fy === fyk) { target = md; break; }
-    }
-
-    // If not found, append months forward until we hit the target FY
-    if (!target) {
-      let tries = 0;
-      while (!target && tries++ < 24) {
-        const last = scrollMonths[scrollMonths.length - 1];
-        let ny = last.y, nm = last.m + 1;
-        if (nm > 11) { nm = 0; ny++; }
-        const newMd = renderMonth(ny, nm);
-        calScroll.appendChild(newMd);
-        scrollMonths.push({y: ny, m: nm});
-        if (newMd.dataset.fy === fyk) { target = newMd; }
-      }
-    }
-
-    if (!target) return;
-
-    // Scroll so target is at the top of the scroll container
-    const containerRect = calScroll.getBoundingClientRect();
-    const targetRect    = target.getBoundingClientRect();
-    calScroll.scrollTop += (targetRect.top - containerRect.top);
     updateFYOnScroll(calScroll);
     updateFloatingMonth(calScroll);
   });
@@ -3488,6 +3478,7 @@ function _clampRenderedMonths() {
 function _buildScrollCalAround(cy, cm) {
   const calScroll = document.getElementById('calScroll');
   calScroll.innerHTML = '';
+  calScroll.scrollTop = 0; // reset scroll position after DOM wipe
   scrollMonths = [];
   resetPeriodTracker();
   for (let delta = -2; delta <= 2; delta++) {
