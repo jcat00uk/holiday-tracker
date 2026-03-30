@@ -251,15 +251,13 @@ body.cal-active main{
 .rot-day-cfg.open{display:block}
 
 /* FY alloc table */
-.fyat{width:100%;border-collapse:collapse;margin-top:6px;font-size:.75rem}
+.fyat{width:100%;border-collapse:collapse;margin-top:6px;font-size:.75rem;table-layout:fixed}
 .fyat th{font-size:.62rem;color:var(--t3);font-family:var(--mono);text-align:left;padding:4px 6px;border-bottom:1px solid var(--bd)}
-.fyat td{padding:3px 4px;vertical-align:middle}
-.fyat input{width:100%;min-width:0;box-sizing:border-box;font-size:.72rem}
 .fyat td{padding:4px 6px;border-bottom:1px solid var(--bd);vertical-align:middle}
-.fyat col.col-fy{width:80px}
-.fyat col.col-date{width:108px}
-.fyat col.col-num{width:58px}
-.fyat col.col-del{width:36px}
+.fyat col.col-fy{width:90px}
+.fyat col.col-date{width:140px}
+.fyat col.col-num{width:70px}
+.fyat col.col-del{width:44px}
 .fyat td input[type=number]{width:100%;padding:3px 5px;font-size:.74rem;background:var(--s2);border:1px solid var(--bd);color:var(--t1);border-radius:3px;outline:none;box-sizing:border-box}
 .fyat td input[type=date]{width:100%;padding:3px 5px;font-size:.72rem;background:var(--s2);border:1px solid var(--bd);color:var(--t1);border-radius:3px;outline:none;box-sizing:border-box}
 .fyat td input:focus{border-color:var(--teal)}
@@ -746,7 +744,7 @@ body.cal-active main{
         <p style="font-size:.7rem;color:var(--t3);margin-bottom:9px">Enter the actual start date for each FY (must be a Sunday). The selected FY's start date anchors the rotation.</p>
         <table class="fyat">
           <colgroup><col class="col-fy"><col class="col-date"><col class="col-num"><col class="col-num"><col class="col-del"></colgroup>
-          <thead><tr><th>FY</th><th>Start date</th><th>Hours</th><th>Carry</th><th></th></tr></thead>
+          <thead><tr><th>FY</th><th>Start date (Sunday)</th><th>Hours</th><th>Carry-over</th><th></th></tr></thead>
           <tbody id="fyAllocBody"></tbody>
         </table>
         <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
@@ -1294,55 +1292,6 @@ function populateFYSel(){
   syncAllFYSelectors(); // ensure value attributes match curFY after rebuild
 }
 
-// Scroll calendar to the first visible month of a given FY key
-function snapToFY(fyk) {
-  const calScroll = document.getElementById('calScroll');
-  if (!calScroll) return;
-
-  // Use auto-computed start as a position hint (may be in prev FY by a few days)
-  const hint = getFYStartDate(fyk) || new Date();
-  const hy = hint.getFullYear(), hm = hint.getMonth();
-
-  // Build around the hint position if target month not already rendered
-  if (!calScroll.querySelector(`.month[data-year="${hy}"][data-month="${hm}"]`)) {
-    _buildScrollCalAround(hy, hm);
-  }
-
-  // Enforce bounds
-  _clampRenderedMonths();
-
-  requestAnimationFrame(() => {
-    // Find the first rendered month belonging to the target FY
-    let target = null;
-    for (const md of calScroll.querySelectorAll('.month')) {
-      if (md.dataset.fy === fyk) { target = md; break; }
-    }
-
-    // If not found, append months forward until we hit the target FY
-    if (!target) {
-      let tries = 0;
-      while (!target && tries++ < 24) {
-        const last = scrollMonths[scrollMonths.length - 1];
-        let ny = last.y, nm = last.m + 1;
-        if (nm > 11) { nm = 0; ny++; }
-        const newMd = renderMonth(ny, nm);
-        calScroll.appendChild(newMd);
-        scrollMonths.push({y: ny, m: nm});
-        if (newMd.dataset.fy === fyk) { target = newMd; }
-      }
-    }
-
-    if (!target) return;
-
-    // Scroll so target is at the top of the scroll container
-    const containerRect = calScroll.getBoundingClientRect();
-    const targetRect    = target.getBoundingClientRect();
-    calScroll.scrollTop += (targetRect.top - containerRect.top);
-    updateFYOnScroll(calScroll);
-    updateFloatingMonth(calScroll);
-  });
-}
-
 function changeFY(){
   curFY=document.getElementById('fySelect').value;
   syncAllFYSelectors();
@@ -1354,8 +1303,9 @@ function changeFY(){
     _fyNavLock = curFY;
     // Update stats/alerts for the new FY without triggering refreshScrollCal
     updateStats(); renderAlerts(); populateFYSel();
-    // Snap to the first month that belongs to the selected FY
-    snapToFY(curFY);
+    // Jump to the new FY start date directly
+    const fyS = getFYStartDate(curFY);
+    if(fyS) snapToDate(fyS);
     // Release lock after scroll settles
     setTimeout(()=>{ _fyNavLock = null; }, 600);
   } else {
@@ -3420,19 +3370,16 @@ function snapToDate(date) {
   if (!monthDiv) return;
 
   // Enforce FY bounds: remove months outside configured FY range
+  // and show the appropriate banner at each boundary
   _clampRenderedMonths();
 
-  // Use rAF to ensure browser has laid out the rebuilt DOM before measuring
-  requestAnimationFrame(() => {
-    const target = calScroll.querySelector(`.month[data-year="${y}"][data-month="${m}"]`);
-    if (!target) return;
-    const containerRect = calScroll.getBoundingClientRect();
-    const targetRect    = target.getBoundingClientRect();
-    calScroll.scrollTop += (targetRect.top - containerRect.top);
-    // Update FY UI to reflect the jumped-to position
-    updateFYOnScroll(calScroll);
-    updateFloatingMonth(calScroll);
-  });
+  // Re-query after potential DOM changes from clamping
+  monthDiv = calScroll.querySelector(`.month[data-year="${y}"][data-month="${m}"]`);
+  if (!monthDiv) return;
+
+  const containerRect = calScroll.getBoundingClientRect();
+  const monthRect     = monthDiv.getBoundingClientRect();
+  calScroll.scrollTop += (monthRect.top - containerRect.top);
 }
 
 /* Remove rendered months outside FY bounds; show banners at boundaries */
