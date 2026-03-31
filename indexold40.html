@@ -622,11 +622,6 @@ body.cal-active main{
 
   <!-- DASHBOARD -->
   <div class="view active" id="view-dash">
-    <!-- Period Summary Panel -->
-    <div class="panel" id="dashPeriodSummary" style="margin-bottom:12px">
-      <div class="ptitle">Hours by Period <span id="dashPeriodFYLbl" style="font-weight:400;color:var(--t4);font-family:var(--sans)"></span></div>
-      <div id="dashPeriodCards" style="display:flex;gap:6px;flex-wrap:wrap;min-height:28px"></div>
-    </div>
     <div class="dgrid">
       <div class="panel">
         <div class="ptitle">Upcoming <button onclick="toggleDashSort()" id="dashSortBtn" style="background:none;border:1px solid var(--bd);color:var(--t3);padding:2px 7px;border-radius:3px;font-size:.6rem;font-family:var(--mono)">Date ↑</button></div>
@@ -647,11 +642,7 @@ body.cal-active main{
       <option value="">Jump to…</option>
     </select>
     <button class="cadd" onclick="openAdd()">+ Book</button>
-    <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:2px">
-      <button class="sync-btn sync-now-btn" onclick="syncNow()">☁ Sync Now</button>
-      <span class="sync-ts-lbl" id="syncTsCalendar" style="font-family:var(--mono);font-size:.58rem;color:var(--t4);white-space:nowrap"></span>
-      <span class="sync-fail-lbl" id="syncFailCalendar" style="font-family:var(--mono);font-size:.58rem;color:var(--red);display:none">🔴 Sync failed. Please try again.</span>
-    </div>
+    <button class="sync-btn sync-now-btn" onclick="syncNow()" style="margin-left:auto">☁ Sync Now</button>
   </div>
 
   <div id="calFYStrip" style="flex-shrink:0;background:var(--s2);border-bottom:1px solid var(--bd);padding:3px 10px;font-family:var(--mono);font-size:.63rem;color:var(--teal);display:flex;align-items:center;gap:8px">
@@ -681,11 +672,7 @@ body.cal-active main{
       </select>
       <button class="cadd" onclick="openAdd()" style="margin-left:0">+ Book</button>
       <button class="btng" onclick="openReportModal()" style="font-size:.72rem;padding:4px 10px">🖨 Print Report</button>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
-        <button class="sync-btn sync-now-btn" onclick="syncNow()">☁ Sync Now</button>
-        <span class="sync-ts-lbl" id="syncTsList" style="font-family:var(--mono);font-size:.58rem;color:var(--t4);white-space:nowrap"></span>
-        <span class="sync-fail-lbl" id="syncFailList" style="font-family:var(--mono);font-size:.58rem;color:var(--red);display:none">🔴 Sync failed. Please try again.</span>
-      </div>
+      <button class="sync-btn sync-now-btn" onclick="syncNow()">☁ Sync Now</button>
     </div>
     <!-- Bulk bar -->
     <div class="bulk-bar" id="bulkBar">
@@ -764,21 +751,13 @@ body.cal-active main{
             <button class="sync-btn sync-now-btn" onclick="syncNow()">☁ Sync Now</button>
             <button class="btng" onclick="signOut()" style="font-size:.72rem;padding:5px 10px">Sign out</button>
           </div>
-          <div style="display:flex;flex-direction:column;gap:2px;margin-top:4px">
-            <span class="sync-ts-lbl" id="syncTsSettings" style="font-family:var(--mono);font-size:.58rem;color:var(--t4)"></span>
-            <span class="sync-fail-lbl" id="syncFailSettings" style="font-family:var(--mono);font-size:.58rem;color:var(--red);display:none">🔴 Sync failed. Please try again.</span>
-          </div>
         </div>
-        <div class="sync-last" id="syncLastTime" style="display:none"></div>
+        <div class="sync-last" id="syncLastTime"></div>
 
       </div>
 
       <div class="sc" style="grid-column:span 2">
         <div class="sct">Financial Year &amp; Allocation</div>
-        <div id="orphanSettingsWarn" style="display:none;margin-bottom:10px;padding:7px 10px;background:var(--redd);border:1px solid var(--red);border-radius:5px;font-size:.73rem;color:var(--red);align-items:center;gap:8px">
-          <span id="orphanSettingsCount"></span>
-          <button onclick="openOrphanModal()" style="background:none;border:1px solid var(--red);color:var(--red);border-radius:4px;padding:2px 7px;font-size:.68rem;cursor:pointer;white-space:nowrap">View Details</button>
-        </div>
         <p style="font-size:.7rem;color:var(--t3);margin-bottom:9px">Enter the actual start date for each FY (must be a Sunday). The selected FY's start date anchors the rotation.</p>
         <table class="fyat">
           <colgroup><col class="col-fy"><col class="col-date"><col class="col-num"><col class="col-num"><col class="col-del"></colgroup>
@@ -902,15 +881,6 @@ body.cal-active main{
       </div>
 
       <div class="sc">
-        <div class="sct">Notifications</div>
-        <div class="ns-toggle-row">
-          <span class="ns-toggle-lbl">Enable browser reminders</span>
-          <label class="toggle-sw"><input type="checkbox" id="c-reminders-toggle" onchange="onRemindersToggle()"><span class="slider"></span></label>
-        </div>
-        <p style="font-size:.68rem;color:var(--t3);line-height:1.5;margin-top:4px">When enabled, ShiftBook will send a browser push notification exactly when a submit reminder is due. Badge count on the Settings tab persists until reminders are completed.</p>
-      </div>
-
-      <div class="sc">
         <div class="sct">Data</div>
         <div class="io-row" style="margin-top:0">
           <button class="btng" onclick="exportJSON()" style="font-size:.72rem">Export JSON</button>
@@ -919,13 +889,6 @@ body.cal-active main{
           <button class="btng" onclick="exportICS()" style="font-size:.72rem">Export .ICS</button>
         </div>
         <p style="font-size:.65rem;color:var(--t4);margin-top:8px">Auto-saves to localStorage. Export JSON regularly.</p>
-        <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--bd)">
-          <p style="font-size:.63rem;color:var(--t4);margin-bottom:5px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.05em">Developer / Testing</p>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button class="btng" onclick="injectTestOrphan()" style="font-size:.68rem;padding:3px 8px;border-color:var(--amber);color:var(--amber)">🔧 Inject test orphan booking</button>
-            <button class="btng" onclick="window._orphanModalShown=false;checkOrphanedBookings();toast('Orphan check run')" style="font-size:.68rem;padding:3px 8px">🔍 Run orphan check</button>
-          </div>
-        </div>
       </div>
 
       <div class="sc">
@@ -1807,7 +1770,6 @@ function deleteReminder(id) {
 
 function renderDash(){
   const today=dstr(new Date()),todayD=new Date(today+'T00:00:00'),s=getStats(curFY);
-  renderDashPeriodSummary();
   // upcoming
   const upcoming=sortedByDate(S.bookings.filter(b=>b.fyKey===curFY&&['confirmed','submitted'].includes(b.status)&&b.date>=today),dashSortAsc);
   document.getElementById('dash-upcoming').innerHTML=upcoming.length
@@ -2118,8 +2080,6 @@ function readSettings(){
   c.noticeDays=parseInt(document.getElementById('c-notice').value)||28;
   c.prorata=document.getElementById('c-prorata').value;
   c.prorataStart=document.getElementById('c-prStart').value||'';
-  const remTog = document.getElementById('c-reminders-toggle');
-  if (remTog) c.remindersEnabled = remTog.checked;
 }
 function loadSettingsUI(){
   const c=S.settings;
@@ -2142,32 +2102,6 @@ function loadSettingsUI(){
   document.getElementById('c-prorata').value=c.prorata||'no';
   document.getElementById('c-prStart').value=c.prorataStart||'';
   toggleProRata();calcSuggest();renderRotEditor();renderBHList();renderFYAllocTable();renderBreakRules();
-  // Notifications toggle
-  const remToggle = document.getElementById('c-reminders-toggle');
-  if (remToggle) remToggle.checked = !!(S.settings && S.settings.remindersEnabled);
-}
-
-function onRemindersToggle() {
-  const enabled = document.getElementById('c-reminders-toggle').checked;
-  if (enabled) {
-    if (!('Notification' in window)) {
-      toast('Browser notifications not supported on this device');
-      document.getElementById('c-reminders-toggle').checked = false;
-      return;
-    }
-    if (Notification.permission === 'granted') {
-      S.settings.remindersEnabled = true;
-      persist(); initNotifications(); toast('Reminders enabled');
-    } else {
-      requestNotificationPermission();
-    }
-  } else {
-    S.settings.remindersEnabled = false;
-    persist();
-    if (_notifCheckInterval) { clearInterval(_notifCheckInterval); _notifCheckInterval = null; }
-    toast('Reminders disabled');
-  }
-  autoSave();
 }
 function onNsToggle(){
   const on = document.getElementById('c-ns-toggle').checked;
@@ -2275,7 +2209,6 @@ function delFY(fyk){
     document.getElementById('fyPill').textContent=curFY||'—';
   }
   persist();populateFYSel();renderFYAllocTable();updateStats();renderAlerts();refresh();
-  window._orphanModalShown = false; checkOrphanedBookings();
   toast('FY '+fyk+' deleted');
 }
 function addFYRow(){
@@ -2406,9 +2339,7 @@ function exportJSON(){
 }
 function doImport(e){
   const f=e.target.files[0];if(!f)return;
-  const r=new FileReader();r.onload=ev=>{try{S={...S,...JSON.parse(ev.target.result)};persist();loadSettingsUI();initFY();refresh();
-    window._orphanModalShown = false; checkOrphanedBookings();
-    toast('Imported');}catch(ex){toast('Import failed');}};r.readAsText(f);
+  const r=new FileReader();r.onload=ev=>{try{S={...S,...JSON.parse(ev.target.result)};persist();loadSettingsUI();initFY();refresh();toast('Imported');}catch(ex){toast('Import failed');}};r.readAsText(f);
 }
 function exportICS(){
   const bks=S.bookings.filter(b=>b.fyKey===curFY&&!['refused','cancelled'].includes(b.status));
@@ -2482,11 +2413,6 @@ function resetSettings(){
   setTimeout(openQuickSetup, 400);
 }
 
-// ── Unsaved settings warning ──
-let _settingsDirty = false;
-function markSettingsDirty(){ _settingsDirty = true; }
-function clearSettingsDirty(){ _settingsDirty = false; }
-
 // VIEWS
 function showView(name){
   // Unsaved settings guard — inline check, no wrapper needed
@@ -2504,7 +2430,7 @@ function showView(name){
   document.body.classList.toggle('cal-active', name==='calendar');
   document.getElementById('tab-'+name)&&document.getElementById('tab-'+name).classList.add('on');
   document.getElementById('mnb-'+name)&&document.getElementById('mnb-'+name).classList.add('on');
-  if(name==='settings'){loadSettingsUI(); checkOrphanedBookings();}
+  if(name==='settings')loadSettingsUI();
   if(name==='calendar'){if(!scrollCalInited){initScrollCalendar();scrollCalInited=true;}else refreshScrollCal();}
   if(name==='list'){
     // On first visit, default to today's FY; thereafter respect the user's selection
@@ -2541,7 +2467,6 @@ function updateAppState() {
   updateStats();
   renderAlerts();
   populateFYSel();
-  renderDashPeriodSummary(); // Step 5: keep period summary current
   // Update sync glow to reflect unsaved changes
   if (Sync && Sync.userEmail && Sync.status === 'synced') {
     Sync.setStatus('idle'); // glow to indicate unsynced changes
@@ -2572,10 +2497,6 @@ loadData();
 popSel(document.getElementById('c-dend'),S.settings.defaultEnd||'07:00');
 initFY();loadSettingsUI();renderDash();updateStats();renderAlerts();
 document.getElementById('bhBtn').classList.add('on');
-// Feature: orphaned bookings check on load
-setTimeout(checkOrphanedBookings, 600);
-// Feature: notifications (after settings loaded)
-if (S.settings && S.settings.remindersEnabled) initNotifications();
 
 // ═══════════════════════════════════════════════════════
 // QUICK SETUP
@@ -2809,7 +2730,6 @@ function openReportModal() {
   sel.innerHTML = allFYKeys().reverse().map(k =>
     `<option value="${k}"${k===curFY?' selected':''}>${fyOptionLabel(k)}</option>`
   ).join('');
-  rptRestoreGroupPref(); // restore saved group-by preference
   rptOnFYChange(); // calls rptValidate which sets live count
   document.getElementById('reportMbg').classList.add('open');
 }
@@ -2872,7 +2792,6 @@ function rptGetBookings() {
   const to       = document.getElementById('rpt-to').value;
   const statuses = new Set([...document.querySelectorAll('#rpt-statuses input:checked')].map(i => i.value));
   const grpStatus= document.getElementById('rpt-group').checked;
-  const grpPeriod= document.getElementById('rpt-group-period') && document.getElementById('rpt-group-period').checked;
   const incPeriod= document.getElementById('rpt-period').checked;
 
   // Filter bookings
@@ -2890,22 +2809,15 @@ function rptGetBookings() {
       const od = ORDER.indexOf(a.status) - ORDER.indexOf(b.status);
       return od !== 0 ? od : a.date.localeCompare(b.date);
     });
-  } else if (grpPeriod) {
-    // Sort by period then date ascending
-    bks = [...bks].sort((a,b) => {
-      const pa = getPeriodForFY(a.date, fyk).period;
-      const pb = getPeriodForFY(b.date, fyk).period;
-      return pa !== pb ? pa - pb : a.date.localeCompare(b.date);
-    });
   } else {
     bks = sortedByDate(bks, true);
   }
 
-  return {bks, fyk, from, to, incPeriod, grpStatus, grpPeriod, statuses};
+  return {bks, fyk, from, to, incPeriod, grpStatus, statuses};
 }
 
 function rptBuildHTML(forPrint = false) {
-  const {bks, fyk, from, to, incPeriod, grpStatus, grpPeriod} = rptGetBookings();
+  const {bks, fyk, from, to, incPeriod, grpStatus} = rptGetBookings();
   const r = fyRange(fyk);
   const incSummary = document.getElementById('rpt-summary').checked;
 
@@ -2918,56 +2830,27 @@ function rptBuildHTML(forPrint = false) {
   // Rows
   const statusLabel = {planned:'Planned',submitted:'Submitted',confirmed:'Confirmed',
                        refused:'Refused',cancelled:'Cancelled',taken:'Taken'};
-  const PERIOD_ACTIVE = new Set(['planned','submitted','confirmed']);
-  let lastStatus = '', lastPeriod = -999;
-  let periodAcc = 0, periodDaysAcc = 0;
-  const rows = [];
-  bks.forEach((b, idx) => {
-    const period = getPeriodForFY(b.date, fyk).period;
-
-    // Group-by-status header
+  let lastStatus = '';
+  const rows = bks.map(b => {
+    let groupHdr = '';
     if (grpStatus && b.status !== lastStatus) {
       lastStatus = b.status;
-      rows.push(`<tr class="rpt-grp-hdr"><td colspan="${incPeriod?7:6}">${statusLabel[b.status]||b.status}</td></tr>`);
+      groupHdr = `<tr class="rpt-grp-hdr"><td colspan="${incPeriod?7:6}">${statusLabel[b.status]||b.status}</td></tr>`;
     }
-
-    // Group-by-period header + previous period total footer
-    if (grpPeriod && period !== lastPeriod) {
-      // Close previous period with total row
-      if (lastPeriod !== -999 && periodAcc > 0) {
-        rows.push(`<tr class="rpt-period-total"><td colspan="${incPeriod?7:6}">Period ${String(lastPeriod).padStart(2,'0')} \u2013 ${fyk} &nbsp;\u00b7&nbsp; Total: ${hhmm(periodAcc)} (${periodDaysAcc} booking${periodDaysAcc!==1?'s':''})</td></tr>`);
-      }
-      lastPeriod = period;
-      periodAcc = 0; periodDaysAcc = 0;
-      const pLabel = period >= 1 ? 'Period ' + String(period).padStart(2,'0') + ' \u2013 ' + fyk : 'Before FY start';
-      rows.push(`<tr class="rpt-grp-hdr"><td colspan="${incPeriod?7:6}">${pLabel}</td></tr>`);
-    }
-
-    // Accumulate period total (active statuses only)
-    if (grpPeriod && PERIOD_ACTIVE.has(b.status)) {
-      periodAcc += b.hoursBooked || 0;
-      periodDaysAcc++;
-    }
-
-    const pCell = incPeriod ? (() => {
+    const period = incPeriod ? (() => {
       const p = getPeriodForFY(b.date, fyk);
       return p.period >= 1 ? 'P' + p.period : '—';
     })() : null;
-    rows.push(`<tr>
+    return groupHdr + `<tr>
       <td>${fmtDate(b.date)}</td>
       <td><span class="rpt-badge rpt-${b.status}">${statusLabel[b.status]||b.status}</span></td>
       <td>${b.startTime||'—'}</td>
       <td>${b.endTime||'—'}</td>
       <td>${hhmm(b.hoursBooked)} (${toDecStr(b.hoursBooked)})</td>
-      ${incPeriod ? `<td>${pCell}</td>` : ''}
+      ${incPeriod ? `<td>${period}</td>` : ''}
       <td>${b.notes||''}</td>
-    </tr>`);
-  });
-
-  // Close final period total
-  if (grpPeriod && lastPeriod !== -999 && periodAcc > 0) {
-    rows.push(`<tr class="rpt-period-total"><td colspan="${incPeriod?7:6}">Period ${String(lastPeriod).padStart(2,'0')} \u2013 ${fyk} &nbsp;\u00b7&nbsp; Total: ${hhmm(periodAcc)} (${periodDaysAcc} booking${periodDaysAcc!==1?'s':''})</td></tr>`);
-  }
+    </tr>`;
+  }).join('');
 
   const summaryHtml = !incSummary ? '' : `
     <div class="rpt-summary">
@@ -3014,8 +2897,6 @@ function rptBuildHTML(forPrint = false) {
   .rpt-cancelled{background:#dcdcdc;color:#555555;text-decoration:line-through}
   .rpt-taken    {background:#cccccc;color:#333333}
   .rpt-nodata{text-align:center;padding:30px;color:#888888;font-size:11pt}
-  /* Period total footer row */
-  .rpt-period-total td{background:#eef4ee!important;font-weight:700;padding:5px 9px;color:#043c2c;font-size:8.5pt;border-top:1px solid #5dcaa5;border-bottom:2px solid #5dcaa5;text-align:right;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   /* Print / PDF page rules */
   @page{size:A4 portrait;margin:10mm 12mm}
   @media print{
@@ -3042,7 +2923,7 @@ ${bks.length === 0
       <th>Date</th><th>Status</th><th>Start</th><th>End</th><th>Hours</th>
       ${incPeriod ? '<th>Period</th>' : ''}<th>Notes</th>
     </tr></thead>
-    <tbody>${rows.join('')}</tbody>
+    <tbody>${rows}</tbody>
   </table>`
 }
 <\/body><\/html>`;
@@ -3111,6 +2992,11 @@ function generatePDF(html, fyk) {
 }
 
 checkFirstRun();
+
+// ── Unsaved settings warning ──
+let _settingsDirty = false;
+function markSettingsDirty(){ _settingsDirty = true; }
+function clearSettingsDirty(){ _settingsDirty = false; }
 
 // ═══════════════════════════════════════════════════════
 // GOOGLE DRIVE SYNC
@@ -3311,35 +3197,6 @@ function _markSynced(){
   Sync.lastSynced=new Date().toISOString();
   localStorage.setItem('shiftbook_lastSynced',Sync.lastSynced);
   Sync.setStatus('synced');
-  updateSyncTimestamps(false);
-}
-
-// ── Step 2: Sync timestamp display ──
-function fmtSyncTime(isoStr) {
-  if (!isoStr) return '';
-  const d = new Date(isoStr);
-  if (isNaN(d.getTime())) return '';
-  return 'Last synced: ' + d.toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) +
-    ', ' + d.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit',hour12:false});
-}
-function updateSyncTimestamps(failed) {
-  const lastSynced = Sync.lastSynced || localStorage.getItem('shiftbook_lastSynced');
-  const ts = fmtSyncTime(lastSynced);
-  const staleMs = 7 * 24 * 60 * 60 * 1000;
-  const isStale = lastSynced && (Date.now() - new Date(lastSynced).getTime()) > staleMs;
-  const display = isStale
-    ? '\uD83D\uDFE0 Last synced ' + Math.floor((Date.now() - new Date(lastSynced).getTime()) / 864e5) + ' days ago'
-    : ts;
-  ['syncTsCalendar','syncTsList','syncTsSettings'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.textContent = display;
-    el.style.color = isStale ? 'var(--amber)' : 'var(--t4)';
-  });
-  ['syncFailCalendar','syncFailList','syncFailSettings'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = failed ? '' : 'none';
-  });
 }
 
 async function syncNow(){
@@ -3382,7 +3239,6 @@ async function syncNow(){
     if(err.message==='auth_expired'){Sync.setStatus('unsigned');toast('Session expired — sign in again');}
     else if(!navigator.onLine){Sync.setStatus('error','☁ Offline');toast('No internet');}
     else{Sync.setStatus('error');toast('Sync error: '+err.message);}
-    updateSyncTimestamps(true);
   }
 }
 
@@ -3397,7 +3253,7 @@ function _applyDriveData(driveData){
     persist();_markSynced();
     // Full page reload gives cleanest state after pulling new data
     toast('Drive data loaded — reloading…');
-    setTimeout(()=>{ window._orphanModalShown=false; location.reload(); },900);
+    setTimeout(()=>location.reload(),900);
   }catch(e){Sync.setStatus('error');toast('Failed to apply Drive data');console.error(e);}
 }
 
@@ -3414,280 +3270,6 @@ function getPeriodForFY(dateStr, fyk) {
   return {period, week};
 }
 
-// ═══════════════════════════════════════
-// STEP 1 — ORPHANED BOOKINGS
-// ═══════════════════════════════════════
-function detectOrphanedBookings() {
-  return S.bookings.filter(b => {
-    const fa = S.fyAllocs[b.fyKey];
-    // No matching FY at all
-    if (!fa) return true;
-    // FY exists but has no allocation (no hours set)
-    if (!fa.hours && fa.hours !== 0) return true;
-    // FY exists but period is invalid (period < 1 = before FY start or no start date)
-    const p = getPeriodForFY(b.date, b.fyKey);
-    if (p.period < 1) return true;
-    return false;
-  });
-}
-
-function checkOrphanedBookings() {
-  const orphans = detectOrphanedBookings();
-  const warn = document.getElementById('orphanSettingsWarn');
-  const cnt  = document.getElementById('orphanSettingsCount');
-  if (orphans.length > 0) {
-    if (warn) { warn.style.display = 'flex'; }
-    if (cnt)  { cnt.textContent = '\uD83D\uDD34 ' + orphans.length + ' orphaned booking' + (orphans.length > 1 ? 's' : '') + ' detected'; }
-    // Auto-open modal only once per detection event, and never while QS modal is open
-    const qsOpen = document.getElementById('qsMbg') && document.getElementById('qsMbg').classList.contains('open');
-    if (!window._orphanModalShown && !qsOpen) {
-      window._orphanModalShown = true;
-      openOrphanModal();
-    }
-  } else {
-    if (warn) { warn.style.display = 'none'; }
-    window._orphanModalShown = false;
-  }
-}
-
-function openOrphanModal() {
-  const orphans = detectOrphanedBookings();
-  if (!orphans.length) { toast('No orphaned bookings found'); return; }
-  const listEl = document.getElementById('orphanList');
-  if (listEl) {
-    listEl.innerHTML = orphans.map(b =>
-      `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:4px;padding:5px 8px;font-size:.72rem;display:flex;gap:8px;align-items:center">
-        <span style="font-family:var(--mono);color:var(--red);min-width:70px">${b.fyKey||'?'}</span>
-        <span style="font-family:var(--mono);color:var(--t2)">${fmtDate(b.date)}</span>
-        <span style="color:var(--t3)">${hhmm(b.hoursBooked)}</span>
-      </div>`
-    ).join('');
-  }
-  document.getElementById('orphanMbg').classList.add('open');
-}
-
-function closeOrphanModal() {
-  document.getElementById('orphanMbg').classList.remove('open');
-}
-
-function confirmDeleteOrphans() {
-  const orphans = detectOrphanedBookings();
-  if (!orphans.length) { closeOrphanModal(); return; }
-  if (!confirm('Permanently delete ' + orphans.length + ' orphaned booking' + (orphans.length > 1 ? 's' : '') + '? This cannot be undone.')) return;
-  const ids = new Set(orphans.map(b => b.id));
-  S.bookings = S.bookings.filter(b => !ids.has(b.id));
-  persist();
-  window._orphanModalShown = false;
-  closeOrphanModal();
-  checkOrphanedBookings();
-  refresh();
-  toast(ids.size + ' orphaned booking' + (ids.size > 1 ? 's' : '') + ' deleted');
-}
-
-// ── Dev/test helper: inject a booking with a non-existent FY key ──
-function injectTestOrphan() {
-  const fakeBooking = {
-    id: 'test-orphan-' + Date.now(),
-    date: '2020-06-15',
-    startTime: '23:00',
-    endTime: '07:00',
-    overnight: true,
-    hoursBooked: 7.25,
-    status: 'planned',
-    notes: 'TEST ORPHAN — FY does not exist',
-    fyKey: 'FY2020/21',
-    mode: 'full',
-    reminderDate: ''
-  };
-  S.bookings.push(fakeBooking);
-  persist();
-  window._orphanModalShown = false;
-  checkOrphanedBookings();
-  toast('Test orphan injected — FY2020/21 does not exist');
-}
-
-// ═══════════════════════════════════════
-// STEP 5 — DASHBOARD: PERIOD HOURS SUMMARY
-// ═══════════════════════════════════════
-function renderDashPeriodSummary() {
-  const el = document.getElementById('dashPeriodCards');
-  const lbl = document.getElementById('dashPeriodFYLbl');
-  if (!el) return;
-  if (lbl) lbl.textContent = '— ' + curFY;
-
-  // Build period map for current FY only
-  const ACTIVE = new Set(['planned','submitted','confirmed']);
-  const periodMap = {}; // {period: {planned,submitted,confirmed}}
-
-  S.bookings.filter(b => b.fyKey === curFY).forEach(b => {
-    const p = getPeriodForFY(b.date, b.fyKey).period;
-    if (p < 1) return;
-    if (!periodMap[p]) periodMap[p] = {planned:0, submitted:0, confirmed:0};
-    if (ACTIVE.has(b.status)) periodMap[p][b.status] += (b.hoursBooked||0);
-  });
-
-  const periods = Object.keys(periodMap).map(Number).sort((a,b) => a-b);
-  if (!periods.length) {
-    el.innerHTML = '<span style="font-size:.72rem;color:var(--t4)">No bookings in current FY</span>';
-    return;
-  }
-
-  el.innerHTML = periods.map(p => {
-    const d = periodMap[p];
-    const total = d.planned + d.submitted + d.confirmed;
-    const parts = [];
-    if (d.planned)   parts.push('<span style="color:var(--grey)">Plan ' + hhmm(d.planned) + '</span>');
-    if (d.submitted) parts.push('<span style="color:var(--blue)">Subm ' + hhmm(d.submitted) + '</span>');
-    if (d.confirmed) parts.push('<span style="color:var(--teal)">Conf ' + hhmm(d.confirmed) + '</span>');
-    return `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:5px;padding:5px 9px;display:flex;flex-direction:column;gap:2px;min-width:0">
-      <div style="font-family:var(--mono);font-size:.6rem;color:var(--t3);text-transform:uppercase;letter-spacing:.05em">P${String(p).padStart(2,'0')}</div>
-      <div style="display:flex;gap:6px;font-family:var(--mono);font-size:.65rem;flex-wrap:wrap">${parts.join(' | ')}</div>
-      <div style="font-family:var(--mono);font-size:.68rem;color:var(--t1);font-weight:500">Total ${hhmm(total)}</div>
-    </div>`;
-  }).join('');
-}
-
-// ═══════════════════════════════════════
-// STEP 4 — REPORT: GROUP BY PERIOD
-// ═══════════════════════════════════════
-function rptGroupMutex(changed) {
-  // Only one of group-by-status / group-by-period can be active
-  if (changed === 'status' && document.getElementById('rpt-group').checked) {
-    const gp = document.getElementById('rpt-group-period');
-    if (gp) gp.checked = false;
-  } else if (changed === 'period' && document.getElementById('rpt-group-period').checked) {
-    const gs = document.getElementById('rpt-group');
-    if (gs) gs.checked = false;
-  }
-  // Persist preference
-  localStorage.setItem('shiftbook_rptGroupBy',
-    document.getElementById('rpt-group').checked ? 'status' :
-    (document.getElementById('rpt-group-period') && document.getElementById('rpt-group-period').checked) ? 'period' : 'none'
-  );
-  rptValidate();
-}
-
-// Restore report grouping preference
-function rptRestoreGroupPref() {
-  const pref = localStorage.getItem('shiftbook_rptGroupBy') || 'none';
-  const gs = document.getElementById('rpt-group');
-  const gp = document.getElementById('rpt-group-period');
-  if (gs) gs.checked = (pref === 'status');
-  if (gp) gp.checked = (pref === 'period');
-}
-
-// ═══════════════════════════════════════
-// STEP 6 — BROWSER PUSH NOTIFICATIONS
-// ═══════════════════════════════════════
-let _notifCheckInterval = null;
-
-function initNotifications() {
-  if (!('Notification' in window)) return;
-  // Check and fire reminders every 60s
-  if (_notifCheckInterval) clearInterval(_notifCheckInterval);
-  _notifCheckInterval = setInterval(checkReminderNotifications, 60000);
-  checkReminderNotifications();
-}
-
-function checkReminderNotifications() {
-  if (!S.settings.remindersEnabled) return;
-  if (Notification.permission !== 'granted') return;
-  const today = dstr(new Date());
-  const due = S.bookings.filter(b =>
-    b.status === 'planned' && b.reminderDate && b.reminderDate <= today && !b._notifFired
-  );
-  due.forEach(b => {
-    const n = new Notification('ShiftBook Reminder', {
-      body: 'Submit your holiday booking for ' + fmtDate(b.date) + ' (' + hhmm(b.hoursBooked) + ')',
-      tag: 'sb-rem-' + b.id,
-      icon: ''
-    });
-    b._notifFired = true; // mark as fired this session
-    n.onclick = () => { window.focus(); openEdit(b.id); };
-  });
-  updateNotifBadge();
-}
-
-function updateNotifBadge() {
-  const today = dstr(new Date());
-  const dueCount = S.bookings.filter(b =>
-    b.status === 'planned' && b.reminderDate && b.reminderDate <= today
-  ).length;
-  // Badge on mobile nav Settings button
-  ['mnb-settings','tab-settings'].forEach(id => {
-    const btn = document.getElementById(id);
-    if (!btn) return;
-    let badge = btn.querySelector('.notif-badge');
-    if (dueCount > 0) {
-      if (!badge) {
-        badge = document.createElement('span');
-        badge.className = 'notif-badge';
-        badge.style.cssText = 'position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:var(--red);display:block';
-        btn.style.position = 'relative';
-        btn.appendChild(badge);
-      }
-      badge.style.display = '';
-    } else {
-      if (badge) badge.style.display = 'none';
-    }
-  });
-}
-
-async function requestNotificationPermission() {
-  if (!('Notification' in window)) { toast('Browser notifications not supported'); return; }
-  const perm = await Notification.requestPermission();
-  if (perm === 'granted') {
-    toast('Notifications enabled');
-    initNotifications();
-  } else {
-    toast('Notification permission denied');
-    S.settings.remindersEnabled = false;
-    const tog = document.getElementById('c-reminders-toggle');
-    if (tog) tog.checked = false;
-    persist();
-  }
-}
-
-// ═══════════════════════════════════════
-// STEP 7 — QUICK SETUP: 4-WEEK ROTA REMINDER
-// ═══════════════════════════════════════
-function isRotaBlank() {
-  return !S.settings.rotation.some(week => week.some(d => d.on));
-}
-
-function saveQuickSetupWithRotaCheck() {
-  saveQuickSetup(); // original function — saves settings and closes modal
-  // Check if rota is blank AFTER saving
-  if (isRotaBlank()) {
-    setTimeout(() => {
-      // Show reminder modal
-      document.getElementById('rotaReminderMbg').classList.add('open');
-    }, 400);
-  }
-}
-
-function closeRotaReminderModal() {
-  document.getElementById('rotaReminderMbg').classList.remove('open');
-  // Scroll to and highlight the 4-Week Shift Rotation field
-  const target = document.querySelector('.sct');
-  // Find the rotation section title
-  const allTitles = document.querySelectorAll('.sct');
-  let rotSection = null;
-  allTitles.forEach(t => { if (t.textContent.includes('4-Week')) rotSection = t; });
-  if (rotSection) {
-    rotSection.scrollIntoView({behavior:'smooth', block:'center'});
-    rotSection.style.transition = 'color .2s, text-shadow .2s';
-    rotSection.style.color = 'var(--amber)';
-    rotSection.style.textShadow = '0 0 8px var(--amber)';
-    setTimeout(() => {
-      rotSection.style.color = '';
-      rotSection.style.textShadow = '';
-    }, 1800);
-  }
-}
-
-// Monkey-patch saveQuickSetup button to use the new wrapper
-// (done inline via onclick attribute change at DOM ready)
 </script>
 <script>
 /* ── SCROLL CALENDAR ── */
@@ -3827,30 +3409,12 @@ function renderMonth(y, m) {
           const {period} = getPeriodForFY(ds, cellFY);
           if (period !== _periodTracker[cellFY] && period >= 1) {
             _periodTracker[cellFY] = period;
-            // Calculate total hours for this period (planned+submitted+confirmed only)
-            const _PACTIVE = new Set(['planned','submitted','confirmed']);
-            const _pbks = S.bookings.filter(b =>
-              b.fyKey === cellFY && _PACTIVE.has(b.status) &&
-              getPeriodForFY(b.date, cellFY).period === period
-            );
-            const _phrs = _pbks.reduce((s,b) => s+(b.hoursBooked||0), 0);
-            const _pdays = _pbks.length;
             const pr = document.createElement('div'); pr.className = 'per-div';
             const l1 = document.createElement('div'); l1.className = 'per-line';
-            const lbWrap = document.createElement('span');
-            lbWrap.className = 'per-lbl';
-            lbWrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;padding:0 6px;gap:1px';
-            const lbTitle = document.createElement('span');
-            lbTitle.textContent = 'Period ' + String(period).padStart(2,'0') + ' \u00b7 ' + cellFY;
-            lbWrap.appendChild(lbTitle);
-            if (_phrs > 0) {
-              const lbTotal = document.createElement('span');
-              lbTotal.style.cssText = 'font-size:.52rem;color:var(--teal);font-family:var(--mono)';
-              lbTotal.textContent = 'Total: ' + hhmm(_phrs) + ' (' + _pdays + (_pdays===1?' day':' days') + ')';
-              lbWrap.appendChild(lbTotal);
-            }
+            const lb = document.createElement('span'); lb.className = 'per-lbl';
+            lb.textContent = 'Period ' + period + ' · ' + cellFY;
             const l2 = document.createElement('div'); l2.className = 'per-line';
-            pr.appendChild(l1); pr.appendChild(lbWrap); pr.appendChild(l2);
+            pr.appendChild(l1); pr.appendChild(lb); pr.appendChild(l2);
             grid.appendChild(pr);
           }
         }
@@ -4467,24 +4031,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     <div class="qs-footer">
       <button class="btn btng" onclick="closeQuickSetup()">Skip for now</button>
-      <button class="btn btnp" onclick="saveQuickSetupWithRotaCheck()">Save &amp; Start</button>
-    </div>
-  </div>
-</div>
-</div>
-
-<!-- ORPHANED BOOKINGS MODAL -->
-<div class="mbg" id="orphanMbg" style="z-index:2100">
-<div class="modal" style="max-width:440px">
-  <div class="mhdr">
-    <h2 style="color:var(--red)">⚠ Orphaned Bookings Detected</h2>
-  </div>
-  <div class="mbody">
-    <p style="font-size:.77rem;color:var(--t2);margin-bottom:12px">Some bookings are linked to a Financial Year or period that no longer exists. These bookings are no longer valid and must be removed to maintain data integrity.</p>
-    <div id="orphanList" style="max-height:160px;overflow-y:auto;margin-bottom:14px;display:flex;flex-direction:column;gap:3px"></div>
-    <div class="btn-row" style="margin-top:0">
-      <button class="btn btng" onclick="closeOrphanModal()">Cancel</button>
-      <button class="btn btnd" id="orphanDeleteBtn" onclick="confirmDeleteOrphans()" style="background:var(--redd);border-color:var(--red);color:var(--red)">Delete All Orphaned Bookings</button>
+      <button class="btn btnp" onclick="saveQuickSetup()">Save &amp; Start</button>
     </div>
   </div>
 </div>
@@ -4558,8 +4105,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div style="font-size:.63rem;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);margin-bottom:6px">Options</div>
     <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:14px">
       <label style="display:flex;align-items:center;gap:6px;font-size:.75rem;cursor:pointer"><input type="checkbox" id="rpt-summary" checked> Include summary section</label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:.75rem;cursor:pointer"><input type="checkbox" id="rpt-group" onchange="rptGroupMutex('status')"> Group by status</label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:.75rem;cursor:pointer"><input type="checkbox" id="rpt-group-period" onchange="rptGroupMutex('period')"> Group by period</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.75rem;cursor:pointer"><input type="checkbox" id="rpt-group"> Group by status</label>
       <label style="display:flex;align-items:center;gap:6px;font-size:.75rem;cursor:pointer"><input type="checkbox" id="rpt-period" checked> Include period number</label>
     </div>
     <div id="rpt-err" style="font-size:.73rem;color:var(--red);margin-bottom:6px;display:none"></div>
@@ -4584,21 +4130,6 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="btn-row" style="margin-top:0">
       <button class="btn btng" onclick="closeNotRotadModal()">Cancel</button>
       <button class="btn" style="background:var(--amber);color:#000" onclick="confirmNotRotad()">Continue</button>
-    </div>
-  </div>
-</div>
-</div>
-
-<!-- ROTA BLANK REMINDER MODAL -->
-<div class="mbg" id="rotaReminderMbg" style="z-index:2200">
-<div class="modal" style="max-width:380px">
-  <div class="mhdr">
-    <h2 style="color:var(--amber)">⚠ 4-Week Shift Rotation is Blank</h2>
-  </div>
-  <div class="mbody">
-    <p style="font-size:.82rem;color:var(--t1);margin-bottom:14px">Your 4-Week Shift Rotation is blank. Please set it up in the settings to enable rota-based booking suggestions.</p>
-    <div class="btn-row" style="margin-top:0">
-      <button class="btn" style="background:var(--amber);color:#000" onclick="closeRotaReminderModal()">Acknowledge</button>
     </div>
   </div>
 </div>

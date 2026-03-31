@@ -2145,6 +2145,8 @@ function loadSettingsUI(){
   // Notifications toggle
   const remToggle = document.getElementById('c-reminders-toggle');
   if (remToggle) remToggle.checked = !!(S.settings && S.settings.remindersEnabled);
+  // Sync timestamps
+  updateSyncTimestamps(false);
 }
 
 function onRemindersToggle() {
@@ -2574,6 +2576,8 @@ initFY();loadSettingsUI();renderDash();updateStats();renderAlerts();
 document.getElementById('bhBtn').classList.add('on');
 // Feature: orphaned bookings check on load
 setTimeout(checkOrphanedBookings, 600);
+// Feature: sync timestamp restore
+updateSyncTimestamps(false);
 // Feature: notifications (after settings loaded)
 if (S.settings && S.settings.remindersEnabled) initNotifications();
 
@@ -3314,34 +3318,6 @@ function _markSynced(){
   updateSyncTimestamps(false);
 }
 
-// ── Step 2: Sync timestamp display ──
-function fmtSyncTime(isoStr) {
-  if (!isoStr) return '';
-  const d = new Date(isoStr);
-  if (isNaN(d.getTime())) return '';
-  return 'Last synced: ' + d.toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) +
-    ', ' + d.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit',hour12:false});
-}
-function updateSyncTimestamps(failed) {
-  const lastSynced = Sync.lastSynced || localStorage.getItem('shiftbook_lastSynced');
-  const ts = fmtSyncTime(lastSynced);
-  const staleMs = 7 * 24 * 60 * 60 * 1000;
-  const isStale = lastSynced && (Date.now() - new Date(lastSynced).getTime()) > staleMs;
-  const display = isStale
-    ? '\uD83D\uDFE0 Last synced ' + Math.floor((Date.now() - new Date(lastSynced).getTime()) / 864e5) + ' days ago'
-    : ts;
-  ['syncTsCalendar','syncTsList','syncTsSettings'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.textContent = display;
-    el.style.color = isStale ? 'var(--amber)' : 'var(--t4)';
-  });
-  ['syncFailCalendar','syncFailList','syncFailSettings'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = failed ? '' : 'none';
-  });
-}
-
 async function syncNow(){
   if(!getClientId()){toast('Google Client ID not configured — see setup instructions');return;}
   if(!Sync.token){
@@ -3504,6 +3480,39 @@ function injectTestOrphan() {
   window._orphanModalShown = false;
   checkOrphanedBookings();
   toast('Test orphan injected — FY2020/21 does not exist');
+}
+
+// ═══════════════════════════════════════
+// STEP 2 — SYNC TIMESTAMP DISPLAY
+// ═══════════════════════════════════════
+function fmtSyncTime(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return '';
+  return 'Last synced: ' + d.toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) +
+    ', ' + d.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit',hour12:false});
+}
+
+function updateSyncTimestamps(failed) {
+  // Guard: Sync object may not be initialised yet on first call from loadSettingsUI
+  const lastSynced = (typeof Sync !== 'undefined' ? Sync.lastSynced : null)
+    || localStorage.getItem('shiftbook_lastSynced');
+  const ts = fmtSyncTime(lastSynced);
+  const staleMs = 7 * 24 * 60 * 60 * 1000;
+  const isStale = lastSynced && (Date.now() - new Date(lastSynced).getTime()) > staleMs;
+  const display = isStale
+    ? '\uD83D\uDFE0 Last synced ' + Math.floor((Date.now() - new Date(lastSynced).getTime()) / 864e5) + ' days ago'
+    : ts;
+  ['syncTsCalendar','syncTsList','syncTsSettings'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = display;
+    el.style.color = isStale ? 'var(--amber)' : 'var(--t4)';
+  });
+  ['syncFailCalendar','syncFailList','syncFailSettings'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = failed ? '' : 'none';
+  });
 }
 
 // ═══════════════════════════════════════
