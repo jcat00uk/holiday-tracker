@@ -1,4 +1,6 @@
-<!DOCTYPE html>
+const _lp=getPeriodForFY(b.date,b.fyKey);
+    const _lps=_lp.period>=1?'P'+String(_lp.period).padStart(2,'0'):'';
+    ${_lps?'<span class="hrow-period">'+_lps+'</span>':''}<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2883,7 +2885,7 @@ function rptBuildHTML(forPrint = false) {
     tr{page-break-inside:avoid}
     .rpt-grp-hdr{page-break-after:avoid}
   }
-<\/style>
+</style>
 <\/head><body>
 <h1>Holiday Report</h1>
 <div class="rpt-meta">
@@ -3234,19 +3236,6 @@ function _applyDriveData(driveData){
   }catch(e){Sync.setStatus('error');toast('Failed to apply Drive data');console.error(e);}
 }
 
-function getPeriodForFY(dateStr, fyk) {
-  const fyS = getFYStartDate(fyk);
-  if (!fyS) return {period:-1, week:-1};
-  const d = new Date(dateStr+'T00:00:00');
-  const dSun = new Date(d); dSun.setDate(dSun.getDate() - dSun.getDay());
-  const diffDays = Math.round((dSun.getTime() - fyS.getTime()) / 864e5);
-  const wks = Math.floor(diffDays / 7);
-  const week = ((wks % 4) + 4) % 4;
-  let period = wks >= 0 ? Math.floor(wks / 4) + 1 : Math.floor(wks / 4);
-  if (period > 13) period = 13; // cap at 13 periods per FY
-  return {period, week};
-}
-
 </script>
 <script>
 /* ── SCROLL CALENDAR ── */
@@ -3473,6 +3462,19 @@ function renderMonth(y, m) {
 }
 
 /* getPeriod using a specific FY key instead of always using curFY */
+function getPeriodForFY(dateStr, fyk) {
+  const fyS = getFYStartDate(fyk);
+  if (!fyS) return {period:-1, week:-1};
+  const d = new Date(dateStr+'T00:00:00');
+  const dSun = new Date(d); dSun.setDate(dSun.getDate() - dSun.getDay());
+  const diffDays = Math.round((dSun.getTime() - fyS.getTime()) / 864e5);
+  const wks = Math.floor(diffDays / 7);
+  const week = ((wks % 4) + 4) % 4;
+  let period = wks >= 0 ? Math.floor(wks / 4) + 1 : Math.floor(wks / 4);
+  if (period > 13) period = 13; // cap at 13 periods per FY
+  return {period, week};
+}
+
 /* Rebuild all currently-rendered months (e.g. after booking changes) */
 function refreshScrollCal() {
   const calScroll = document.getElementById('calScroll');

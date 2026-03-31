@@ -194,7 +194,7 @@ body.cal-active main{
 .hlist{display:flex;flex-direction:column;gap:4px}
 .hrow{background:var(--s1);border:1px solid var(--bd);border-radius:6px;padding:8px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;transition:border-color .12s;flex-wrap:nowrap;overflow:hidden}
 .hrow:hover{border-color:var(--bd2)}
-.hrow-period{font-family:var(--mono);font-size:.65rem;color:var(--t3);min-width:26px;flex-shrink:0}
+.hrow-period{font-family:var(--mono);font-size:.65rem;color:var(--t3);min-width:28px;flex-shrink:0}
 .hrow-date{font-family:var(--mono);font-size:.75rem;color:var(--t1);flex-shrink:0;min-width:90px}
 .hrow-time{font-family:var(--mono);font-size:.7rem;color:var(--t2);flex-shrink:0;min-width:90px}
 .hrow-hrs{font-family:var(--mono);font-size:.8rem;color:var(--teal);font-weight:500;flex-shrink:0;min-width:52px}
@@ -542,20 +542,22 @@ body.cal-active main{
 .qs-info strong{color:var(--t1)}
 .qs-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:12px;border-top:1px solid var(--bd)}
 
-@media(max-width:640px){
-  /* Dashboard: single column */
-  .dgrid{grid-template-columns:1fr}
-  /* Bookings list: wrap items, hide decimal */
-  .hrow{flex-wrap:wrap;gap:4px 6px}
-  .hrow-dec{display:none}
-  .hrow-date{min-width:78px;font-size:.68rem}
-  .hrow-time{min-width:78px;font-size:.65rem}
-  .hrow-hrs{min-width:42px;font-size:.72rem}
-  .hrow-period{font-size:.6rem;min-width:22px}
-  .hrow-notes{width:100%;flex-basis:100%;order:5;white-space:normal;font-size:.68rem}
-  .hrow-tags{width:100%;flex-basis:100%;order:6}
-}
 
+@media(max-width:640px){
+  /* Dashboard: single column on mobile */
+  .dgrid{grid-template-columns:1fr}
+
+  /* Bookings list: hide dec and wrap more gracefully */
+  .hrow{flex-wrap:wrap;gap:5px 6px}
+  .hrow-dec{display:none}
+  .hrow-date{min-width:80px;font-size:.68rem}
+  .hrow-time{min-width:80px;font-size:.65rem}
+  .hrow-hrs{min-width:44px;font-size:.72rem}
+  .hrow-notes{font-size:.68rem;width:100%;flex-basis:100%;order:5}
+  .hrow-period{font-size:.6rem;min-width:24px}
+  .hrow-tags{width:100%;flex-basis:100%;order:6}
+  .row-cb{order:-1}
+}
 </style>
 </head>
 <body>
@@ -1597,12 +1599,11 @@ function renderList(){
     const tags=[b.overnight?'<span class="htag htag-o">O/N</span>':'',nw&&!isTaken?'<span class="htag htag-w">notice</span>':'',isTaken?'<span class="htag htag-t">taken</span>':'',b.reminderDate&&b.status==='planned'?'<span class="htag htag-w">\u23f0</span>':''].filter(Boolean).join('');
     const checked=bulkSelected.has(b.id)?'checked':'';
     const selcls=bulkSelected.has(b.id)?' sel':'';
-    const _lp=getPeriodForFY(b.date,b.fyKey);
-    const _lps=_lp.period>=1?'P'+String(_lp.period).padStart(2,'0'):'';
+    const _lp=getPeriodForFY(b.date,b.fyKey),_lpStr=_lp.period>=1?'P'+String(_lp.period).padStart(2,'0'):'';
     return`<div class="hrow${selcls}" id="hrow-${b.id}">
       <input type="checkbox" class="row-cb" ${checked} onclick="event.stopPropagation();toggleBulkRow('${b.id}',this)">
       <span class="sbadge s-${b.status}">${b.status}</span>
-      ${_lps?'<span class="hrow-period">'+_lps+'</span>':''}
+      ${_lpStr?'<span class="hrow-period">'+_lpStr+'</span>':''}
       <span class="hrow-date" onclick="openEdit('${b.id}')">${fmtDate(b.date)}</span>
       <span class="hrow-time" onclick="openEdit('${b.id}')">${b.startTime}${b.overnight?' \u2192 ':' \u2013 '}${b.endTime}</span>
       <span class="hrow-hrs" onclick="openEdit('${b.id}')">${hhmm(b.hoursBooked)}</span>
@@ -1772,18 +1773,7 @@ function renderDash(){
   // upcoming
   const upcoming=sortedByDate(S.bookings.filter(b=>b.fyKey===curFY&&['confirmed','submitted'].includes(b.status)&&b.date>=today),dashSortAsc);
   document.getElementById('dash-upcoming').innerHTML=upcoming.length
-    ?'<div class="hlist">'+upcoming.map(b=>{
-      const _up=getPeriodForFY(b.date,b.fyKey);
-      const _ups=_up.period>=1?'P'+String(_up.period).padStart(2,'0'):'';
-      return '<div class="hrow" onclick="openEdit(\''+b.id+'\')" style="gap:7px">'
-        +'<span class="sbadge s-'+b.status+'">'+b.status+'</span>'
-        +(_ups?'<span class="hrow-period">'+_ups+'</span>':'')
-        +'<span class="hrow-date" style="font-size:.73rem">'+fmtDate(b.date)+' '+new Date(b.date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short'})+'</span>'
-        +'<span style="font-family:var(--mono);font-size:.69rem;color:var(--t2)">'+b.startTime+'\u2192'+b.endTime+'</span>'
-        +'<span class="hrow-hrs">'+hhmm(b.hoursBooked)+'</span>'
-        +(b.notes?'<span class="hrow-notes" style="font-size:.68rem;color:var(--t3)">'+b.notes+'</span>':'')
-        +'</div>';
-    }).join('')+'</div>'
+    ?'<div class="hlist">'+upcoming.map(b=>{const _up=getPeriodForFY(b.date,b.fyKey),_upP=_up.period>=1?'P'+String(_up.period).padStart(2,'0'):'';return`<div class="hrow" onclick="openEdit('${b.id}')" style="gap:7px"><span class="sbadge s-${b.status}">${b.status}</span>${_upP?'<span class="hrow-period">'+_upP+'</span>':''}<span class="hrow-date" style="font-size:.73rem">${fmtDate(b.date)} ${new Date(b.date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short'})}</span><span style="font-family:var(--mono);font-size:.69rem;color:var(--t2)">${b.startTime}\u2192${b.endTime}</span><span class="hrow-hrs">${hhmm(b.hoursBooked)}</span>${b.notes?'<span class="hrow-notes" style="font-size:.68rem;color:var(--t3)">'+b.notes+'</span>':''}</div>`}).join('')+'</div>'
     :'<div style="font-size:.75rem;color:var(--t4);padding:7px 0">No upcoming confirmed or submitted holidays</div>';
   // reminders
   const rems=sortedByDate(S.bookings.filter(b=>b.fyKey===curFY&&b.status==='planned'&&b.reminderDate),true).slice(0,6);
@@ -1794,16 +1784,7 @@ function renderDash(){
   }).join(''):'<div style="font-size:.75rem;color:var(--t4)">No reminders set</div>';
   // planned
   const planned=sortedByDate(S.bookings.filter(b=>b.fyKey===curFY&&b.status==='planned'),true);
-  document.getElementById('dash-planned').innerHTML='<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:.76rem;color:var(--t2)">Total planned</span><span style="font-family:var(--mono);font-size:.88rem;color:var(--grey)">'+(s.plan>0?hhmm(s.plan)+' ('+toDecStr(s.plan)+')':'0h')+'</span></div>'+(planned.length?'<div class="hlist">'+planned.map(b=>{
-      const _pp=getPeriodForFY(b.date,b.fyKey);
-      const _pps=_pp.period>=1?'P'+String(_pp.period).padStart(2,'0'):'';
-      return '<div class="hrow" onclick="openEdit(\''+b.id+'\')" style="gap:7px">'
-        +(_pps?'<span class="hrow-period">'+_pps+'</span>':'')
-        +'<span class="hrow-date" style="font-size:.73rem">'+fmtDate(b.date)+'</span>'
-        +'<span class="hrow-hrs">'+hhmm(b.hoursBooked)+'</span>'
-        +'<span class="hrow-notes">'+(b.notes||'\u2014')+'</span>'
-        +'</div>';
-    }).join('')+'</div>':'<div style="font-size:.75rem;color:var(--t4)">No planned bookings</div>');
+  document.getElementById('dash-planned').innerHTML='<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:.76rem;color:var(--t2)">Total planned</span><span style="font-family:var(--mono);font-size:.88rem;color:var(--grey)">'+(s.plan>0?hhmm(s.plan)+' ('+toDecStr(s.plan)+')':'0h')+'</span></div>'+(planned.length?'<div class="hlist">'+planned.map(b=>{const _pp=getPeriodForFY(b.date,b.fyKey),_ppS=_pp.period>=1?'P'+String(_pp.period).padStart(2,'0'):'';return`<div class="hrow" onclick="openEdit('${b.id}')" style="gap:7px">${_ppS?'<span class="hrow-period">'+_ppS+'</span>':''}<span class="hrow-date" style="font-size:.73rem">${fmtDate(b.date)}</span><span class="hrow-hrs">${hhmm(b.hoursBooked)}</span><span class="hrow-notes">${b.notes||'\u2014'}</span></div>`}).join('')+'</div>':'<div style="font-size:.75rem;color:var(--t4)">No planned bookings</div>');
   // year end
   const fyR=fyRange(curFY),daysLeft=Math.ceil((fyR.end-todayD)/864e5),rem=s.rem;
   document.getElementById('dash-yearend').innerHTML=
@@ -1946,14 +1927,14 @@ function onDateChg(){
     document.getElementById('fullShiftInfo').style.display='none';
   }
   onTimeChg();updateAllocMini();checkOverlap();
-  // Update date label: "Date . P02 . FY26/27"
-  const _dlbl = document.getElementById('f-date-label');
-  if (_dlbl) {
-    const _dfyk = fyKey(ds) || curFY;
-    const _dp = getPeriodForFY(ds, _dfyk);
-    const _dfy = _dfyk ? _dfyk.replace('FY','') : '';
-    _dlbl.textContent = _dp.period >= 1
-      ? 'Date · P' + String(_dp.period).padStart(2,'0') + ' · FY' + _dfy
+  // Update date label with period and FY
+  const lbl = document.getElementById('f-date-label');
+  if (lbl) {
+    const fyk = fyKey(ds) || curFY;
+    const {period} = getPeriodForFY(ds, fyk);
+    const fyShort = fyk ? fyk.replace('FY','').replace('/','/') : '';
+    lbl.textContent = period >= 1
+      ? 'Date · P' + String(period).padStart(2,'0') + ' · FY' + fyShort
       : 'Date';
   }
 }
@@ -2883,7 +2864,7 @@ function rptBuildHTML(forPrint = false) {
     tr{page-break-inside:avoid}
     .rpt-grp-hdr{page-break-after:avoid}
   }
-<\/style>
+</style>
 <\/head><body>
 <h1>Holiday Report</h1>
 <div class="rpt-meta">
@@ -3234,19 +3215,6 @@ function _applyDriveData(driveData){
   }catch(e){Sync.setStatus('error');toast('Failed to apply Drive data');console.error(e);}
 }
 
-function getPeriodForFY(dateStr, fyk) {
-  const fyS = getFYStartDate(fyk);
-  if (!fyS) return {period:-1, week:-1};
-  const d = new Date(dateStr+'T00:00:00');
-  const dSun = new Date(d); dSun.setDate(dSun.getDate() - dSun.getDay());
-  const diffDays = Math.round((dSun.getTime() - fyS.getTime()) / 864e5);
-  const wks = Math.floor(diffDays / 7);
-  const week = ((wks % 4) + 4) % 4;
-  let period = wks >= 0 ? Math.floor(wks / 4) + 1 : Math.floor(wks / 4);
-  if (period > 13) period = 13; // cap at 13 periods per FY
-  return {period, week};
-}
-
 </script>
 <script>
 /* ── SCROLL CALENDAR ── */
@@ -3473,6 +3441,19 @@ function renderMonth(y, m) {
 }
 
 /* getPeriod using a specific FY key instead of always using curFY */
+function getPeriodForFY(dateStr, fyk) {
+  const fyS = getFYStartDate(fyk);
+  if (!fyS) return {period:-1, week:-1};
+  const d = new Date(dateStr+'T00:00:00');
+  const dSun = new Date(d); dSun.setDate(dSun.getDate() - dSun.getDay());
+  const diffDays = Math.round((dSun.getTime() - fyS.getTime()) / 864e5);
+  const wks = Math.floor(diffDays / 7);
+  const week = ((wks % 4) + 4) % 4;
+  let period = wks >= 0 ? Math.floor(wks / 4) + 1 : Math.floor(wks / 4);
+  if (period > 13) period = 13; // cap at 13 periods per FY
+  return {period, week};
+}
+
 /* Rebuild all currently-rendered months (e.g. after booking changes) */
 function refreshScrollCal() {
   const calScroll = document.getElementById('calScroll');
