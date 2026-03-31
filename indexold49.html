@@ -4193,28 +4193,26 @@ function snapToDate(date) {
   if (!calScroll) return;
   const y = date.getFullYear(), m = date.getMonth();
 
-  // Ensure the target month is rendered
   let monthDiv = calScroll.querySelector(`.month[data-year="${y}"][data-month="${m}"]`);
   if (!monthDiv) {
     _buildScrollCalAround(y, m);
+    monthDiv = calScroll.querySelector(`.month[data-year="${y}"][data-month="${m}"]`);
   }
+  if (!monthDiv) return;
 
-  // Clamp after building — this removes out-of-bounds months and may mutate the DOM
+  // Enforce FY bounds: remove months outside configured FY range
   _clampRenderedMonths();
 
-  // Double-rAF: first rAF lets the browser process the DOM mutations above,
-  // second rAF fires after the browser has reflowed and painted — so
-  // getBoundingClientRect() returns accurate geometry on first selection.
+  // Use rAF to ensure browser has laid out the rebuilt DOM before measuring
   requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      const target = calScroll.querySelector(`.month[data-year="${y}"][data-month="${m}"]`);
-      if (!target) return;
-      const containerRect = calScroll.getBoundingClientRect();
-      const targetRect    = target.getBoundingClientRect();
-      calScroll.scrollTop += (targetRect.top - containerRect.top);
-      updateFYOnScroll(calScroll);
-      updateFloatingMonth(calScroll);
-    });
+    const target = calScroll.querySelector(`.month[data-year="${y}"][data-month="${m}"]`);
+    if (!target) return;
+    const containerRect = calScroll.getBoundingClientRect();
+    const targetRect    = target.getBoundingClientRect();
+    calScroll.scrollTop += (targetRect.top - containerRect.top);
+    // Update FY UI to reflect the jumped-to position
+    updateFYOnScroll(calScroll);
+    updateFloatingMonth(calScroll);
   });
 }
 
@@ -4464,15 +4462,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const val = jumpSel.value;
     if (!val) return;
     const [jy, jm] = val.split('-').map(Number);
-    const calActive = document.getElementById('view-calendar').classList.contains('active');
-    if (!calActive) {
+    // Make sure calendar view is active and laid out before scrolling
+    if (!document.getElementById('view-calendar').classList.contains('active')) {
       showView('calendar');
-      // Give the view transition time to complete before measuring
-      setTimeout(() => snapToDate(new Date(jy, jm, 1)), 50);
-    } else {
-      snapToDate(new Date(jy, jm, 1));
     }
-    jumpSel.value = '';
+    // rAF ensures the view is visible and getBoundingClientRect is accurate
+    requestAnimationFrame(() => {
+      snapToDate(new Date(jy, jm, 1));
+      jumpSel.value = '';
+    });
   });
 
   // Populate jump select — only months within configured FY ranges
