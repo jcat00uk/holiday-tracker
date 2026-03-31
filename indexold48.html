@@ -450,11 +450,8 @@ body.cal-active main{
 .del-cf{margin-right:auto;display:none}
 
 /* ── TOAST ── */
-#toast{position:fixed;bottom:calc(var(--nav-h) + 10px);right:14px;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:8px 13px;font-size:.78rem;box-shadow:0 4px 20px rgba(0,0,0,.4);transform:translateY(50px);opacity:0;transition:all .25s;z-index:9999;pointer-events:none;display:flex;align-items:center;gap:10px}
+#toast{position:fixed;bottom:calc(var(--nav-h) + 10px);right:14px;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:8px 13px;font-size:.78rem;box-shadow:0 4px 20px rgba(0,0,0,.4);transform:translateY(50px);opacity:0;transition:all .25s;z-index:9999;pointer-events:none}
 #toast.on{pointer-events:auto;transform:translateY(0);opacity:1}
-#toast-msg{flex:1}
-#toast-undo{background:none;border:1px solid var(--teal);color:var(--teal);border-radius:4px;padding:2px 9px;font-size:.72rem;cursor:pointer;white-space:nowrap;font-family:var(--sans);flex-shrink:0}
-#toast-undo:hover{background:var(--teald)}
 @media(min-width:641px){#toast{bottom:14px}}
 
 /* colour helpers */
@@ -1058,7 +1055,7 @@ body.cal-active main{
 </div>
 </div>
 
-<div id="toast"><span id="toast-msg"></span><button id="toast-undo" style="display:none" onclick="triggerUndo()">Undo</button></div>
+<div id="toast"></div>
 
 <script>
 // ═══════════════════════════════════════
@@ -1106,8 +1103,6 @@ let rotEditWi=-1,rotEditDi=-1,bookingMode='full',dashSortAsc=true,overlapAllowed
 // Declare all module-level lets here to avoid Temporal Dead Zone errors
 let _notRotadPendingDate = null;
 let _notifCheckInterval = null;
-let _undoFn = null;
-let _tt = null;
 // Auto-sync state
 const SYNC_CONFLICT_KEY = 'shiftbook_pendingConflict';
 const BG_SYNC_THROTTLE_MS = 30000;
@@ -1729,49 +1724,26 @@ function closePreviewPanel(){document.getElementById('previewPanel').classList.r
 function executeBulkAction(){
   if(!bulkAction)return;
   if(bulkAction.type==='delete'){
-    const deleted=S.bookings.filter(b=>bulkSelected.has(b.id));
-    const count=deleted.length;
     S.bookings=S.bookings.filter(b=>!bulkSelected.has(b.id));
-    bulkSelected.clear();persist();bulkAction=null;
-    document.getElementById('selAllCb').checked=false;
-    closePreviewPanel();refresh();
-    toast(count+' booking'+(count>1?'s':'')+' deleted', ()=>{
-      S.bookings.push(...deleted);
-      persist();refresh();
-      toast(count+' booking'+(count>1?'s':'')+' restored');
-    });
+    toast(bulkSelected.size+' deleted');
   } else if(bulkAction.type==='status'){
-    const prev=S.bookings.filter(b=>bulkSelected.has(b.id)).map(b=>({...b}));
-    const to=bulkAction.status;
-    S.bookings=S.bookings.map(b=>bulkSelected.has(b.id)?{...b,status:to}:b);
-    bulkSelected.clear();persist();bulkAction=null;
-    document.getElementById('selAllCb').checked=false;
-    closePreviewPanel();refresh();
-    toast('Status updated', ()=>{
-      prev.forEach(pb=>{ const i=S.bookings.findIndex(b=>b.id===pb.id); if(i>-1)S.bookings[i]=pb; });
-      persist();refresh();
-      toast('Status change undone');
-    });
+    S.bookings=S.bookings.map(b=>bulkSelected.has(b.id)?{...b,status:bulkAction.status}:b);
+    toast('Status updated');
   } else if(bulkAction.type==='rotaSync'){
-    const prev=S.bookings.filter(b=>bulkSelected.has(b.id)).map(b=>({...b}));
     let updated=0;
     S.bookings=S.bookings.map(b=>{
       if(!bulkSelected.has(b.id))return b;
       const rd=getRotDay(b.date);
-      if(!rd||!rd.on)return b;
+      if(!rd||!rd.on)return b; // no rota for this day — skip
       const{booked}=bookedHrs(rd.start,rd.end);
       updated++;
       return{...b,startTime:rd.start,endTime:rd.end,overnight:isON(rd.start,rd.end),hoursBooked:booked,mode:'full'};
     });
-    bulkSelected.clear();persist();bulkAction=null;
-    document.getElementById('selAllCb').checked=false;
-    closePreviewPanel();refresh();
-    toast(updated+' booking'+(updated>1?'s':'')+' updated to rota times', ()=>{
-      prev.forEach(pb=>{ const i=S.bookings.findIndex(b=>b.id===pb.id); if(i>-1)S.bookings[i]=pb; });
-      persist();refresh();
-      toast('Rota update undone');
-    });
+    toast(updated+' booking'+(updated>1?'s':'')+' updated to rota times');
   }
+  bulkSelected.clear();persist();bulkAction=null;
+  document.getElementById('selAllCb').checked=false;
+  closePreviewPanel();refresh();
 }
 function previewBulkRotaSync(){
   const items=S.bookings.filter(b=>bulkSelected.has(b.id));
@@ -1832,14 +1804,9 @@ function executeDelAll(){
   });
   if(!toDelete.size){toast('No matching bookings');return;}
   if(!confirm('Delete '+toDelete.size+' booking'+(toDelete.size>1?'s':'')+' from '+curFY+'? This cannot be undone.'))return;
-  const deleted=S.bookings.filter(b=>toDelete.has(b.id));
   S.bookings=S.bookings.filter(b=>!toDelete.has(b.id));
   persist();bulkSelected.clear();closeDelAll();refresh();
-  toast(toDelete.size+' booking'+(toDelete.size>1?'s':'')+' deleted', ()=>{
-    S.bookings.push(...deleted);
-    persist();refresh();
-    toast(deleted.length+' booking'+(deleted.length>1?'s':'')+' restored');
-  });
+  toast(toDelete.size+' booking'+(toDelete.size>1?'s':'')+' deleted');
 }
 function setF(f,btn){listFilter=f;bulkSelected.clear();document.querySelectorAll('.fc').forEach(c=>c.classList.remove('on'));btn.classList.add('on');renderList();}
 
@@ -1855,12 +1822,12 @@ function toggleDashSort(){
 function deleteReminder(id) {
   const bk = S.bookings.find(b => b.id === id);
   if (!bk) return;
-  const prevDate = bk.reminderDate;
   // Remove from DOM immediately for instant visual feedback on all platforms
   const remEl = document.querySelector(`#dash-reminders .rem-i button[onclick*="${id}"]`);
   if (remEl) {
     const row = remEl.closest('.rem-i');
     if (row) row.remove();
+    // If no reminders left, show the empty state
     const container = document.getElementById('dash-reminders');
     if (container && !container.querySelector('.rem-i')) {
       container.innerHTML = '<div style="font-size:.75rem;color:var(--t4)">No reminders set</div>';
@@ -1871,10 +1838,7 @@ function deleteReminder(id) {
   S._lastModified = new Date().toISOString();
   updateStats();
   renderAlerts();
-  toast('Reminder removed', ()=>{
-    const b2 = S.bookings.find(b => b.id === id);
-    if (b2) { b2.reminderDate = prevDate; persist(); renderDash(); toast('Reminder restored'); }
-  });
+  toast('Reminder removed');
 }
 
 function renderDash(){
@@ -2175,16 +2139,7 @@ function saveBooking(){
   toast(editId?'Booking updated':'Booking saved');
 }
 function askDel(){document.getElementById('delCf').style.display='flex';document.getElementById('btnDel').style.display='none';}
-function confirmDel(){
-  const deleted = S.bookings.find(b=>b.id===editId);
-  S.bookings=S.bookings.filter(b=>b.id!==editId);
-  persist();closeModal();refresh();
-  toast('Booking deleted', deleted ? ()=>{
-    S.bookings.push(deleted);
-    persist();refresh();
-    toast('Booking restored');
-  } : null);
-}
+function confirmDel(){S.bookings=S.bookings.filter(b=>b.id!==editId);persist();closeModal();refresh();toast('Deleted');}
 
 // ═══════════════════════════════════════
 // SETTINGS
@@ -2360,24 +2315,18 @@ function delFY(fyk){
     : false;
   if(!confirm('Delete FY ' + fyk + '?\n\nThe allocation record and start date will be removed.' + (deleteBookings ? '\n\n' + bookingCount + ' booking' + (bookingCount!==1?'s':'') + ' will also be permanently deleted.' : bookingCount > 0 ? '\n\nBookings will be kept but flagged as orphaned.' : '')))return;
   if(deleteBookings){
-    const deletedBks = S.bookings.filter(b => b.fyKey === fyk);
     S.bookings = S.bookings.filter(b => b.fyKey !== fyk);
-    delete S.fyAllocs[fyk];
-    if(curFY===fyk){const remaining=allFYKeys();curFY=remaining.length>0?remaining[remaining.length-1]:'';document.getElementById('fyPill').textContent=curFY||'—';}
-    persist();populateFYSel();renderFYAllocTable();updateStats();renderAlerts();refresh();
-    window._orphanModalShown = false; checkOrphanedBookings();
-    toast('FY ' + fyk + ' deleted with ' + bookingCount + ' booking' + (bookingCount!==1?'s':''), ()=>{
-      S.bookings.push(...deletedBks);
-      persist();refresh();
-      toast(deletedBks.length+' booking'+(deletedBks.length>1?'s':'')+' restored (FY record still deleted)');
-    });
-  } else {
-    delete S.fyAllocs[fyk];
-    if(curFY===fyk){const remaining=allFYKeys();curFY=remaining.length>0?remaining[remaining.length-1]:'';document.getElementById('fyPill').textContent=curFY||'—';}
-    persist();populateFYSel();renderFYAllocTable();updateStats();renderAlerts();refresh();
-    window._orphanModalShown = false; checkOrphanedBookings();
-    toast('FY ' + fyk + ' deleted');
   }
+  delete S.fyAllocs[fyk];
+  // If we deleted the current FY, switch to another
+  if(curFY===fyk){
+    const remaining=allFYKeys();
+    curFY=remaining.length>0?remaining[remaining.length-1]:'';
+    document.getElementById('fyPill').textContent=curFY||'—';
+  }
+  persist();populateFYSel();renderFYAllocTable();updateStats();renderAlerts();refresh();
+  window._orphanModalShown = false; checkOrphanedBookings();
+  toast('FY ' + fyk + ' deleted' + (deleteBookings ? ' with ' + bookingCount + ' booking' + (bookingCount!==1?'s':'') : ''));
 }
 function addFYRow(){
   // Suggest the next FY key based on existing ones
@@ -2648,30 +2597,8 @@ function refresh(){
     if(n==='calendar')refreshScrollCal();if(n==='list')renderList();if(n==='dash')renderDash();
   }
 }
-function toast(msg, undoFn) {
-  const el  = document.getElementById('toast');
-  const msg_el = document.getElementById('toast-msg');
-  const btn = document.getElementById('toast-undo');
-  if (msg_el) msg_el.textContent = msg;
-  else el.textContent = msg; // fallback
-  _undoFn = undoFn || null;
-  if (btn) btn.style.display = undoFn ? '' : 'none';
-  el.classList.add('on');
-  clearTimeout(_tt);
-  _tt = setTimeout(() => {
-    el.classList.remove('on');
-    _undoFn = null;
-  }, undoFn ? 5000 : 2800); // longer timeout when undo is available
-}
-
-function triggerUndo() {
-  if (!_undoFn) return;
-  const fn = _undoFn;
-  _undoFn = null;
-  clearTimeout(_tt);
-  document.getElementById('toast').classList.remove('on');
-  fn();
-}
+let _tt=null;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('on'),2800);}
 
 // INIT
 loadData();
@@ -3692,12 +3619,7 @@ function confirmDeleteOrphans() {
   closeOrphanModal();
   checkOrphanedBookings();
   refresh();
-  toast(ids.size + ' orphaned booking' + (ids.size > 1 ? 's' : '') + ' deleted', ()=>{
-    S.bookings.push(...orphans);
-    persist();refresh();
-    window._orphanModalShown=false;checkOrphanedBookings();
-    toast(orphans.length+' booking'+(orphans.length>1?'s':'')+' restored');
-  });
+  toast(ids.size + ' orphaned booking' + (ids.size > 1 ? 's' : '') + ' deleted');
 }
 
 // ── Dev/test helper: inject a booking with a non-existent FY key ──
