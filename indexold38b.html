@@ -930,7 +930,6 @@ body.cal-active main{
       <button class="mode-tab" id="modeB" onclick="setMode('custom')">Custom Hours</button>
     </div>
     <div class="alloc-mini" id="allocMini"></div>
-    <div id="alloc-warn" style="display:none;font-size:.72rem;color:var(--red);padding:4px 0 2px;font-weight:500"></div>
     <div class="fr"><label id="f-date-label">Date</label>
       <input type="date" id="f-date" onchange="onDateChg()">
     </div>
@@ -2023,21 +2022,6 @@ function updateAllocMini(){
     `<div class="alloc-mini-row"><span class="ak">Remaining (conf+subm)</span><span class="av" style="color:${s.rem<0?'var(--red)':'var(--teal)'}">${hhmm(s.rem)} (${toDecStr(s.rem)})</span></div>`+
     `<div class="alloc-mini-row"><span class="ak">Incl. planned</span><span class="av">${hhmm(Math.max(0,s.remIncPlan))} (${toDecStr(Math.max(0,s.remIncPlan))})</span></div>`+
     `<div class="alloc-mini-row"><span class="ak">Shifts left</span><span class="av c-purple">${s.shiftsLeft}</span></div>`;
-  // Over-allocation warning
-  const warnEl = document.getElementById('alloc-warn');
-  if (warnEl) {
-    const hrs = getBookedHrs() || 0;
-    // When editing, add back the current booking's hours (they're already counted in stats)
-    const editHrs = editId ? (S.bookings.find(b=>b.id===editId)||{hoursBooked:0}).hoursBooked : 0;
-    const available = s.remIncPlan + editHrs;
-    if (s.alloc > 0 && hrs > 0 && hrs > available) {
-      const over = hrs - available;
-      warnEl.textContent = '⚠ This booking exceeds your remaining allocation by ' + hhmm(over);
-      warnEl.style.display = '';
-    } else {
-      warnEl.style.display = 'none';
-    }
-  }
 }
 function saveBooking(){
   const date=document.getElementById('f-date').value;if(!date){toast('Please set a date');return;}
