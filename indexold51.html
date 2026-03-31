@@ -466,6 +466,7 @@ body.cal-active main{
   flex: 1;
   min-height: 0;        /* critical for flex child to shrink below content size */
   overflow-y: auto;
+  scroll-behavior: smooth;
   overscroll-behavior-y: contain;  /* prevent pull-to-reveal on calendar only */
   -webkit-overflow-scrolling: touch;
 }
@@ -4198,22 +4199,9 @@ function snapToDate(date) {
   const target = calScroll.querySelector(`.month[data-year="${y}"][data-month="${m}"]`);
   if (!target) return;
 
-  // Calculate offsetTop relative to calScroll specifically by walking the offset chain.
-  // We can't use target.offsetTop directly because calScroll has no position:relative,
-  // so offsetTop walks up to a different ancestor.
-  let offset = 0;
-  let el = target;
-  while (el && el !== calScroll) {
-    offset += el.offsetTop;
-    el = el.offsetParent;
-  }
-
-  // Disable smooth-scroll temporarily so the jump is instant and accurate.
-  // smooth scroll-behavior causes animated scroll from a stale starting position.
-  const prevBehavior = calScroll.style.scrollBehavior;
-  calScroll.style.scrollBehavior = 'auto';
-  calScroll.scrollTop = offset;
-  calScroll.style.scrollBehavior = prevBehavior;
+  // offsetTop is the element's position relative to its scrollable parent —
+  // stable immediately after DOM insertion, no reflow or rAF needed.
+  calScroll.scrollTop = target.offsetTop;
 
   requestAnimationFrame(() => {
     updateFYOnScroll(calScroll);
