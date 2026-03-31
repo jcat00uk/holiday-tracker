@@ -2281,15 +2281,9 @@ function saveRotDay(){
 function updateRotaBookingHint(){
   const hint=document.getElementById('rotaBookingHint');
   if(!hint)return;
-  // Only show if there are active bookings where stored times differ from current rota
-  const hasMismatch=S.bookings.some(b=>{
-    if(b.mode!=='full')return false;
-    if(['cancelled','refused'].includes(b.status))return false;
-    const rd=getRotDay(b.date);
-    if(!rd||!rd.on)return false; // not a rota day — no mismatch to report
-    return b.startTime!==rd.start||b.endTime!==rd.end;
-  });
-  hint.style.display=hasMismatch?'':'none';
+  // Show hint if any booking uses rota times, regardless of status or date
+  const hasRotaBks=S.bookings.some(b=>b.mode==='full');
+  hint.style.display=hasRotaBks?'':'none';
 }
 function clearRotWeek(wi){S.settings.rotation[wi]=S.settings.rotation[wi].map(d=>({...d,on:false}));persist();renderRotEditor();}
 function clearAllRot(){S.settings.rotation=S.settings.rotation.map(w=>w.map(d=>({...d,on:false})));persist();renderRotEditor();}
