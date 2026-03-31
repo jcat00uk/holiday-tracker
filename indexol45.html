@@ -1103,10 +1103,6 @@ let rotEditWi=-1,rotEditDi=-1,bookingMode='full',dashSortAsc=true,overlapAllowed
 // Declare all module-level lets here to avoid Temporal Dead Zone errors
 let _notRotadPendingDate = null;
 let _notifCheckInterval = null;
-// Auto-sync state
-const SYNC_CONFLICT_KEY = 'shiftbook_pendingConflict';
-const BG_SYNC_THROTTLE_MS = 30000;
-let _lastBgSync = 0;
 
 // ═══════════════════════════════════════
 // TIME UTILS
@@ -1904,10 +1900,6 @@ function renderAlerts(){
   if(today>=new Date(fyR.end.getTime()-warnMs)&&today<=fyR.end)alerts.push(`<div class="alert a-warn">\u23f3 FY ends in ${Math.ceil((fyR.end-today)/864e5)} days \u2014 ${hhmm(s.rem)} remaining.</div>`);
   const due=S.bookings.filter(b=>b.fyKey===curFY&&b.status==='planned'&&b.reminderDate&&new Date(b.reminderDate+'T00:00:00')<=today);
   if(due.length)alerts.push(`<div class="alert a-info">\ud83d\udd14 ${due.length} booking${due.length>1?'s':''} due to submit \u2014 check Dashboard</div>`);
-  // Pending conflict from background sync
-  if(localStorage.getItem(SYNC_CONFLICT_KEY)){
-    alerts.push(`<div class="alert a-warn" style="cursor:pointer" onclick="checkPendingConflict()">☁ Drive has newer data than your last sync \u2014 <strong>tap to resolve</strong></div>`);
-  }
   el.innerHTML=alerts.join('');
 }
 
@@ -2611,8 +2603,6 @@ updateViewFYStrips();
 setTimeout(checkOrphanedBookings, 600);
 // Feature: notifications (after settings loaded)
 if (S.settings && S.settings.remindersEnabled) initNotifications();
-// Feature: pending conflict check — delay to let silent auth token restore complete
-setTimeout(() => { if(localStorage.getItem(SYNC_CONFLICT_KEY)) renderAlerts(); }, 2000);
 
 // ═══════════════════════════════════════════════════════
 // QUICK SETUP
@@ -3435,97 +3425,6 @@ function _applyDriveData(driveData){
     toast('Drive data loaded — reloading…');
     setTimeout(()=>{ window._orphanModalShown=false; location.reload(); },900);
   }catch(e){Sync.setStatus('error');toast('Failed to apply Drive data');console.error(e);}
-}
-
-// ═══════════════════════════════════════════════════════
-// AUTO-SYNC & UNLOAD WARNING
-// ═══════════════════════════════════════════════════════
-
-function hasUnsyncedChanges() {
-  if (!Sync.userEmail) return false;
-  const lt = new Date(S._lastModified || 0).getTime();
-  const st = new Date(Sync.lastSynced || 0).getTime();
-  return lt > st + 2000; // 2s threshold same as syncNow
-}
-
-// Background sync — conservative:
-//   • only pushes if local is newer (safe)
-//   • if Drive is newer, flags a pending conflict instead of showing a modal
-//   • if equal, does nothing
-async function syncBackground() {
-  if (!Sync.token) return;
-  if (!hasUnsyncedChanges() && !localStorage.getItem(SYNC_CONFLICT_KEY)) return;
-  const now = Date.now();
-  if (now - _lastBgSync < BG_SYNC_THROTTLE_MS) return;
-  _lastBgSync = now;
-  try {
-    const driveData = await downloadFromDrive();
-    if (!driveData) {
-      // No Drive file yet — safe to create it
-      await uploadToDrive(buildDrivePayload());
-      S._lastModified = new Date().toISOString(); persist();
-      _markSynced();
-      localStorage.removeItem(SYNC_CONFLICT_KEY);
-      return;
-    }
-    const dt = new Date(driveData.lastModified || 0).getTime();
-    const lt = new Date(S._lastModified || 0).getTime();
-    const THRESH = 2000;
-    if (Math.abs(dt - lt) < THRESH) {
-      // Equal — already in sync
-      _markSynced();
-      localStorage.removeItem(SYNC_CONFLICT_KEY);
-      return;
-    }
-    if (lt > dt + THRESH) {
-      // Local is newer — safe to push
-      await uploadToDrive(buildDrivePayload());
-      S._lastModified = new Date().toISOString(); persist();
-      _markSynced();
-      localStorage.removeItem(SYNC_CONFLICT_KEY);
-      return;
-    }
-    // Drive is newer — don't auto-pull, flag for user to resolve manually
-    localStorage.setItem(SYNC_CONFLICT_KEY, JSON.stringify({
-      driveTime: driveData.lastModified,
-      localTime: S._lastModified,
-      flaggedAt: new Date().toISOString()
-    }));
-    renderAlerts(); // show the pending conflict alert immediately if page is still open
-  } catch(e) {
-    // Background sync failures are silent — don't interrupt the user
-    console.warn('Background sync failed:', e.message);
-  }
-}
-
-// ── beforeunload: warn if signed in and unsynced ──
-window.addEventListener('beforeunload', e => {
-  if (!hasUnsyncedChanges()) return;
-  // Attempt a synchronous-style background sync (best effort — may not complete)
-  syncBackground();
-  // Show browser's native "Leave site?" dialog
-  e.preventDefault();
-  e.returnValue = ''; // required for Chrome
-});
-
-// ── visibilitychange + pagehide: silent background sync when leaving ──
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') syncBackground();
-});
-window.addEventListener('pagehide', () => syncBackground()); // iOS Safari
-
-// ── On load: check for a pending conflict from a previous background sync ──
-function checkPendingConflict() {
-  const raw = localStorage.getItem(SYNC_CONFLICT_KEY);
-  if (!raw || !Sync.userEmail) return;
-  try {
-    const { driveTime, localTime } = JSON.parse(raw);
-    // Re-use the existing conflict modal — fetch Drive data and show it
-    syncNow(); // this will detect the conflict and show the modal as normal
-    localStorage.removeItem(SYNC_CONFLICT_KEY);
-  } catch(e) {
-    localStorage.removeItem(SYNC_CONFLICT_KEY);
-  }
 }
 
 function getPeriodForFY(dateStr, fyk) {
