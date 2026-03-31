@@ -194,7 +194,6 @@ body.cal-active main{
 .hlist{display:flex;flex-direction:column;gap:4px}
 .hrow{background:var(--s1);border:1px solid var(--bd);border-radius:6px;padding:8px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;transition:border-color .12s;flex-wrap:nowrap;overflow:hidden}
 .hrow:hover{border-color:var(--bd2)}
-.hrow-period{font-family:var(--mono);font-size:.65rem;color:var(--t3);min-width:28px;flex-shrink:0}
 .hrow-date{font-family:var(--mono);font-size:.75rem;color:var(--t1);flex-shrink:0;min-width:90px}
 .hrow-time{font-family:var(--mono);font-size:.7rem;color:var(--t2);flex-shrink:0;min-width:90px}
 .hrow-hrs{font-family:var(--mono);font-size:.8rem;color:var(--teal);font-weight:500;flex-shrink:0;min-width:52px}
@@ -916,7 +915,7 @@ body.cal-active main{
       <button class="mode-tab" id="modeB" onclick="setMode('custom')">Custom Hours</button>
     </div>
     <div class="alloc-mini" id="allocMini"></div>
-    <div class="fr"><label id="f-date-label">Date</label>
+    <div class="fr"><label>Date</label>
       <input type="date" id="f-date" onchange="onDateChg()">
     </div>
     <div id="fullShiftInfo" style="background:var(--s2);border:1px solid var(--bd);border-radius:5px;padding:8px 10px;font-size:.77rem;color:var(--t2);margin-bottom:9px;display:none">
@@ -1583,11 +1582,9 @@ function renderList(){
     const tags=[b.overnight?'<span class="htag htag-o">O/N</span>':'',nw&&!isTaken?'<span class="htag htag-w">notice</span>':'',isTaken?'<span class="htag htag-t">taken</span>':'',b.reminderDate&&b.status==='planned'?'<span class="htag htag-w">\u23f0</span>':''].filter(Boolean).join('');
     const checked=bulkSelected.has(b.id)?'checked':'';
     const selcls=bulkSelected.has(b.id)?' sel':'';
-    const _lp=getPeriodForFY(b.date,b.fyKey),_lpStr=_lp.period>=1?'P'+String(_lp.period).padStart(2,'0'):'';
     return`<div class="hrow${selcls}" id="hrow-${b.id}">
       <input type="checkbox" class="row-cb" ${checked} onclick="event.stopPropagation();toggleBulkRow('${b.id}',this)">
       <span class="sbadge s-${b.status}">${b.status}</span>
-      ${_lpStr?`<span class="hrow-period">${_lpStr}</span>`:''}
       <span class="hrow-date" onclick="openEdit('${b.id}')">${fmtDate(b.date)}</span>
       <span class="hrow-time" onclick="openEdit('${b.id}')">${b.startTime}${b.overnight?' \u2192 ':' \u2013 '}${b.endTime}</span>
       <span class="hrow-hrs" onclick="openEdit('${b.id}')">${hhmm(b.hoursBooked)}</span>
@@ -1757,7 +1754,7 @@ function renderDash(){
   // upcoming
   const upcoming=sortedByDate(S.bookings.filter(b=>b.fyKey===curFY&&['confirmed','submitted'].includes(b.status)&&b.date>=today),dashSortAsc);
   document.getElementById('dash-upcoming').innerHTML=upcoming.length
-    ?'<div class="hlist">'+upcoming.map(b=>{const _up=getPeriodForFY(b.date,b.fyKey),_upP=_up.period>=1?'P'+String(_up.period).padStart(2,'0'):'';return`<div class="hrow" onclick="openEdit('${b.id}')" style="gap:7px"><span class="sbadge s-${b.status}">${b.status}</span>${_upP?`<span class="hrow-period">${_upP}</span>`:''}<span class="hrow-date" style="font-size:.73rem">${fmtDate(b.date)} ${new Date(b.date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short'})}</span><span style="font-family:var(--mono);font-size:.69rem;color:var(--t2)">${b.startTime}\u2192${b.endTime}</span><span class="hrow-hrs">${hhmm(b.hoursBooked)}</span>${b.notes?`<span class="hrow-notes" style="font-size:.68rem;color:var(--t3)">${b.notes}</span>`:''}</div>`}).join('')+'</div>'
+    ?'<div class="hlist">'+upcoming.map(b=>`<div class="hrow" onclick="openEdit('${b.id}')" style="gap:7px"><span class="sbadge s-${b.status}">${b.status}</span><span class="hrow-date" style="font-size:.73rem">${fmtDate(b.date)} ${new Date(b.date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short'})}</span><span style="font-family:var(--mono);font-size:.69rem;color:var(--t2)">${b.startTime}\u2192${b.endTime}</span><span class="hrow-hrs">${hhmm(b.hoursBooked)}</span></div>`).join('')+'</div>'
     :'<div style="font-size:.75rem;color:var(--t4);padding:7px 0">No upcoming confirmed or submitted holidays</div>';
   // reminders
   const rems=sortedByDate(S.bookings.filter(b=>b.fyKey===curFY&&b.status==='planned'&&b.reminderDate),true).slice(0,6);
@@ -1768,7 +1765,7 @@ function renderDash(){
   }).join(''):'<div style="font-size:.75rem;color:var(--t4)">No reminders set</div>';
   // planned
   const planned=sortedByDate(S.bookings.filter(b=>b.fyKey===curFY&&b.status==='planned'),true);
-  document.getElementById('dash-planned').innerHTML='<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:.76rem;color:var(--t2)">Total planned</span><span style="font-family:var(--mono);font-size:.88rem;color:var(--grey)">'+(s.plan>0?hhmm(s.plan)+' ('+toDecStr(s.plan)+')':'0h')+'</span></div>'+(planned.length?'<div class="hlist">'+planned.map(b=>{const _pp=getPeriodForFY(b.date,b.fyKey),_ppS=_pp.period>=1?'P'+String(_pp.period).padStart(2,'0'):'';return`<div class="hrow" onclick="openEdit('${b.id}')" style="gap:7px">${_ppS?`<span class="hrow-period">${_ppS}</span>`:''}<span class="hrow-date" style="font-size:.73rem">${fmtDate(b.date)}</span><span class="hrow-hrs">${hhmm(b.hoursBooked)}</span><span class="hrow-notes">${b.notes||'\u2014'}</span></div>`}).join('')+'</div>':'<div style="font-size:.75rem;color:var(--t4)">No planned bookings</div>');
+  document.getElementById('dash-planned').innerHTML='<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:.76rem;color:var(--t2)">Total planned</span><span style="font-family:var(--mono);font-size:.88rem;color:var(--grey)">'+(s.plan>0?hhmm(s.plan)+' ('+toDecStr(s.plan)+')':'0h')+'</span></div>'+(planned.length?'<div class="hlist">'+planned.map(b=>`<div class="hrow" onclick="openEdit('${b.id}')" style="gap:7px"><span class="hrow-date" style="font-size:.73rem">${fmtDate(b.date)}</span><span class="hrow-hrs">${hhmm(b.hoursBooked)}</span><span class="hrow-notes">${b.notes||'\u2014'}</span></div>`).join('')+'</div>':'<div style="font-size:.75rem;color:var(--t4)">No planned bookings</div>');
   // year end
   const fyR=fyRange(curFY),daysLeft=Math.ceil((fyR.end-todayD)/864e5),rem=s.rem;
   document.getElementById('dash-yearend').innerHTML=
@@ -1911,16 +1908,6 @@ function onDateChg(){
     document.getElementById('fullShiftInfo').style.display='none';
   }
   onTimeChg();updateAllocMini();checkOverlap();
-  // Update date label with period and FY
-  const lbl = document.getElementById('f-date-label');
-  if (lbl) {
-    const fyk = fyKey(ds) || curFY;
-    const {period} = getPeriodForFY(ds, fyk);
-    const fyShort = fyk ? fyk.replace('FY','').replace('/','/') : '';
-    lbl.textContent = period >= 1
-      ? 'Date · P' + String(period).padStart(2,'0') + ' · FY' + fyShort
-      : 'Date';
-  }
 }
 function onTimeChg(){
   const start=document.getElementById('f-start').value,end=document.getElementById('f-end').value;
