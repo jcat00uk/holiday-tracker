@@ -955,9 +955,15 @@ body.cal-active main{
       </select>
     </div>
     <div class="fr" id="remRow" style="display:none">
-      <label>Submit reminder date</label>
-      <input type="date" id="f-rem">
-      <span class="hint">Shows in Dashboard reminders</span>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <label class="sw" style="margin:0">
+          <input type="checkbox" id="f-rem-toggle" onchange="onRemToggle()">
+          <span class="slider"></span>
+        </label>
+        <label style="margin:0;cursor:pointer" onclick="document.getElementById('f-rem-toggle').click()">Submit reminder</label>
+      </div>
+      <input type="date" id="f-rem" style="display:none" onchange="onRemDateChg()">
+      <span class="hint" id="remHint" style="display:none">Reminds you on this date to submit this planned booking. Shown in Dashboard reminders.</span>
     </div>
     <div class="fr"><label>Notes</label>
       <input type="text" id="f-notes" placeholder="Optional">
@@ -1735,19 +1741,27 @@ function toggleDashSort(){
   if(btn)btn.textContent='Date '+(dashSortAsc?'\u2191':'\u2193');
   renderDash();
 }
+function deleteReminder(id) {
+  const bk = S.bookings.find(b => b.id === id);
+  if (!bk) return;
+  bk.reminderDate = '';
+  updateAppState();
+  toast('Reminder removed');
+}
+
 function renderDash(){
   const today=dstr(new Date()),todayD=new Date(today+'T00:00:00'),s=getStats(curFY);
   // upcoming
-  const upcoming=sortedByDate(S.bookings.filter(b=>b.fyKey===curFY&&['confirmed','submitted'].includes(b.status)&&b.date>=today),dashSortAsc).slice(0,8);
+  const upcoming=sortedByDate(S.bookings.filter(b=>b.fyKey===curFY&&['confirmed','submitted','planned'].includes(b.status)&&b.date>=today),dashSortAsc).slice(0,12);
   document.getElementById('dash-upcoming').innerHTML=upcoming.length
     ?'<div class="hlist">'+upcoming.map(b=>`<div class="hrow" onclick="openEdit('${b.id}')" style="gap:7px"><span class="sbadge s-${b.status}">${b.status}</span><span class="hrow-date" style="font-size:.73rem">${fmtDate(b.date)} ${new Date(b.date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short'})}</span><span style="font-family:var(--mono);font-size:.69rem;color:var(--t2)">${b.startTime}\u2192${b.endTime}</span><span class="hrow-hrs">${hhmm(b.hoursBooked)}</span></div>`).join('')+'</div>'
-    :'<div style="font-size:.75rem;color:var(--t4);padding:7px 0">No upcoming confirmed holidays</div>';
+    :'<div style="font-size:.75rem;color:var(--t4);padding:7px 0">No upcoming holidays</div>';
   // reminders
   const rems=sortedByDate(S.bookings.filter(b=>b.fyKey===curFY&&b.status==='planned'&&b.reminderDate),true).slice(0,6);
   document.getElementById('dash-reminders').innerHTML=rems.length?rems.map(r=>{
     const rd=new Date(r.reminderDate+'T00:00:00'),urg=rd<=todayD,days=Math.floor((rd-todayD)/864e5);
     const lbl=urg?'Now':days===0?'Today':'In '+days+'d';
-    return`<div class="rem-i${urg?' urg':''}" onclick="openEdit('${r.id}')"><span class="rem-date">${fmtDate(r.date)}</span><span class="rem-info">${hhmm(r.hoursBooked)}${r.notes?' \u2014 '+r.notes:''}</span><span class="rem-badge" style="background:${urg?'var(--redd)':'var(--amberd)'};color:${urg?'var(--red)':'var(--amber)'};border:1px solid ${urg?'var(--red)':'var(--amber)'}">${lbl}</span></div>`;
+    return`<div class="rem-i${urg?' urg':''}" style="display:flex;align-items:center;gap:6px"><div style="flex:1;cursor:pointer" onclick="openEdit('${r.id}')"><span class="rem-date">${fmtDate(r.date)}</span><span class="rem-info">${hhmm(r.hoursBooked)}${r.notes?' \u2014 '+r.notes:''}</span><span class="rem-badge" style="background:${urg?'var(--redd)':'var(--amberd)'};color:${urg?'var(--red)':'var(--amber)'};border:1px solid ${urg?'var(--red)':'var(--amber)'}">${lbl}</span></div><button onclick="event.stopPropagation();deleteReminder('${r.id}')" style="background:none;border:1px solid var(--bd2);border-radius:4px;color:var(--t3);font-size:.65rem;padding:2px 6px;cursor:pointer;flex-shrink:0" title="Remove reminder">✕</button></div>`;
   }).join(''):'<div style="font-size:.75rem;color:var(--t4)">No reminders set</div>';
   // planned
   const planned=sortedByDate(S.bookings.filter(b=>b.fyKey===curFY&&b.status==='planned'),true).slice(0,6);
@@ -1816,13 +1830,25 @@ function openAdd(){
   document.getElementById('f-status').value='planned';
   document.getElementById('f-notes').value='';
   document.getElementById('f-rem').value='';
+  document.getElementById('f-rem-toggle').checked=false;
+  document.getElementById('f-rem').style.display='none';
+  document.getElementById('remHint').style.display='none';
   document.getElementById('overlapBox').style.display='none';
   document.getElementById('btnDel').style.display='none';
   document.getElementById('delCf').style.display='none';
-  setMode(bookingMode);onDateChg();
+  setMode(bookingMode);onDateChg();onStatusChg();
   document.getElementById('mbg').classList.add('open');
 }
-function openAddOnDate(ds){openAdd();document.getElementById('f-date').value=ds;onDateChg();}
+function openAddOnDate(ds){
+  openAdd();
+  document.getElementById('f-date').value=ds;
+  onDateChg();
+  // Auto-enable reminder toggle and set 1-year-before date
+  document.getElementById('f-rem-toggle').checked=true;
+  document.getElementById('f-rem').style.display='';
+  document.getElementById('remHint').style.display='';
+  setAutoReminderDate();
+}
 function openEdit(id){
   const b=S.bookings.find(x=>x.id===id);if(!b)return;
   editId=id;overlapAllowed=false;
@@ -1832,7 +1858,11 @@ function openEdit(id){
   document.getElementById('f-end').value=b.endTime||S.settings.defaultEnd;
   document.getElementById('f-status').value=b.status;
   document.getElementById('f-notes').value=b.notes||'';
-  document.getElementById('f-rem').value=b.reminderDate||'';
+  const hasRem = !!(b.reminderDate);
+  document.getElementById('f-rem-toggle').checked = hasRem;
+  document.getElementById('f-rem').value = b.reminderDate||'';
+  document.getElementById('f-rem').style.display = hasRem ? '' : 'none';
+  document.getElementById('remHint').style.display = hasRem ? '' : 'none';
   document.getElementById('btnDel').style.display='inline-flex';
   document.getElementById('delCf').style.display='none';
   document.getElementById('overlapBox').style.display='none';
@@ -1897,7 +1927,47 @@ function getBookedHrs(){
   const{booked}=bookedHrs(document.getElementById('f-start').value,document.getElementById('f-end').value);
   return booked;
 }
-function onStatusChg(){document.getElementById('remRow').style.display=document.getElementById('f-status').value==='planned'?'block':'none';}
+function onStatusChg(){
+  const isPlanned = document.getElementById('f-status').value === 'planned';
+  document.getElementById('remRow').style.display = isPlanned ? 'block' : 'none';
+  if (!isPlanned) {
+    // Clear toggle and date when not planned
+    document.getElementById('f-rem-toggle').checked = false;
+    document.getElementById('f-rem').style.display = 'none';
+    document.getElementById('remHint').style.display = 'none';
+    document.getElementById('f-rem').value = '';
+  }
+}
+
+function onRemToggle() {
+  const on = document.getElementById('f-rem-toggle').checked;
+  const remInput = document.getElementById('f-rem');
+  const remHint  = document.getElementById('remHint');
+  remInput.style.display = on ? '' : 'none';
+  remHint.style.display  = on ? '' : 'none';
+  if (on && !remInput.value) {
+    // Auto-fill: 1 year before booking date, clamped to today if past
+    setAutoReminderDate();
+  }
+  if (!on) remInput.value = '';
+}
+
+function setAutoReminderDate() {
+  const bookingDate = document.getElementById('f-date').value;
+  if (!bookingDate) return;
+  const bd = new Date(bookingDate + 'T00:00:00');
+  // 1 year before
+  let rem = new Date(bd);
+  rem.setFullYear(rem.getFullYear() - 1);
+  const today = new Date(); today.setHours(0,0,0,0);
+  // If that date has passed, use tomorrow (first future day)
+  if (rem < today) {
+    rem = new Date(today.getTime() + 864e5);
+  }
+  document.getElementById('f-rem').value = dstr(rem);
+}
+
+function onRemDateChg() { /* date changed manually — no action needed */ }
 function updateAllocMini(){
   const s=getStats(curFY);
   document.getElementById('allocMini').innerHTML=
@@ -1919,7 +1989,7 @@ function saveBooking(){
   const bk={id:editId||'b'+Date.now(),date,startTime:start,endTime:end,overnight:on,hoursBooked:hrs,
     status:document.getElementById('f-status').value,notes:document.getElementById('f-notes').value,
     fyKey:fk,mode:bookingMode,
-    reminderDate:document.getElementById('f-status').value==='planned'?document.getElementById('f-rem').value:''};
+    reminderDate:(document.getElementById('f-status').value==='planned'&&document.getElementById('f-rem-toggle').checked)?document.getElementById('f-rem').value:''};
   if(editId)S.bookings[S.bookings.findIndex(b=>b.id===editId)]=bk;
   else S.bookings.push(bk);
   ensureFY(fk);overlapAllowed=false;closeModal();updateAppState();
@@ -3532,8 +3602,23 @@ function initScrollCalendar() {
     }
   }
 
+  // Clamp start month to latest FY end (don't restore into out-of-bounds territory)
+  const {latest: fyLatestBound} = getFYBounds();
+  if (fyLatestBound) {
+    const latestStart = new Date(fyLatestBound.getFullYear(), fyLatestBound.getMonth(), 1);
+    const startDate   = new Date(startY, startM, 1);
+    if (startDate > latestStart) {
+      startY = latestStart.getFullYear();
+      startM = latestStart.getMonth();
+    }
+  }
+
   // Build with the start month FIRST (delta 0..4), so scrollTop=0 lands on it
   _buildCalFrom(startY, startM);
+
+  // Strip any months that fall outside configured FY bounds
+  // (e.g. if start month is near the end of the last FY, ahead months may be oob)
+  _clampRenderedMonths();
 
   // ── Scroll handler ──
   calScroll.addEventListener('scroll', () => {
