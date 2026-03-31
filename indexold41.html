@@ -622,12 +622,6 @@ body.cal-active main{
 
   <!-- DASHBOARD -->
   <div class="view active" id="view-dash">
-    <!-- FY strip -->
-    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:4px 10px;margin-bottom:8px;font-family:var(--mono);font-size:.63rem;display:flex;align-items:center;justify-content:space-between;gap:8px">
-      <span id="dashFYStrip" style="color:var(--teal)">Financial Year —</span>
-      <span id="syncTsDash" style="color:var(--t4);font-size:.58rem;white-space:nowrap"></span>
-      <span id="syncFailDash" style="color:var(--red);font-size:.58rem;display:none">🔴 Sync failed</span>
-    </div>
     <!-- Period Summary Panel -->
     <div class="panel" id="dashPeriodSummary" style="margin-bottom:12px">
       <div class="ptitle">Hours by Period <span id="dashPeriodFYLbl" style="font-weight:400;color:var(--t4);font-family:var(--sans)"></span></div>
@@ -653,13 +647,15 @@ body.cal-active main{
       <option value="">Jump to…</option>
     </select>
     <button class="cadd" onclick="openAdd()">+ Book</button>
-    <button class="sync-btn sync-now-btn" onclick="syncNow()" style="margin-left:auto">☁ Sync Now</button>
+    <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+      <button class="sync-btn sync-now-btn" onclick="syncNow()">☁ Sync Now</button>
+      <span class="sync-ts-lbl" id="syncTsCalendar" style="font-family:var(--mono);font-size:.58rem;color:var(--t4);white-space:nowrap"></span>
+      <span class="sync-fail-lbl" id="syncFailCalendar" style="font-family:var(--mono);font-size:.58rem;color:var(--red);display:none">🔴 Sync failed. Please try again.</span>
+    </div>
   </div>
 
-  <div id="calFYStrip" style="flex-shrink:0;background:var(--s2);border-bottom:1px solid var(--bd);padding:3px 10px;font-family:var(--mono);font-size:.63rem;color:var(--teal);display:flex;align-items:center;gap:8px;justify-content:space-between">
+  <div id="calFYStrip" style="flex-shrink:0;background:var(--s2);border-bottom:1px solid var(--bd);padding:3px 10px;font-family:var(--mono);font-size:.63rem;color:var(--teal);display:flex;align-items:center;gap:8px">
     <span id="calFYLabel">Financial Year —</span>
-    <span id="syncTsCalendar" style="color:var(--t4);font-size:.58rem;white-space:nowrap"></span>
-    <span id="syncFailCalendar" style="color:var(--red);font-size:.58rem;display:none">🔴 Sync failed</span>
   </div>
   <div id="calScroll" class="cal-scroll"></div>
 </div>
@@ -685,12 +681,11 @@ body.cal-active main{
       </select>
       <button class="cadd" onclick="openAdd()" style="margin-left:0">+ Book</button>
       <button class="btng" onclick="openReportModal()" style="font-size:.72rem;padding:4px 10px">🖨 Print Report</button>
-      <button class="sync-btn sync-now-btn" onclick="syncNow()">☁ Sync Now</button>
-    </div>
-    <div style="background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:4px 10px;margin-bottom:8px;font-family:var(--mono);font-size:.63rem;display:flex;align-items:center;justify-content:space-between;gap:8px">
-      <span id="listFYStrip" style="color:var(--teal)">Financial Year —</span>
-      <span id="syncTsList" style="color:var(--t4);font-size:.58rem;white-space:nowrap"></span>
-      <span id="syncFailList" style="color:var(--red);font-size:.58rem;display:none">🔴 Sync failed</span>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+        <button class="sync-btn sync-now-btn" onclick="syncNow()">☁ Sync Now</button>
+        <span class="sync-ts-lbl" id="syncTsList" style="font-family:var(--mono);font-size:.58rem;color:var(--t4);white-space:nowrap"></span>
+        <span class="sync-fail-lbl" id="syncFailList" style="font-family:var(--mono);font-size:.58rem;color:var(--red);display:none">🔴 Sync failed. Please try again.</span>
+      </div>
     </div>
     <!-- Bulk bar -->
     <div class="bulk-bar" id="bulkBar">
@@ -1347,16 +1342,6 @@ function syncAllFYSelectors() {
   if (fySelect) fySelect.value = curFY;
   const listSel = document.getElementById('listFYSel');
   if (listSel) listSel.value = curFY;
-  updateViewFYStrips();
-}
-
-// Update the FY label strips on Dashboard and Bookings views
-function updateViewFYStrips() {
-  const label = curFY ? 'Financial Year ' + curFY.replace('FY','').replace('/','\u2013') : '\u2014';
-  const dashEl = document.getElementById('dashFYStrip');
-  if (dashEl) dashEl.textContent = label;
-  const listEl = document.getElementById('listFYStrip');
-  if (listEl) listEl.textContent = label;
 }
 
 function populateFYSel(){
@@ -2522,13 +2507,29 @@ function showView(name){
   if(name==='settings'){loadSettingsUI(); checkOrphanedBookings();}
   if(name==='calendar'){if(!scrollCalInited){initScrollCalendar();scrollCalInited=true;}else refreshScrollCal();}
   if(name==='list'){
+    // On first visit, default to today's FY; thereafter respect the user's selection
+    const listSel = document.getElementById('listFYSel');
+    const isFirstVisit = !listSel || !listSel.value;
+    if(isFirstVisit){
+      const todayFYKey = getFinancialYearFromDate(new Date()).key;
+      if(todayFYKey && S.fyAllocs[todayFYKey]){
+        curFY = todayFYKey;
+        syncAllFYSelectors();
+      }
+    }
     populateListFYSel();
     renderList();
-    updateViewFYStrips();
   }
   if(name==='dash'){
+    // Switch to today's actual FY when entering Dashboard
+    const _todayFYKey = getFinancialYearFromDate(new Date()).key;
+    if(_todayFYKey && S.fyAllocs[_todayFYKey] && curFY !== _todayFYKey){
+      curFY = _todayFYKey;
+      const _pill = document.getElementById('fyPill');
+      if(_pill) _pill.textContent = curFY;
+      populateFYSel();
+    }
     renderDash();
-    updateViewFYStrips();
   }
   localStorage.setItem('shiftbook_lastView', name);
 }
@@ -2571,7 +2572,6 @@ loadData();
 popSel(document.getElementById('c-dend'),S.settings.defaultEnd||'07:00');
 initFY();loadSettingsUI();renderDash();updateStats();renderAlerts();
 document.getElementById('bhBtn').classList.add('on');
-updateViewFYStrips();
 // Feature: orphaned bookings check on load
 setTimeout(checkOrphanedBookings, 600);
 // Feature: notifications (after settings loaded)
@@ -3330,13 +3330,13 @@ function updateSyncTimestamps(failed) {
   const display = isStale
     ? '\uD83D\uDFE0 Last synced ' + Math.floor((Date.now() - new Date(lastSynced).getTime()) / 864e5) + ' days ago'
     : ts;
-  ['syncTsCalendar','syncTsList','syncTsDash','syncTsSettings'].forEach(id => {
+  ['syncTsCalendar','syncTsList','syncTsSettings'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     el.textContent = display;
     el.style.color = isStale ? 'var(--amber)' : 'var(--t4)';
   });
-  ['syncFailCalendar','syncFailList','syncFailDash','syncFailSettings'].forEach(id => {
+  ['syncFailCalendar','syncFailList','syncFailSettings'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = failed ? '' : 'none';
   });
