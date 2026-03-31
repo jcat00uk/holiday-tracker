@@ -1969,7 +1969,6 @@ function onTimeChg(){
   const nsElig=S.settings.nightShift==='auto'?sh>=(S.settings.avgShift||8):S.settings.nightShift==='yes';
   document.getElementById('bp-ns').textContent='Night shift: '+(nsElig?'eligible for extra allocation':'not eligible');
   checkOverlap();
-  updateAllocMini();
 }
 
 function getBookedHrs(){
