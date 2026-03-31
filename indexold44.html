@@ -1100,9 +1100,6 @@ let S={
 let curFY='',calY=new Date().getFullYear(),calM=new Date().getMonth();
 let listFilter='all',editId=null,showBH=true;
 let rotEditWi=-1,rotEditDi=-1,bookingMode='full',dashSortAsc=true,overlapAllowed=false;
-// Declare all module-level lets here to avoid Temporal Dead Zone errors
-let _notRotadPendingDate = null;
-let _notifCheckInterval = null;
 
 // ═══════════════════════════════════════
 // TIME UTILS
@@ -2732,6 +2729,7 @@ function checkFirstRun() {
 
 
 // ── Not Rota'd confirmation ──
+let _notRotadPendingDate = null;
 function openAddOnDateWithCheck(ds) {
   const rd = getRotDay(ds);
   if (!rd || !rd.on) {
@@ -3605,6 +3603,8 @@ function rptRestoreGroupPref() {
 // ═══════════════════════════════════════
 // STEP 6 — BROWSER PUSH NOTIFICATIONS
 // ═══════════════════════════════════════
+let _notifCheckInterval = null;
+
 function initNotifications() {
   if (!('Notification' in window)) return;
   // Check and fire reminders every 60s
