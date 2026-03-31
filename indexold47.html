@@ -2580,7 +2580,6 @@ function updateAppState() {
   if (Sync && Sync.userEmail) {
     Sync.setStatus('idle');
   }
-  refreshSyncButton();
   const active = document.querySelector('.view.active');
   if (active) {
     const n = active.id.replace('view-', '');
@@ -2613,10 +2612,7 @@ setTimeout(checkOrphanedBookings, 600);
 // Feature: notifications (after settings loaded)
 if (S.settings && S.settings.remindersEnabled) initNotifications();
 // Feature: pending conflict check — delay to let silent auth token restore complete
-setTimeout(() => {
-  if(localStorage.getItem(SYNC_CONFLICT_KEY)) renderAlerts();
-  refreshSyncButton(); // re-evaluate glow after auth token restored
-}, 2000);
+setTimeout(() => { if(localStorage.getItem(SYNC_CONFLICT_KEY)) renderAlerts(); }, 2000);
 
 // ═══════════════════════════════════════════════════════
 // QUICK SETUP
@@ -3445,12 +3441,6 @@ function _applyDriveData(driveData){
 // ═══════════════════════════════════════════════════════
 // AUTO-SYNC & UNLOAD WARNING
 // ═══════════════════════════════════════════════════════
-
-// Force-refresh the sync button glow state — call after any change to sync/modified timestamps
-function refreshSyncButton() {
-  if (typeof Sync === 'undefined' || !Sync.userEmail) return;
-  Sync.setStatus(Sync.status);
-}
 
 function hasUnsyncedChanges() {
   if (!Sync.userEmail) return false;
