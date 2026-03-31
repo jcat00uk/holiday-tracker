@@ -2576,9 +2576,9 @@ function updateAppState() {
   renderAlerts();
   populateFYSel();
   renderDashPeriodSummary(); // Step 5: keep period summary current
-  // Signal unsynced changes — always re-evaluate, not just when previously 'synced'
-  if (Sync && Sync.userEmail) {
-    Sync.setStatus('idle');
+  // Update sync glow to reflect unsaved changes
+  if (Sync && Sync.userEmail && Sync.status === 'synced') {
+    Sync.setStatus('idle'); // glow to indicate unsynced changes
   }
   const active = document.querySelector('.view.active');
   if (active) {
@@ -3185,8 +3185,7 @@ const Sync={
     if(lbl) lbl.textContent=msg||labels[s]||'☁';
     btns.forEach(b=>{
       b.disabled=(s==='syncing');
-      const needsSync = s==='idle' && this.userEmail && hasUnsyncedChanges();
-      const glowClass = needsSync ? 'glow' : '';
+      const glowClass=(s==='idle'&&this.userEmail)?'glow':'';
       b.className='sync-btn sync-now-btn '+(s==='syncing'?'syncing':s==='synced'?'synced':glowClass);
       b.textContent=s==='syncing'?'☁ Syncing…':'☁ Sync Now';
     });
