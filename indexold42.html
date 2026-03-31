@@ -1815,22 +1815,8 @@ function toggleDashSort(){
 function deleteReminder(id) {
   const bk = S.bookings.find(b => b.id === id);
   if (!bk) return;
-  // Remove from DOM immediately for instant visual feedback on all platforms
-  const remEl = document.querySelector(`#dash-reminders .rem-i button[onclick*="${id}"]`);
-  if (remEl) {
-    const row = remEl.closest('.rem-i');
-    if (row) row.remove();
-    // If no reminders left, show the empty state
-    const container = document.getElementById('dash-reminders');
-    if (container && !container.querySelector('.rem-i')) {
-      container.innerHTML = '<div style="font-size:.75rem;color:var(--t4)">No reminders set</div>';
-    }
-  }
   bk.reminderDate = '';
-  persist();
-  S._lastModified = new Date().toISOString();
-  updateStats();
-  renderAlerts();
+  updateAppState();
   toast('Reminder removed');
 }
 
