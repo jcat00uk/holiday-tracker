@@ -2295,17 +2295,7 @@ function delFY(fyk){
   // Protect the FY that contains today's date (not just the UI-selected FY)
   const todayFYKey = getFinancialYearFromDate(new Date()).key;
   if(fyk===todayFYKey){toast('Cannot delete the current financial year (contains today)');return;}
-  const bookingCount = S.bookings.filter(b=>b.fyKey===fyk).length;
-  const bookingMsg = bookingCount > 0
-    ? '\n\nThis FY has ' + bookingCount + ' booking' + (bookingCount!==1?'s':'') + ' attached.'
-    : '\n\nThis FY has no bookings.';
-  const deleteBookings = bookingCount > 0
-    ? confirm('Delete ' + fyk + '?' + bookingMsg + '\n\nClick OK to also DELETE all ' + bookingCount + ' booking' + (bookingCount!==1?'s':'') + ' for this FY.\nClick Cancel to keep the bookings (they will be flagged as orphaned).')
-    : false;
-  if(!confirm('Delete FY ' + fyk + '?\n\nThe allocation record and start date will be removed.' + (deleteBookings ? '\n\n' + bookingCount + ' booking' + (bookingCount!==1?'s':'') + ' will also be permanently deleted.' : bookingCount > 0 ? '\n\nBookings will be kept but flagged as orphaned.' : '')))return;
-  if(deleteBookings){
-    S.bookings = S.bookings.filter(b => b.fyKey !== fyk);
-  }
+  if(!confirm('Delete '+fyk+'?\n\nThe allocation record and start date will be removed.\nBookings tagged to this FY are kept but will need reassigning.'))return;
   delete S.fyAllocs[fyk];
   // If we deleted the current FY, switch to another
   if(curFY===fyk){
@@ -2315,7 +2305,7 @@ function delFY(fyk){
   }
   persist();populateFYSel();renderFYAllocTable();updateStats();renderAlerts();refresh();
   window._orphanModalShown = false; checkOrphanedBookings();
-  toast('FY ' + fyk + ' deleted' + (deleteBookings ? ' with ' + bookingCount + ' booking' + (bookingCount!==1?'s':'') : ''));
+  toast('FY '+fyk+' deleted');
 }
 function addFYRow(){
   // Suggest the next FY key based on existing ones
