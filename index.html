@@ -169,6 +169,7 @@ body.cal-active main{
 .chip.planned  {background:#D3D1C7;color:#2C2C2A;border-color:#B4B2A9}
 .chip.submitted{background:#B5D4F4;color:#042C53;border-color:#85B7EB}
 .chip.confirmed{background:#9FE1CB;color:#04342C;border-color:#5DCAA5}
+.chip.taken    {background:#5a9e85;color:#fff;border-color:#3d7a64;opacity:.85}
 .chip.refused  {background:#F7C1C1;color:#501313;border-color:#F09595}
 .chip.cancelled{background:#D3D1C7;color:#444441;border-color:#888780;text-decoration:line-through;opacity:.6}
 
@@ -184,7 +185,7 @@ body.cal-active main{
 .s-confirmed{background:#9FE1CB;color:#04342C}
 .s-refused  {background:#F7C1C1;color:#501313}
 .s-cancelled{background:#D3D1C7;color:#444441;opacity:.7}
-.s-taken    {background:#8a8a8a;color:#fff}
+.s-taken    {background:#5a9e85;color:#fff}
 
 /* ── LIST ── */
 .ltoolbar{display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap}
@@ -237,7 +238,7 @@ body.cal-active main{
 
 /* rotation */
 .rot-week{background:var(--s2);border-radius:5px;padding:8px;margin-bottom:6px}
-.rot-wlbl{display:flex;align-items:center;justify-content:space-between;font-size:.67rem;color:var(--t2);margin-bottom:5px;font-family:var(--mono)}
+.rot-wlbl{display:flex;align-items:center;justify-content:space-between;font-size:.67rem;color:var(--t2);margin-bottom:5px;font-family:var(--mono);gap:6px}
 .rot-wbtns{display:flex;gap:4px}
 .rot-wbtn{background:none;border:1px solid var(--bd);color:var(--t3);padding:2px 6px;border-radius:4px;font-size:.63rem;transition:all .12s}
 .rot-wbtn:hover{border-color:var(--t2);color:var(--t2)}
@@ -642,6 +643,7 @@ body.cal-active main{
       </div>
       <div class="panel"><div class="ptitle">Submit reminders</div><div id="dash-reminders"></div></div>
       <div class="panel"><div class="ptitle">Planned</div><div id="dash-planned"></div></div>
+      <div class="panel"><div class="ptitle">Taken</div><div id="dash-taken"></div></div>
       <div class="panel"><div class="ptitle">Year-end summary</div><div id="dash-yearend"></div></div>
     </div>
   </div>
@@ -823,7 +825,7 @@ body.cal-active main{
           </select>
         </div>
         <div class="fr"><label>Contracted hours/week</label>
-          <input type="number" id="c-chrs" value="33" step="1" onchange="calcSuggest();autoSave()">
+          <input type="number" id="c-chrs" value="33" step="1" onchange="calcSuggest();autoSave();renderRotEditor()">
         </div>
         <div class="fr"><label>Avg shift length (HH:MM)</label>
           <div style="display:flex;align-items:center;gap:6px">
@@ -1581,7 +1583,8 @@ function renderCal(){
         const bk=S.bookings.find(x=>x.id===bid);
         if(bk){
           const chip=document.createElement('div');
-          chip.className='chip '+bk.status;
+          const _chipClass=(bk.status==='confirmed'&&bk.date<dstr(new Date()))?'taken':bk.status;
+          chip.className='chip '+_chipClass;
           const l=document.createElement('span');l.className='cl';
           const r=document.createElement('span');r.className='cr';
           if(bk.overnight){
@@ -1658,14 +1661,15 @@ function renderList(){
   el.innerHTML=bks.map(b=>{
     const da=Math.floor((new Date(b.date+'T00:00:00')-new Date(today+'T00:00:00'))/864e5);
     const nw=da>=0&&da<notice,isTaken=b.status==='confirmed'&&b.date<today;
-    const tags=[b.overnight?'<span class="htag htag-o">O/N</span>':'',nw&&!isTaken?'<span class="htag htag-w">notice</span>':'',isTaken?'<span class="htag htag-t">taken</span>':'',b.reminderDate&&b.status==='planned'?'<span class="htag htag-w">\u23f0</span>':''].filter(Boolean).join('');
+    const badgeClass=isTaken?'taken':b.status;
+    const tags=[b.overnight?'<span class="htag htag-o">O/N</span>':'',nw&&!isTaken?'<span class="htag htag-w">notice</span>':'',b.reminderDate&&b.status==='planned'?'<span class="htag htag-w">\u23f0</span>':''].filter(Boolean).join('');
     const checked=bulkSelected.has(b.id)?'checked':'';
     const selcls=bulkSelected.has(b.id)?' sel':'';
     const _lp=getPeriodForFY(b.date,b.fyKey);
     const _lps=_lp.period>=1?'P'+String(_lp.period).padStart(2,'0'):'';
     return`<div class="hrow${selcls}" id="hrow-${b.id}">
       <input type="checkbox" class="row-cb" ${checked} onclick="event.stopPropagation();toggleBulkRow('${b.id}',this)">
-      <span class="sbadge s-${b.status}">${b.status}</span>
+      <span class="sbadge s-${badgeClass}">${isTaken?'taken':b.status}</span>
       ${_lps?'<span class="hrow-period">'+_lps+'</span>':''}
       <span class="hrow-date" onclick="openEdit('${b.id}')">${fmtDate(b.date)}</span>
       <span class="hrow-time" onclick="openEdit('${b.id}')">${b.startTime}${b.overnight?' \u2192 ':' \u2013 '}${b.endTime}</span>
@@ -1914,13 +1918,25 @@ function renderDash(){
         +'<span class="hrow-notes">'+(b.notes||'\u2014')+'</span>'
         +'</div>';
     }).join('')+'</div>':'<div style="font-size:.75rem;color:var(--t4)">No planned bookings</div>');
+  // taken
+  const taken=sortedByDate(S.bookings.filter(b=>b.fyKey===curFY&&b.status==='confirmed'&&b.date<today),false);
+  document.getElementById('dash-taken').innerHTML='<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:.76rem;color:var(--t2)">Total taken</span><span style="font-family:var(--mono);font-size:.88rem;color:var(--grey)">'+(s.taken>0?hhmm(s.taken)+' ('+toDecStr(s.taken)+')':'0h')+'</span></div>'+(taken.length?'<div class="hlist">'+taken.map(b=>{
+      const _tp=getPeriodForFY(b.date,b.fyKey);
+      const _tps=_tp.period>=1?'P'+String(_tp.period).padStart(2,'0'):'';
+      return '<div class="hrow" onclick="openEdit(\''+b.id+'\')" style="gap:7px">'
+        +(_tps?'<span class="hrow-period">'+_tps+'</span>':'')
+        +'<span class="sbadge s-taken">taken</span>'
+        +'<span class="hrow-date" style="font-size:.73rem">'+fmtDate(b.date)+'</span>'
+        +'<span class="hrow-hrs">'+hhmm(b.hoursBooked)+'</span>'
+        +'<span class="hrow-notes">'+(b.notes||'\u2014')+'</span>'
+        +'</div>';
+    }).join('')+'</div>':'<div style="font-size:.75rem;color:var(--t4)">No taken holidays yet</div>');
   // year end
   const fyR=fyRange(curFY),daysLeft=Math.ceil((fyR.end-todayD)/864e5),rem=s.rem;
   document.getElementById('dash-yearend').innerHTML=
     `<div class="ye-row"><span class="yk">FY</span><span class="yv">${curFY}</span></div>`+
     `<div class="ye-row"><span class="yk">FY ends</span><span class="yv">${fmtDate(dstr(fyR.end))}</span></div>`+
     `<div class="ye-row"><span class="yk">Days left</span><span class="yv" style="color:${daysLeft<56?'var(--amber)':'var(--t1)'}">${daysLeft>0?daysLeft:'Ended'}</span></div>`+
-    `<div class="ye-row"><span class="yk">Taken</span><span class="yv c-grey">${hhmm(s.taken)}</span></div>`+
     `<div class="ye-row"><span class="yk">Remaining</span><span class="yv" style="color:${rem<0?'var(--red)':rem<s.alloc*.1?'var(--amber)':'var(--teal)'}">${hhmm(rem)} (${toDecStr(rem)})</span></div>`+
     `<div class="ye-row"><span class="yk">Incl. planned</span><span class="yv">${hhmm(Math.max(0,s.remIncPlan))}</span></div>`+
     `<div class="ye-row"><span class="yk">Shifts left</span><span class="yv c-purple">${s.shiftsLeft}</span></div>`+
@@ -2400,9 +2416,9 @@ function renderBreakRules(){
       <button class="brule-del" onclick="delBreakRule(${i})">✕</button>
     </div>`).join('');
 }
-function updBreakRule(i,f,v){S.settings.breakRules[i][f]=parseFloat(v)||0;S.settings.breakRules.sort((a,b)=>b.geHrs-a.geHrs);persist();renderBreakRules();flashSaved();}
-function delBreakRule(i){S.settings.breakRules.splice(i,1);persist();renderBreakRules();}
-function addBreakRule(){S.settings.breakRules.push({geHrs:4.5,mins:15});S.settings.breakRules.sort((a,b)=>b.geHrs-a.geHrs);persist();renderBreakRules();}
+function updBreakRule(i,f,v){S.settings.breakRules[i][f]=parseFloat(v)||0;S.settings.breakRules.sort((a,b)=>b.geHrs-a.geHrs);persist();renderBreakRules();renderRotEditor();flashSaved();}
+function delBreakRule(i){S.settings.breakRules.splice(i,1);persist();renderBreakRules();renderRotEditor();}
+function addBreakRule(){S.settings.breakRules.push({geHrs:4.5,mins:15});S.settings.breakRules.sort((a,b)=>b.geHrs-a.geHrs);persist();renderBreakRules();renderRotEditor();}
 function openBreakRulesModal(){renderBreakRules();document.getElementById('brMbg').classList.add('open');}
 function closeBRModal(){document.getElementById('brMbg').classList.remove('open');}
 function flashSaved(){const f=document.getElementById('savedFlash');f.classList.add('on');clearTimeout(_st);_st=setTimeout(()=>f.classList.remove('on'),1600);}
@@ -2410,12 +2426,29 @@ function flashSaved(){const f=document.getElementById('savedFlash');f.classList.
 // rotation — new days use defaultStart/defaultEnd
 function renderRotEditor(){
   const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  document.getElementById('rotEditor').innerHTML=S.settings.rotation.map((week,wi)=>`
+  const contracted = parseFloat(S.settings.contractedHours) || 0;
+  document.getElementById('rotEditor').innerHTML=S.settings.rotation.map((week,wi)=>{
+    // Calculate net hours and shift count for this week
+    const activeDays = week.filter(d => d.on);
+    const weekNet = activeDays.reduce((sum, d) => sum + bookedHrs(d.start, d.end).booked, 0);
+    const shifts  = activeDays.length;
+    // Colour: green if equal to contracted, red if over, neutral otherwise
+    const colour = contracted > 0
+      ? (Math.abs(weekNet - contracted) < 0.01 ? 'var(--teal)'
+       : weekNet > contracted                   ? 'var(--red)'
+       : 'var(--t3)')
+      : 'var(--t3)';
+    const totalLabel = shifts > 0
+      ? `<span style="font-family:var(--mono);font-size:.62rem;color:${colour};margin-left:8px">${hhmm(weekNet)} of ${hhmm(contracted)} &middot; ${shifts} shift${shifts!==1?'s':''}</span>`
+      : `<span style="font-family:var(--mono);font-size:.62rem;color:var(--t4);margin-left:8px">No shifts</span>`;
+    return `
     <div class="rot-week">
-      <div class="rot-wlbl">Week ${wi+1}
+      <div class="rot-wlbl">
+        <span style="min-width:52px">Week ${wi+1}</span>
+        ${totalLabel}
         <div class="rot-wbtns">
           <button class="rot-wbtn" onclick="clearRotWeek(${wi})">Clear</button>
-          ${wi>0?`<button class="rot-wbtn" onclick="copyRotWeek(0,${wi})">Copy wk1</button>`:''}
+          ${wi>0?`<button class="rot-wbtn" onclick="copyRotWeek(0,${wi})">Copy wk1</button>`:'<span style="display:inline-block;width:58px"></span>'}
         </div>
       </div>
       <div class="rot-days">
@@ -2426,7 +2459,8 @@ function renderRotEditor(){
             ${d.on?`<div class="dt">${d.start}<br>\u2192${d.end}</div>`:''}
           </div>`).join('')}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   setTimeout(updateRotaBookingHint, 0);
 }
 
@@ -4110,7 +4144,8 @@ function renderMonth(y, m) {
         const bk = S.bookings.find(x => x.id === bid);
         if (!bk) return;
         const slotEl = document.createElement('div'); slotEl.className = 'slot';
-        const chip = document.createElement('div'); chip.className = 'chip ' + bk.status;
+        const chipClass = (bk.status === 'confirmed' && bk.date < dstr(new Date())) ? 'taken' : bk.status;
+        const chip = document.createElement('div'); chip.className = 'chip ' + chipClass;
         const l = document.createElement('span'); l.className = 'cl';
         const r = document.createElement('span'); r.className = 'cr';
         if (bk.overnight) {

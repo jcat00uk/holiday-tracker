@@ -450,8 +450,11 @@ body.cal-active main{
 .del-cf{margin-right:auto;display:none}
 
 /* ── TOAST ── */
-#toast{position:fixed;bottom:calc(var(--nav-h) + 10px);right:14px;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:8px 13px;font-size:.78rem;box-shadow:0 4px 20px rgba(0,0,0,.4);transform:translateY(50px);opacity:0;transition:all .25s;z-index:9999;pointer-events:none}
+#toast{position:fixed;bottom:calc(var(--nav-h) + 10px);right:14px;background:var(--s2);border:1px solid var(--bd2);border-radius:6px;padding:8px 13px;font-size:.78rem;box-shadow:0 4px 20px rgba(0,0,0,.4);transform:translateY(50px);opacity:0;transition:all .25s;z-index:9999;pointer-events:none;display:flex;align-items:center;gap:10px}
 #toast.on{pointer-events:auto;transform:translateY(0);opacity:1}
+#toast-msg{flex:1}
+#toast-undo{background:none;border:1px solid var(--teal);color:var(--teal);border-radius:4px;padding:2px 9px;font-size:.72rem;cursor:pointer;white-space:nowrap;font-family:var(--sans);flex-shrink:0}
+#toast-undo:hover{background:var(--teald)}
 @media(min-width:641px){#toast{bottom:14px}}
 
 /* colour helpers */
@@ -463,7 +466,6 @@ body.cal-active main{
   flex: 1;
   min-height: 0;        /* critical for flex child to shrink below content size */
   overflow-y: auto;
-  scroll-behavior: smooth;
   overscroll-behavior-y: contain;  /* prevent pull-to-reveal on calendar only */
   -webkit-overflow-scrolling: touch;
 }
@@ -1055,7 +1057,7 @@ body.cal-active main{
 </div>
 </div>
 
-<div id="toast"></div>
+<div id="toast"><span id="toast-msg"></span><button id="toast-undo" style="display:none" onclick="triggerUndo()">Undo</button></div>
 
 <script>
 // ═══════════════════════════════════════
@@ -1103,6 +1105,12 @@ let rotEditWi=-1,rotEditDi=-1,bookingMode='full',dashSortAsc=true,overlapAllowed
 // Declare all module-level lets here to avoid Temporal Dead Zone errors
 let _notRotadPendingDate = null;
 let _notifCheckInterval = null;
+let _undoFn = null;
+let _tt = null;
+// Auto-sync state
+const SYNC_CONFLICT_KEY = 'shiftbook_pendingConflict';
+const BG_SYNC_THROTTLE_MS = 30000;
+let _lastBgSync = 0;
 
 // ═══════════════════════════════════════
 // TIME UTILS
@@ -1720,26 +1728,49 @@ function closePreviewPanel(){document.getElementById('previewPanel').classList.r
 function executeBulkAction(){
   if(!bulkAction)return;
   if(bulkAction.type==='delete'){
+    const deleted=S.bookings.filter(b=>bulkSelected.has(b.id));
+    const count=deleted.length;
     S.bookings=S.bookings.filter(b=>!bulkSelected.has(b.id));
-    toast(bulkSelected.size+' deleted');
+    bulkSelected.clear();persist();bulkAction=null;
+    document.getElementById('selAllCb').checked=false;
+    closePreviewPanel();refresh();
+    toast(count+' booking'+(count>1?'s':'')+' deleted', ()=>{
+      S.bookings.push(...deleted);
+      persist();refresh();
+      toast(count+' booking'+(count>1?'s':'')+' restored');
+    });
   } else if(bulkAction.type==='status'){
-    S.bookings=S.bookings.map(b=>bulkSelected.has(b.id)?{...b,status:bulkAction.status}:b);
-    toast('Status updated');
+    const prev=S.bookings.filter(b=>bulkSelected.has(b.id)).map(b=>({...b}));
+    const to=bulkAction.status;
+    S.bookings=S.bookings.map(b=>bulkSelected.has(b.id)?{...b,status:to}:b);
+    bulkSelected.clear();persist();bulkAction=null;
+    document.getElementById('selAllCb').checked=false;
+    closePreviewPanel();refresh();
+    toast('Status updated', ()=>{
+      prev.forEach(pb=>{ const i=S.bookings.findIndex(b=>b.id===pb.id); if(i>-1)S.bookings[i]=pb; });
+      persist();refresh();
+      toast('Status change undone');
+    });
   } else if(bulkAction.type==='rotaSync'){
+    const prev=S.bookings.filter(b=>bulkSelected.has(b.id)).map(b=>({...b}));
     let updated=0;
     S.bookings=S.bookings.map(b=>{
       if(!bulkSelected.has(b.id))return b;
       const rd=getRotDay(b.date);
-      if(!rd||!rd.on)return b; // no rota for this day — skip
+      if(!rd||!rd.on)return b;
       const{booked}=bookedHrs(rd.start,rd.end);
       updated++;
       return{...b,startTime:rd.start,endTime:rd.end,overnight:isON(rd.start,rd.end),hoursBooked:booked,mode:'full'};
     });
-    toast(updated+' booking'+(updated>1?'s':'')+' updated to rota times');
+    bulkSelected.clear();persist();bulkAction=null;
+    document.getElementById('selAllCb').checked=false;
+    closePreviewPanel();refresh();
+    toast(updated+' booking'+(updated>1?'s':'')+' updated to rota times', ()=>{
+      prev.forEach(pb=>{ const i=S.bookings.findIndex(b=>b.id===pb.id); if(i>-1)S.bookings[i]=pb; });
+      persist();refresh();
+      toast('Rota update undone');
+    });
   }
-  bulkSelected.clear();persist();bulkAction=null;
-  document.getElementById('selAllCb').checked=false;
-  closePreviewPanel();refresh();
 }
 function previewBulkRotaSync(){
   const items=S.bookings.filter(b=>bulkSelected.has(b.id));
@@ -1800,9 +1831,14 @@ function executeDelAll(){
   });
   if(!toDelete.size){toast('No matching bookings');return;}
   if(!confirm('Delete '+toDelete.size+' booking'+(toDelete.size>1?'s':'')+' from '+curFY+'? This cannot be undone.'))return;
+  const deleted=S.bookings.filter(b=>toDelete.has(b.id));
   S.bookings=S.bookings.filter(b=>!toDelete.has(b.id));
   persist();bulkSelected.clear();closeDelAll();refresh();
-  toast(toDelete.size+' booking'+(toDelete.size>1?'s':'')+' deleted');
+  toast(toDelete.size+' booking'+(toDelete.size>1?'s':'')+' deleted', ()=>{
+    S.bookings.push(...deleted);
+    persist();refresh();
+    toast(deleted.length+' booking'+(deleted.length>1?'s':'')+' restored');
+  });
 }
 function setF(f,btn){listFilter=f;bulkSelected.clear();document.querySelectorAll('.fc').forEach(c=>c.classList.remove('on'));btn.classList.add('on');renderList();}
 
@@ -1818,12 +1854,12 @@ function toggleDashSort(){
 function deleteReminder(id) {
   const bk = S.bookings.find(b => b.id === id);
   if (!bk) return;
+  const prevDate = bk.reminderDate;
   // Remove from DOM immediately for instant visual feedback on all platforms
   const remEl = document.querySelector(`#dash-reminders .rem-i button[onclick*="${id}"]`);
   if (remEl) {
     const row = remEl.closest('.rem-i');
     if (row) row.remove();
-    // If no reminders left, show the empty state
     const container = document.getElementById('dash-reminders');
     if (container && !container.querySelector('.rem-i')) {
       container.innerHTML = '<div style="font-size:.75rem;color:var(--t4)">No reminders set</div>';
@@ -1834,7 +1870,10 @@ function deleteReminder(id) {
   S._lastModified = new Date().toISOString();
   updateStats();
   renderAlerts();
-  toast('Reminder removed');
+  toast('Reminder removed', ()=>{
+    const b2 = S.bookings.find(b => b.id === id);
+    if (b2) { b2.reminderDate = prevDate; persist(); renderDash(); toast('Reminder restored'); }
+  });
 }
 
 function renderDash(){
@@ -1900,6 +1939,10 @@ function renderAlerts(){
   if(today>=new Date(fyR.end.getTime()-warnMs)&&today<=fyR.end)alerts.push(`<div class="alert a-warn">\u23f3 FY ends in ${Math.ceil((fyR.end-today)/864e5)} days \u2014 ${hhmm(s.rem)} remaining.</div>`);
   const due=S.bookings.filter(b=>b.fyKey===curFY&&b.status==='planned'&&b.reminderDate&&new Date(b.reminderDate+'T00:00:00')<=today);
   if(due.length)alerts.push(`<div class="alert a-info">\ud83d\udd14 ${due.length} booking${due.length>1?'s':''} due to submit \u2014 check Dashboard</div>`);
+  // Pending conflict from background sync
+  if(localStorage.getItem(SYNC_CONFLICT_KEY)){
+    alerts.push(`<div class="alert a-warn" style="cursor:pointer" onclick="checkPendingConflict()">☁ Drive has newer data than your last sync \u2014 <strong>tap to resolve</strong></div>`);
+  }
   el.innerHTML=alerts.join('');
 }
 
@@ -2131,7 +2174,16 @@ function saveBooking(){
   toast(editId?'Booking updated':'Booking saved');
 }
 function askDel(){document.getElementById('delCf').style.display='flex';document.getElementById('btnDel').style.display='none';}
-function confirmDel(){S.bookings=S.bookings.filter(b=>b.id!==editId);persist();closeModal();refresh();toast('Deleted');}
+function confirmDel(){
+  const deleted = S.bookings.find(b=>b.id===editId);
+  S.bookings=S.bookings.filter(b=>b.id!==editId);
+  persist();closeModal();refresh();
+  toast('Booking deleted', deleted ? ()=>{
+    S.bookings.push(deleted);
+    persist();refresh();
+    toast('Booking restored');
+  } : null);
+}
 
 // ═══════════════════════════════════════
 // SETTINGS
@@ -2307,18 +2359,24 @@ function delFY(fyk){
     : false;
   if(!confirm('Delete FY ' + fyk + '?\n\nThe allocation record and start date will be removed.' + (deleteBookings ? '\n\n' + bookingCount + ' booking' + (bookingCount!==1?'s':'') + ' will also be permanently deleted.' : bookingCount > 0 ? '\n\nBookings will be kept but flagged as orphaned.' : '')))return;
   if(deleteBookings){
+    const deletedBks = S.bookings.filter(b => b.fyKey === fyk);
     S.bookings = S.bookings.filter(b => b.fyKey !== fyk);
+    delete S.fyAllocs[fyk];
+    if(curFY===fyk){const remaining=allFYKeys();curFY=remaining.length>0?remaining[remaining.length-1]:'';document.getElementById('fyPill').textContent=curFY||'—';}
+    persist();populateFYSel();renderFYAllocTable();updateStats();renderAlerts();refresh();
+    window._orphanModalShown = false; checkOrphanedBookings();
+    toast('FY ' + fyk + ' deleted with ' + bookingCount + ' booking' + (bookingCount!==1?'s':''), ()=>{
+      S.bookings.push(...deletedBks);
+      persist();refresh();
+      toast(deletedBks.length+' booking'+(deletedBks.length>1?'s':'')+' restored (FY record still deleted)');
+    });
+  } else {
+    delete S.fyAllocs[fyk];
+    if(curFY===fyk){const remaining=allFYKeys();curFY=remaining.length>0?remaining[remaining.length-1]:'';document.getElementById('fyPill').textContent=curFY||'—';}
+    persist();populateFYSel();renderFYAllocTable();updateStats();renderAlerts();refresh();
+    window._orphanModalShown = false; checkOrphanedBookings();
+    toast('FY ' + fyk + ' deleted');
   }
-  delete S.fyAllocs[fyk];
-  // If we deleted the current FY, switch to another
-  if(curFY===fyk){
-    const remaining=allFYKeys();
-    curFY=remaining.length>0?remaining[remaining.length-1]:'';
-    document.getElementById('fyPill').textContent=curFY||'—';
-  }
-  persist();populateFYSel();renderFYAllocTable();updateStats();renderAlerts();refresh();
-  window._orphanModalShown = false; checkOrphanedBookings();
-  toast('FY ' + fyk + ' deleted' + (deleteBookings ? ' with ' + bookingCount + ' booking' + (bookingCount!==1?'s':'') : ''));
 }
 function addFYRow(){
   // Suggest the next FY key based on existing ones
@@ -2568,10 +2626,11 @@ function updateAppState() {
   renderAlerts();
   populateFYSel();
   renderDashPeriodSummary(); // Step 5: keep period summary current
-  // Update sync glow to reflect unsaved changes
-  if (Sync && Sync.userEmail && Sync.status === 'synced') {
-    Sync.setStatus('idle'); // glow to indicate unsynced changes
+  // Signal unsynced changes — always re-evaluate, not just when previously 'synced'
+  if (Sync && Sync.userEmail) {
+    Sync.setStatus('idle');
   }
+  refreshSyncButton();
   const active = document.querySelector('.view.active');
   if (active) {
     const n = active.id.replace('view-', '');
@@ -2588,8 +2647,30 @@ function refresh(){
     if(n==='calendar')refreshScrollCal();if(n==='list')renderList();if(n==='dash')renderDash();
   }
 }
-let _tt=null;
-function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('on'),2800);}
+function toast(msg, undoFn) {
+  const el  = document.getElementById('toast');
+  const msg_el = document.getElementById('toast-msg');
+  const btn = document.getElementById('toast-undo');
+  if (msg_el) msg_el.textContent = msg;
+  else el.textContent = msg; // fallback
+  _undoFn = undoFn || null;
+  if (btn) btn.style.display = undoFn ? '' : 'none';
+  el.classList.add('on');
+  clearTimeout(_tt);
+  _tt = setTimeout(() => {
+    el.classList.remove('on');
+    _undoFn = null;
+  }, undoFn ? 5000 : 2800); // longer timeout when undo is available
+}
+
+function triggerUndo() {
+  if (!_undoFn) return;
+  const fn = _undoFn;
+  _undoFn = null;
+  clearTimeout(_tt);
+  document.getElementById('toast').classList.remove('on');
+  fn();
+}
 
 // INIT
 loadData();
@@ -2603,6 +2684,11 @@ updateViewFYStrips();
 setTimeout(checkOrphanedBookings, 600);
 // Feature: notifications (after settings loaded)
 if (S.settings && S.settings.remindersEnabled) initNotifications();
+// Feature: pending conflict check — delay to let silent auth token restore complete
+setTimeout(() => {
+  if(localStorage.getItem(SYNC_CONFLICT_KEY)) renderAlerts();
+  refreshSyncButton(); // re-evaluate glow after auth token restored
+}, 2000);
 
 // ═══════════════════════════════════════════════════════
 // QUICK SETUP
@@ -3175,7 +3261,8 @@ const Sync={
     if(lbl) lbl.textContent=msg||labels[s]||'☁';
     btns.forEach(b=>{
       b.disabled=(s==='syncing');
-      const glowClass=(s==='idle'&&this.userEmail)?'glow':'';
+      const needsSync = s==='idle' && this.userEmail && hasUnsyncedChanges();
+      const glowClass = needsSync ? 'glow' : '';
       b.className='sync-btn sync-now-btn '+(s==='syncing'?'syncing':s==='synced'?'synced':glowClass);
       b.textContent=s==='syncing'?'☁ Syncing…':'☁ Sync Now';
     });
@@ -3427,6 +3514,103 @@ function _applyDriveData(driveData){
   }catch(e){Sync.setStatus('error');toast('Failed to apply Drive data');console.error(e);}
 }
 
+// ═══════════════════════════════════════════════════════
+// AUTO-SYNC & UNLOAD WARNING
+// ═══════════════════════════════════════════════════════
+
+// Force-refresh the sync button glow state — call after any change to sync/modified timestamps
+function refreshSyncButton() {
+  if (typeof Sync === 'undefined' || !Sync.userEmail) return;
+  Sync.setStatus(Sync.status);
+}
+
+function hasUnsyncedChanges() {
+  if (!Sync.userEmail) return false;
+  const lt = new Date(S._lastModified || 0).getTime();
+  const st = new Date(Sync.lastSynced || 0).getTime();
+  return lt > st + 2000; // 2s threshold same as syncNow
+}
+
+// Background sync — conservative:
+//   • only pushes if local is newer (safe)
+//   • if Drive is newer, flags a pending conflict instead of showing a modal
+//   • if equal, does nothing
+async function syncBackground() {
+  if (!Sync.token) return;
+  if (!hasUnsyncedChanges() && !localStorage.getItem(SYNC_CONFLICT_KEY)) return;
+  const now = Date.now();
+  if (now - _lastBgSync < BG_SYNC_THROTTLE_MS) return;
+  _lastBgSync = now;
+  try {
+    const driveData = await downloadFromDrive();
+    if (!driveData) {
+      // No Drive file yet — safe to create it
+      await uploadToDrive(buildDrivePayload());
+      S._lastModified = new Date().toISOString(); persist();
+      _markSynced();
+      localStorage.removeItem(SYNC_CONFLICT_KEY);
+      return;
+    }
+    const dt = new Date(driveData.lastModified || 0).getTime();
+    const lt = new Date(S._lastModified || 0).getTime();
+    const THRESH = 2000;
+    if (Math.abs(dt - lt) < THRESH) {
+      // Equal — already in sync
+      _markSynced();
+      localStorage.removeItem(SYNC_CONFLICT_KEY);
+      return;
+    }
+    if (lt > dt + THRESH) {
+      // Local is newer — safe to push
+      await uploadToDrive(buildDrivePayload());
+      S._lastModified = new Date().toISOString(); persist();
+      _markSynced();
+      localStorage.removeItem(SYNC_CONFLICT_KEY);
+      return;
+    }
+    // Drive is newer — don't auto-pull, flag for user to resolve manually
+    localStorage.setItem(SYNC_CONFLICT_KEY, JSON.stringify({
+      driveTime: driveData.lastModified,
+      localTime: S._lastModified,
+      flaggedAt: new Date().toISOString()
+    }));
+    renderAlerts(); // show the pending conflict alert immediately if page is still open
+  } catch(e) {
+    // Background sync failures are silent — don't interrupt the user
+    console.warn('Background sync failed:', e.message);
+  }
+}
+
+// ── beforeunload: warn if signed in and unsynced ──
+window.addEventListener('beforeunload', e => {
+  if (!hasUnsyncedChanges()) return;
+  // Attempt a synchronous-style background sync (best effort — may not complete)
+  syncBackground();
+  // Show browser's native "Leave site?" dialog
+  e.preventDefault();
+  e.returnValue = ''; // required for Chrome
+});
+
+// ── visibilitychange + pagehide: silent background sync when leaving ──
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') syncBackground();
+});
+window.addEventListener('pagehide', () => syncBackground()); // iOS Safari
+
+// ── On load: check for a pending conflict from a previous background sync ──
+function checkPendingConflict() {
+  const raw = localStorage.getItem(SYNC_CONFLICT_KEY);
+  if (!raw || !Sync.userEmail) return;
+  try {
+    const { driveTime, localTime } = JSON.parse(raw);
+    // Re-use the existing conflict modal — fetch Drive data and show it
+    syncNow(); // this will detect the conflict and show the modal as normal
+    localStorage.removeItem(SYNC_CONFLICT_KEY);
+  } catch(e) {
+    localStorage.removeItem(SYNC_CONFLICT_KEY);
+  }
+}
+
 function getPeriodForFY(dateStr, fyk) {
   const fyS = getFYStartDate(fyk);
   if (!fyS) return {period:-1, week:-1};
@@ -3507,7 +3691,12 @@ function confirmDeleteOrphans() {
   closeOrphanModal();
   checkOrphanedBookings();
   refresh();
-  toast(ids.size + ' orphaned booking' + (ids.size > 1 ? 's' : '') + ' deleted');
+  toast(ids.size + ' orphaned booking' + (ids.size > 1 ? 's' : '') + ' deleted', ()=>{
+    S.bookings.push(...orphans);
+    persist();refresh();
+    window._orphanModalShown=false;checkOrphanedBookings();
+    toast(orphans.length+' booking'+(orphans.length>1?'s':'')+' restored');
+  });
 }
 
 // ── Dev/test helper: inject a booking with a non-existent FY key ──
@@ -4003,24 +4192,30 @@ function snapToDate(date) {
   if (!calScroll) return;
   const y = date.getFullYear(), m = date.getMonth();
 
-  let monthDiv = calScroll.querySelector(`.month[data-year="${y}"][data-month="${m}"]`);
-  if (!monthDiv) {
-    _buildScrollCalAround(y, m);
-    monthDiv = calScroll.querySelector(`.month[data-year="${y}"][data-month="${m}"]`);
-  }
-  if (!monthDiv) return;
-
-  // Enforce FY bounds: remove months outside configured FY range
+  _buildScrollCalAround(y, m);
   _clampRenderedMonths();
 
-  // Use rAF to ensure browser has laid out the rebuilt DOM before measuring
+  const target = calScroll.querySelector(`.month[data-year="${y}"][data-month="${m}"]`);
+  if (!target) return;
+
+  // Calculate offsetTop relative to calScroll specifically by walking the offset chain.
+  // We can't use target.offsetTop directly because calScroll has no position:relative,
+  // so offsetTop walks up to a different ancestor.
+  let offset = 0;
+  let el = target;
+  while (el && el !== calScroll) {
+    offset += el.offsetTop;
+    el = el.offsetParent;
+  }
+
+  // Disable smooth-scroll temporarily so the jump is instant and accurate.
+  // smooth scroll-behavior causes animated scroll from a stale starting position.
+  const prevBehavior = calScroll.style.scrollBehavior;
+  calScroll.style.scrollBehavior = 'auto';
+  calScroll.scrollTop = offset;
+  calScroll.style.scrollBehavior = prevBehavior;
+
   requestAnimationFrame(() => {
-    const target = calScroll.querySelector(`.month[data-year="${y}"][data-month="${m}"]`);
-    if (!target) return;
-    const containerRect = calScroll.getBoundingClientRect();
-    const targetRect    = target.getBoundingClientRect();
-    calScroll.scrollTop += (targetRect.top - containerRect.top);
-    // Update FY UI to reflect the jumped-to position
     updateFYOnScroll(calScroll);
     updateFloatingMonth(calScroll);
   });
@@ -4272,15 +4467,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const val = jumpSel.value;
     if (!val) return;
     const [jy, jm] = val.split('-').map(Number);
-    // Make sure calendar view is active and laid out before scrolling
-    if (!document.getElementById('view-calendar').classList.contains('active')) {
+    const calActive = document.getElementById('view-calendar').classList.contains('active');
+    if (!calActive) {
       showView('calendar');
-    }
-    // rAF ensures the view is visible and getBoundingClientRect is accurate
-    requestAnimationFrame(() => {
+      // Give the view transition time to complete before measuring
+      setTimeout(() => snapToDate(new Date(jy, jm, 1)), 50);
+    } else {
       snapToDate(new Date(jy, jm, 1));
-      jumpSel.value = '';
-    });
+    }
+    jumpSel.value = '';
   });
 
   // Populate jump select — only months within configured FY ranges

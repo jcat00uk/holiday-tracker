@@ -1,0 +1,178 @@
+what parameters does this use for making calculation for holidays, eg break hours, shift hours , 5year service, base fy to base other fy's off07:07Let me trace all the parameters that feed into every calculation:Viewed 4 files, ran a commandViewed 4 files, ran a commandGood, I now have the complete picture. Here's a full breakdown of every parameter:
+
+Allocation calculation (allocLookup → ALLOC table)
+The table has 39 entries (index 0–38, representing 1–39 contracted hours/week). The row used depends on two flags:
+
+Years of service (yearsService): 'lt5' (under 5 years) or 'gt5' (5 years or more). gt5 gives ~1h/week more across the board
+Night shift eligibility (nightShift): 'no', 'yes', or 'auto'. 'yes'/'auto' uses the _night row which adds roughly 10% extra. 'auto' resolves to eligible only if the shift length ≥ avgShift
+Contracted hours/week (contractedHours): the index into the row. 33h/week = index 32. Capped at 39h
+
+The four rows are lt5_day, lt5_night, gt5_day, gt5_night.
+Per-booking hours calculation (bookedHrs)
+shift hours = end - start (handles overnight automatically)
+break minutes = calcBreak(shift hours) — first matching break rule wins (sorted descending)
+booked hours = round((shift hours - break minutes/60) × 4) / 4 — rounded to nearest 15 minutes
+Default break rules: ≥9h→45min, ≥8h→30min, ≥6h→20min, ≥4.5h→15min. All configurable in Settings → Break Rules.
+Financial Year structure
+
+Each FY is exactly 364 days (52 weeks) from its start date (must be a Sunday)
+fyRange(fyk) = startDate to startDate + 363 days
+The anchor FY is FY2026/27 starting 2026-03-01. All other FYs are computed as multiples of 364 days from this anchor
+Per-FY startDate overrides in fyAllocs take priority over the engine calculation — this is how you pin a specific Sunday if the 364-day engine drifts
+Each FY also stores hours (the allocation) and carryOver (added to hours in getFYAlloc)
+Total allocation = hours + carryOver
+
+Periods (4-week blocks within an FY)
+
+Period 1 starts on the FY start date
+Each period = 4 weeks (28 days)
+Maximum 13 periods per FY (13×4 = 52 weeks)
+Used for calendar dividers, dashboard summary, and report grouping — not used in any allocation calculation
+
+Stats / remaining hours (getStats)
+remaining = allocation - taken - confirmed(future) - submitted(future) - planned
+shifts left = floor(remaining / avgShift)
+
+taken = confirmed bookings in the past
+Refused and cancelled bookings are excluded from all totals
+avgShift is used only to calculate "shifts left" — it has no effect on individual booking hours
+
+Pro-rata (calcProRata)
+pro-rata hours = round(full allocation × (days worked in FY / total FY days) × 2) / 2
+Rounded to nearest 0.5h. Only affects the suggestion shown — you still manually enter the allocation.
+Display/warning parameters
+
+noticeDays (default 28): bookings within this many days show a ⚠ notice warning
+yearEndWarnWeeks (default 8): FY end warning banner appears this many weeks before year-end
+defaultStart/defaultEnd: pre-fill time selectors in the booking modal and Quick Setup
+
+4-week rotation
+
+4 weeks × 7 days, each day stores {on, start, end}
+Week 1 = the week containing the current FY's start date
+Used by isWorkDay() and getRotDay() to show the purple dot on calendar cells and to auto-fill booking times in "Full Shift (rota)" mode
+Has no effect on allocation calculations — purely for convenience and the "not rota'd" warning
+what parameters at the moment are not user editable07:11Looking at the code, these are the parameters that are hardcoded and not editable:
+
+364-day FY length
+jsconst end = new Date(start.getTime() + 363 * 864e5);
+Every FY is always exactly 52 weeks. You can't have a 53-week year or a non-standard length. Not exposed anywhere in Settings.
+The FY anchor date
+jsconst FY_ANCHOR = new Date('2026-03-01T00:00:00');
+The entire FY engine calculates all FY start dates as multiples of 364 days from this fixed point. You can override individual FY start dates in the FY table, but the auto-calculation always anchors to 1 March 2026. Not editable.
+Booking hours rounding — nearest 15 minutes
+jsbooked: Math.round((sh - brk/60) * 4) / 4
+Always rounds to the nearest 0.25h (15 minutes). Not configurable.
+Allocation table (ALLOC)
+The four rows of hours-per-contracted-week are hardcoded values. You can't edit what the suggestion calculator outputs — only accept or override the resulting number in the FY table.
+Maximum contracted hours in the lookup — 39
+jsconst i = Math.min(38, Math.max(0, Math.round(chrs) - 1));
+If you enter 40+ contracted hours/week, the suggestion is capped at the 39h row. Not configurable.
+Maximum periods per FY — 13
+jsif (period > 13) period = 13;
+Hardcoded cap. Not exposed.
+Shifts-left calculation uses avgShift directly
+The "shifts left" stat divides remaining hours by avgShift with no rounding preference — always Math.floor. The rounding direction is not configurable.
+Pro-rata rounding — nearest 0.5h
+jsMath.round(... * 2) / 2
+Always rounds pro-rata result to nearest half-hour. Not configurable.
+Near-top / near-bottom scroll trigger — 200px
+jsif (scrollTop + clientHeight > scrollHeight - 200)
+if (scrollTop < 200)
+The infinite scroll loads new months when within 200px of the edge. Not configurable (and shouldn't need to be).
+Background sync throttle — 30 seconds
+jsconst BG_SYNC_THROTTLE_MS = 30000;
+Declared as a const so technically easy to change in code, but not exposed in Settings.
+Undo window — 5 seconds
+js}, undoFn ? 5000 : 2800);
+Hardcoded in the toast function. Not configurable.
+Stale sync warning — 7 days
+jsconst staleMs = 7 * 24 * 60 * 60 * 1000;
+The amber "last synced X days ago" warning threshold. Not configurable.
+Sync conflict threshold — 2 seconds
+jsconst THRESH = 2000;
+If local and Drive timestamps differ by less than 2 seconds, it's treated as "already in sync". Not configurable.
+
+Which of these would be worth exposing?
+The ones most likely to matter for real users:
+
+Booking rounding — some workplaces round to 30 minutes rather than 15
+ALLOC table — if your employer uses a different statutory calculation, the suggestions will always be wrong
+39h contracted hours cap — unlikely to matter for your use case at 33h/week, but would affect full-time workers on longer contracts
+
+The rest (FY anchor, 364-day length, period cap, scroll triggers, sync thresholds) are either architectural constants that changing would break things, or too niche to warrant a settings field.
+Want me to expose any of them?i was just thinking in the future if i was to open it up a bit more an allow other users whos company have different break, holiday policies ,differnt fy start date etc, im just pondering whether that would be straight forward or not, to have a settings page they can  override set parameters07:16Good thing to think through now rather than later. Let me give you an honest assessment of what's straightforward vs what's architectural:
+
+Already fully user-configurable — no work needed
+These are already in Settings and work per-user:
+
+Break rules (thresholds and minutes) — fully editable
+FY start date — per-FY override in the alloc table
+Contracted hours/week
+Years of service band
+Night shift eligibility
+Default shift times
+Minimum notice days
+Year-end warning weeks
+4-week rotation pattern
+Carry-over hours per FY
+Pro-rata calculation
+
+That's actually most of what an employer policy would define. The foundation is already there.
+
+Straightforward to add — isolated changes
+Booking rounding increment (15min/30min/60min)
+One line change in bookedHrs. A single select in Settings. Low risk.
+Contracted hours cap (currently 39h max)
+One line change in allocLookup. An input field. Trivial.
+Custom allocation table
+Replace the hardcoded ALLOC constant with a user-editable table stored in S.settings. The UI would be a grid — contracted hours on one axis, service/night bands on the other. Medium effort, medium complexity. The existing calcSuggest and ensureFY functions already call allocLookup so the plumbing is already correct — you'd just be making the data editable rather than hardcoded.
+Stale sync threshold, undo window, sync throttle
+All trivial — move the constants into S.settings with UI inputs. Low value though, most users wouldn't touch these.
+FY length (currently fixed at 364 days)
+Moderate effort. fyRange, getFinancialYearFromDate, and ensureFY all hardcode 364/363. You'd need to store a fyLengthDays setting and thread it through those three functions. The tricky part is the FY engine uses 364 days to auto-calculate which FY a date belongs to — if the length is variable, that auto-calculation breaks and you'd need to rely entirely on per-FY start date overrides instead, which is actually already halfway implemented.
+
+Moderate effort — needs more thought
+Multiple FY length support (e.g. some companies run April–March = 365/366 days)
+The engine currently treats FYs as uniform 364-day blocks. Supporting calendar-year FYs (April 1 to March 31) means the FY length varies by year (365 or 366 days). The fyRange function would need to work from start date + end date rather than start date + fixed offset. getPeriodForFY also assumes 364 days for week calculations. Doable but touches several core functions.
+Variable period lengths (some companies use monthly periods rather than 4-week)
+getPeriodForFY is entirely built on 4-week blocks. Supporting monthly periods would require a different calculation path. Medium-to-large effort.
+Multiple break rule sets (e.g. different rules for day vs night shifts)
+Currently one global set. You'd need to tag rules with a shift type and select the right set in calcBreak based on the booking's start time. Moderate effort.
+
+Architectural — would need significant refactoring
+Multiple users / profiles
+The entire state object S is one flat blob. Supporting multiple user profiles would mean namespacing S by profile ID, updating persist/loadData, and adding profile switching UI. The Google Drive sync would also need to handle per-profile files. Large effort.
+Per-FY allocation policies (different rules for different years)
+Currently allocLookup uses global settings. If a user changed service band mid-year or their employer changed the policy, there's no way to record that per-FY. You'd need to store policy snapshots alongside the FY alloc record. Moderate effort.
+Company-defined statutory entitlement formulas
+The ALLOC table implements one specific formula (UK statutory + night shift supplement). Different countries or companies use entirely different formulas — some are days-based not hours-based, some use a rolling reference period, some have caps. Supporting arbitrary formulas would essentially require a scripting engine. Out of scope.
+
+My honest recommendation for "opening it up"
+The app is already 80% of the way there for most UK shift workers. The things actually worth doing to support a broader user base, roughly in priority order:
+
+Make the ALLOC table editable — this is the single biggest barrier for users whose employer doesn't follow the standard UK statutory formula. Medium effort, high impact.
+Add a "FY type" option — toggle between 52-week (current) and calendar-year (April–March). This would cover the majority of UK employers who use April–March. Moderate effort.
+Booking rounding — 15/30/60 minute options. Low effort, removes friction for users whose timesheets round differently.
+A "Company Policy" settings section — group the above into a dedicated card so it's clear what's customisable.
+
+The multi-user / profile scenario is the biggest lift and probably warrants thinking about whether it stays a personal tool or becomes something hosted with accounts. That's a different kind of project.
+Want me to implement any of the straightforward ones now?are all fys calculate off the first fy, or are they calculated off the previous one07:20Let me trace the exact logic:Check getFinancialYearFromDate and getFYStartDate and getAutoFYStartDateCheck getFinancialYearFromDate and getFYStartDate and getAutoFYStartDateNow look at getFYStartDate — the function actually used at runtime for period/range calculations:Check getFYStartDate which is used for period calculationsCheck getFYStartDate which is used for period calculationsNow also check how the FY alloc table auto-suggests start dates for new FYs:Check renderFYAllocTable date suggestion logicCheck renderFYAllocTable date suggestion logicNow I have the complete picture. The answer is nuanced — there are actually two separate systems running in parallel:
+
+System 1 — The 52-week engine (all FYs off the anchor)
+getFinancialYearFromDate and getAutoFYStartDate both work by calculating FY_ANCHOR + (n × 364 days). Every FY's auto-computed start date is derived directly from the anchor — not chained off the previous FY. So:
+
+FY2025/26 = anchor − 364 days
+FY2026/27 = anchor (1 Mar 2026)
+FY2027/28 = anchor + 364 days
+FY2028/29 = anchor + 728 days
+
+This means if the anchor drifts from your actual FY start (e.g. your real FY starts 2 Mar not 1 Mar), the error compounds — FY2028/29 would be wrong by the same 1 day, not progressively worse. They all trace back to the same fixed point.
+System 2 — Manual start date overrides (each FY off the previous)
+In renderFYAllocTable, when a new FY row is added and has no startDate yet, the suggested date is computed as:
+jsnextFYStartDate(prevStart) // = prevFY.startDate + 364 days
+This is chained — each new FY's suggested date is 364 days after the previous FY's stored startDate. And getFYStartDate always prefers the stored startDate over the engine calculation.
+So once you've manually set or confirmed a start date for any FY, subsequent FYs chain off that stored date, not the anchor. This is actually correct behaviour — if your real FY started on 2 Mar 2026 (not 1 Mar), you correct it once and every future FY suggestion is also correct.
+The practical consequence
+If you've never touched the start dates in the FY table, everything runs off the anchor. If you've manually set even one FY's start date, that FY and all subsequent ones chain off the stored dates. The engine is only a fallback when no stored date exists.
+This is actually a sensible design — the anchor gives you a working default, and the stored dates give you precision once you've confirmed them. The only risk is if the anchor is meaningfully wrong for your actual FY start, in which case any FY you haven't manually corrected will be slightly off.
