@@ -605,7 +605,7 @@ body.cal-active main{
       <div class="ast"><span class="lb">Submitted</span><span class="vl c-blue" id="sa-subm">—</span></div>
       <div class="ast"><span class="lb">Planned</span><span class="vl c-grey" id="sa-plan">—</span></div>
       <div class="ast"><span class="lb">Remaining</span><span class="vl" id="sa-rem">—</span></div>
-      <div class="ast" id="ast-shifts"><span class="lb">Shifts left</span><span class="vl c-purple" id="sa-shifts">—</span></div>
+      <div class="ast"><span class="lb">Shifts left</span><span class="vl c-purple" id="sa-shifts">—</span></div>
     </div>
     <div class="abar-r">
       <div class="atrack">
@@ -813,6 +813,7 @@ body.cal-active main{
             <select id="c-ns" onchange="calcSuggest();autoSave()">
               <option value="no">Not eligible for additional allocation</option>
               <option value="yes">Eligible for additional allocation</option>
+              <option value="auto">Auto — eligible if avg shift ≥ 9h</option>
             </select>
           </div>
           <p style="font-size:.68rem;color:var(--t3);line-height:1.5;margin-bottom:6px">Night shift workers who regularly work the midnight–5am window and average 9+ hours per shift may be eligible for additional holiday allocation. Check with your employer — eligibility is not automatic.</p>
@@ -825,6 +826,17 @@ body.cal-active main{
         </div>
         <div class="fr"><label>Contracted hours/week</label>
           <input type="number" id="c-chrs" value="33" step="1" onchange="calcSuggest();autoSave();renderRotEditor()">
+        </div>
+        <div class="fr"><label>Avg shift length (HH:MM)</label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <select id="c-avgh" style="width:70px;font-family:var(--mono)" onchange="onAvgChg()"></select>
+            <span style="color:var(--t3);font-family:var(--mono)">:</span>
+            <select id="c-avgm" style="width:70px;font-family:var(--mono)" onchange="onAvgChg()">
+              <option value="0">00</option><option value="15">15</option>
+              <option value="30">30</option><option value="45">45</option>
+            </select>
+            <span id="c-avgdec" style="font-family:var(--mono);font-size:.7rem;color:var(--t3)"></span>
+          </div>
         </div>
         </div><!-- /nsSub -->
         <div class="sugbox" id="sugBox">—</div>
@@ -859,10 +871,7 @@ body.cal-active main{
       </div>
 
       <div class="sc" style="grid-column:span 2">
-        <div class="sct" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
-          4-Week Shift Rotation
-          <span id="rotaShiftHint" style="font-size:.65rem;font-weight:400"></span>
-        </div>
+        <div class="sct">4-Week Shift Rotation</div>
         <p style="font-size:.67rem;color:var(--t3);margin-bottom:9px">Click a day to toggle on/off. Click an active day to edit its times. Week 1 = the week containing your current FY start date.</p>
         <div id="rotEditor"></div>
         <div id="rotDayCfg" class="rot-day-cfg">
@@ -1465,39 +1474,15 @@ function getStats(fyk){
   const ref=bk.filter(b=>b.status==='refused').reduce((s,b)=>s+(b.hoursBooked||0),0);
   const can=bk.filter(b=>b.status==='cancelled').reduce((s,b)=>s+(b.hoursBooked||0),0);
   const alloc=getFYAlloc(fyk);
-  const rem=alloc-taken-confF-submF-plan;
-  // Derive avg shift from rota — total net hours ÷ total active days across all 4 weeks
-  const rotaAvg=getRotaAvgShift();
-  const fullShifts=rotaAvg>0?Math.floor(Math.max(0,rem)/rotaAvg):0;
-  const leftoverHrs=rotaAvg>0?Math.max(0,rem)-(fullShifts*rotaAvg):0;
+  const rem=alloc-taken-confF-submF-plan; // remaining after ALL committed hours
+  const avg=parseFloat(S.settings.avgShift)||8;
+  const fullShifts=Math.floor(Math.max(0,rem)/avg);
+  const leftoverHrs=Math.max(0,rem)-(fullShifts*avg);
   return{alloc,taken,confF,submF,plan,ref,can,
-    remConf:alloc-taken-confF-submF,
-    rem,remIncPlan:rem,
-    shiftsLeft:fullShifts, leftoverHrs, avg:rotaAvg,
-    rotaComplete:isRotaComplete()};
+    remConf:alloc-taken-confF-submF, // kept for backward compat (dashboard uses it)
+    rem,remIncPlan:rem,              // rem is now the main "remaining" stat
+    shiftsLeft:fullShifts, leftoverHrs, avg};
 }
-
-// Returns avg net shift hours derived from the 4-week rotation (0 if no active days)
-function getRotaAvgShift(){
-  let totalHrs=0,totalDays=0;
-  (S.settings.rotation||[]).forEach(week=>{
-    week.forEach(d=>{
-      if(d.on){totalHrs+=bookedHrs(d.start,d.end).booked;totalDays++;}
-    });
-  });
-  return totalDays>0?totalHrs/totalDays:0;
-}
-
-// All 4 weeks must hit contracted hours within ±15min (0.25h tolerance)
-function isRotaComplete(){
-  const contracted=parseFloat(S.settings.contractedHours)||0;
-  if(contracted<=0)return false;
-  return (S.settings.rotation||[]).every(week=>{
-    const weekNet=week.filter(d=>d.on).reduce((s,d)=>s+bookedHrs(d.start,d.end).booked,0);
-    return Math.abs(weekNet-contracted)<=0.25;
-  });
-}
-
 function updateStats(){
   const s=getStats(curFY);
   document.getElementById('sa-alloc').textContent=hhmm(s.alloc);
@@ -1508,19 +1493,12 @@ function updateStats(){
   const remEl=document.getElementById('sa-rem');
   remEl.textContent=hhmm(s.rem);
   remEl.className='vl '+(s.rem<0?'c-red':s.rem<s.alloc*.1?'c-amber':'c-teal');
-  // Shifts left — only show if rota is complete (all 4 weeks green)
+  // Shifts left: show whole shifts, or hours remaining if < 1 full shift
   const shEl=document.getElementById('sa-shifts');
-  const astEl=document.getElementById('ast-shifts');
-  if(s.rotaComplete){
-    astEl.style.display='';
-    if(s.shiftsLeft>0){
-      shEl.innerHTML=s.shiftsLeft+(s.leftoverHrs>0?' +'+hhmm(s.leftoverHrs):'');
-    } else {
-      shEl.innerHTML=s.rem>0?hhmm(s.rem):'0';
-    }
+  if(s.shiftsLeft>0){
+    shEl.textContent=s.shiftsLeft+(s.leftoverHrs>0?' +'+hhmm(s.leftoverHrs):'');
   } else {
-    astEl.style.display='';
-    shEl.innerHTML='<a onclick="showView(\'settings\');setTimeout(()=>{const r=document.getElementById(\'rotEditor\');if(r)r.scrollIntoView({behavior:\'smooth\'});},300)" style="color:var(--red);cursor:pointer;text-decoration:none;font-weight:600">Rota?</a>';
+    shEl.textContent=s.rem>0?hhmm(s.rem):'0';
   }
   const p=x=>s.alloc>0?Math.min(100,Math.max(0,(x/s.alloc)*100))+'%':'0%';
   document.getElementById('seg-taken').style.width=p(s.taken);
@@ -1961,7 +1939,7 @@ function renderDash(){
     `<div class="ye-row"><span class="yk">Days left</span><span class="yv" style="color:${daysLeft<56?'var(--amber)':'var(--t1)'}">${daysLeft>0?daysLeft:'Ended'}</span></div>`+
     `<div class="ye-row"><span class="yk">Remaining</span><span class="yv" style="color:${rem<0?'var(--red)':rem<s.alloc*.1?'var(--amber)':'var(--teal)'}">${hhmm(rem)} (${toDecStr(rem)})</span></div>`+
     `<div class="ye-row"><span class="yk">Incl. planned</span><span class="yv">${hhmm(Math.max(0,s.remIncPlan))}</span></div>`+
-    `<div class="ye-row"><span class="yk">Shifts left</span><span class="yv c-purple">${s.rotaComplete?(s.shiftsLeft+(s.leftoverHrs>0?' +'+hhmm(s.leftoverHrs):'')):'<a onclick="showView(\'settings\');setTimeout(()=>{const r=document.getElementById(\'rotEditor\');if(r)r.scrollIntoView({behavior:\'smooth\'});},300)" style="color:var(--red);cursor:pointer;font-weight:600">Rota?</a>'}</span></div>`+
+    `<div class="ye-row"><span class="yk">Shifts left</span><span class="yv c-purple">${s.shiftsLeft}</span></div>`+
     (rem>0&&daysLeft<56&&daysLeft>0?`<div style="margin-top:7px;padding:7px;background:var(--amberd);border:1px solid rgba(240,160,48,.3);border-radius:5px;font-size:.72rem;color:var(--amber)">\u26a0 ${hhmm(rem)} unused \u2014 book before year end.</div>`:'');
 }
 
@@ -2117,7 +2095,7 @@ function onTimeChg(){
   document.getElementById('bp-dur').textContent=fmtHrs(sh);
   document.getElementById('bp-brk').textContent=brk+'min \u2014 '+breakNote(sh);
   document.getElementById('bp-total').textContent=hhmm(booked)+' ('+toDecStr(booked)+')';
-  const nsElig=S.settings.nightShift==='yes';
+  const nsElig=S.settings.nightShift==='auto'?sh>=(S.settings.avgShift||8):S.settings.nightShift==='yes';
   document.getElementById('bp-ns').textContent='Night shift: '+(nsElig?'eligible for extra allocation':'not eligible');
   checkOverlap();
   updateAllocMini();
@@ -2171,13 +2149,10 @@ function setAutoReminderDate() {
 function onRemDateChg() { /* date changed manually — no action needed */ }
 function updateAllocMini(){
   const s=getStats(curFY);
-  const shiftsHtml=s.rotaComplete
-    ?`<div class="alloc-mini-row"><span class="ak">Shifts left</span><span class="av c-purple">${s.shiftsLeft+(s.leftoverHrs>0?' +'+hhmm(s.leftoverHrs):'')}</span></div>`
-    :`<div class="alloc-mini-row"><span class="ak">Shifts left</span><span class="av"><a onclick="closeModal();showView('settings');setTimeout(()=>{const r=document.getElementById('rotEditor');if(r)r.scrollIntoView({behavior:'smooth'});},300)" style="color:var(--red);cursor:pointer;font-weight:600">Rota?</a></span></div>`;
   document.getElementById('allocMini').innerHTML=
     `<div class="alloc-mini-row"><span class="ak">Remaining (conf+subm)</span><span class="av" style="color:${s.rem<0?'var(--red)':'var(--teal)'}">${hhmm(s.rem)} (${toDecStr(s.rem)})</span></div>`+
     `<div class="alloc-mini-row"><span class="ak">Incl. planned</span><span class="av">${hhmm(Math.max(0,s.remIncPlan))} (${toDecStr(Math.max(0,s.remIncPlan))})</span></div>`+
-    shiftsHtml;
+    `<div class="alloc-mini-row"><span class="ak">Shifts left</span><span class="av c-purple">${s.shiftsLeft}</span></div>`;
   // Over-allocation warning
   const warnEl = document.getElementById('alloc-warn');
   if (warnEl) {
@@ -2236,6 +2211,8 @@ function readSettings(){
   c.nightShift=document.getElementById('c-ns').value;
   c.isNightWorker=document.getElementById('c-ns-toggle').checked;
   c.contractedHours=parseFloat(document.getElementById('c-chrs').value)||33;
+  const avgh=parseInt(document.getElementById('c-avgh').value)||8,avgm=parseInt(document.getElementById('c-avgm').value)||0;
+  c.avgShift=(avgh*60+avgm)/60;
   c.defaultStart=document.getElementById('c-dstart').value;
   c.defaultEnd=document.getElementById('c-dend').value;
   c.noticeDays=parseInt(document.getElementById('c-notice').value)||28;
@@ -2254,6 +2231,11 @@ function loadSettingsUI(){
   document.getElementById('c-ns-toggle').checked=nsOn;
   document.getElementById('nsSub').classList.toggle('dim',!nsOn);
   document.getElementById('c-chrs').value=c.contractedHours;
+  const avg=c.avgShift||8,avgh=Math.floor(avg),avgm=Math.round((avg-avgh)*60);
+  const ahEl=document.getElementById('c-avgh');
+  if(!ahEl.children.length){for(let h=0;h<=23;h++){const o=document.createElement('option');o.value=h;o.textContent=String(h).padStart(2,'0');ahEl.appendChild(o);}}
+  ahEl.value=avgh;document.getElementById('c-avgm').value=avgm;
+  document.getElementById('c-avgdec').textContent='('+toDecStr(avg)+')';
   popSel(document.getElementById('c-dstart'),c.defaultStart||'23:00');
   popSel(document.getElementById('c-dend'),c.defaultEnd||'07:00');
   document.getElementById('c-notice').value=c.noticeDays||28;
@@ -2296,9 +2278,18 @@ function onNsToggle(){
   autoSave();
 }
 
+function onAvgChange(){
+  const h = parseInt(document.getElementById('c-avgh').value) || 0;
+  const m = parseInt(document.getElementById('c-avgm').value) || 0;
+
+  document.getElementById('c-avgdec').textContent =
+    '(' + toDecStr((h * 60 + m) / 60) + ')';
+
+  autoSave();
+}
 function calcSuggest(){
   const chrs=parseFloat(document.getElementById('c-chrs').value)||33;
-  const ys=document.getElementById('c-ys').value,ns=document.getElementById('c-ns').value;
+  const ys=document.getElementById('c-ys').value,ns=document.getElementById('c-ns').value==='auto'?'no':document.getElementById('c-ns').value;
   const sugg=allocLookup(chrs,ys,ns);
   const rn=(ys==='gt5')?(ns==='yes'?'≥5yrs night':'≥5yrs day'):(ns==='yes'?'<5yrs night':'<5yrs day');
   // Check if current FY allocation differs from suggestion
@@ -2471,19 +2462,6 @@ function renderRotEditor(){
     </div>`;
   }).join('');
   setTimeout(updateRotaBookingHint, 0);
-  // Update the rota completeness hint next to the section heading
-  const hintEl = document.getElementById('rotaShiftHint');
-  if (hintEl) {
-    if (isRotaComplete()) {
-      hintEl.textContent = 'Rota complete ✓';
-      hintEl.style.color = 'var(--teal)';
-    } else {
-      hintEl.textContent = 'Fill in all 4 weeks to unlock Shifts left';
-      hintEl.style.color = 'var(--t3)';
-    }
-  }
-  // Refresh alloc bar and booking modal so Shifts left updates immediately
-  if (typeof updateStats === 'function') updateStats();
 }
 
 function clickRotDay(wi,di){
@@ -2751,6 +2729,16 @@ setTimeout(() => {
 // ═══════════════════════════════════════════════════════
 
 function openQuickSetup() {
+  // Populate avg shift hour select
+  const avghEl = document.getElementById('qs-avgh');
+  if (!avghEl.children.length) {
+    for (let h = 0; h <= 23; h++) {
+      const o = document.createElement('option');
+      o.value = h; o.textContent = String(h).padStart(2,'0');
+      if (h === 8) o.selected = true;
+      avghEl.appendChild(o);
+    }
+  }
   // Reset to Days defaults
   const empSel = document.getElementById('qs-emptype');
   empSel.value = 'days';
@@ -2818,6 +2806,9 @@ function saveQuickSetup() {
   const ns      = (isNight && nsEl) ? (nsEl.value||'no') : 'no';
   const ys      = document.getElementById('qs-yrs').value;
   const chrs    = parseFloat(document.getElementById('qs-chrs').value)||33;
+  const avgh    = parseInt(document.getElementById('qs-avgh').value)||8;
+  const avgm    = parseInt(document.getElementById('qs-avgm').value)||0;
+  const avg     = (avgh*60+avgm)/60;
   const dstart  = document.getElementById('qs-dstart').value;
   const dend    = document.getElementById('qs-dend').value;
   const fyk     = document.getElementById('qs-fyk').value;
@@ -2825,9 +2816,17 @@ function saveQuickSetup() {
   const fyalloc = parseFloat(document.getElementById('qs-fyalloc').value)||allocLookup(chrs,ys,ns);
 
   S.settings.yearsService    = ys;
-  S.settings.nightShift      = ns;
-  S.settings.isNightWorker   = isNight;
+  // nightShift: 'yes' = night worker eligible, 'no' = not night worker / not eligible
+  // Settings page toggle shows when nightShift !== 'no'
+  // If nights + eligible → 'yes'; if nights + not eligible → we still enable toggle but set 'no'
+  // Use a special approach: nights+not-eligible maps to a night toggle ON but eligibility 'no'
+  // The toggle state = isNight; eligibility select = ns
+  // The simplest mapping: store nightShift as ns ('yes' or 'no')
+  // AND store a separate flag for the toggle so loadSettingsUI shows it correctly
+  S.settings.nightShift      = ns; // 'yes' or 'no'
+  S.settings.isNightWorker   = isNight; // true/false — drives the toggle display
   S.settings.contractedHours = chrs;
+  S.settings.avgShift        = avg;
   S.settings.defaultStart    = dstart;
   S.settings.defaultEnd      = dend;
 
@@ -4666,6 +4665,18 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     </div>
     <div class="qs-row">
+      <div class="fr">
+        <label>Avg shift length</label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <select id="qs-avgh" style="width:70px;font-family:var(--mono)"></select>
+          <span style="color:var(--t3);font-family:var(--mono)">h</span>
+          <select id="qs-avgm" style="width:70px;font-family:var(--mono)">
+            <option value="0">00</option><option value="15">15</option>
+            <option value="30">30</option><option value="45">45</option>
+          </select>
+          <span style="color:var(--t3);font-family:var(--mono)">m</span>
+        </div>
+      </div>
       <div class="fr" id="qs-alloc-row">
         <label>Suggested allocation</label>
         <div id="qs-sugg" style="font-family:var(--mono);font-size:1rem;color:var(--teal);padding-top:6px">—</div>
