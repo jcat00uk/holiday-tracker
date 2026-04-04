@@ -1093,8 +1093,6 @@ let S={
   fyAllocs:{},bankHolidays:[],bookings:[]
 };
 let curFY='',calY=new Date().getFullYear(),calM=new Date().getMonth();
-// Restore calendar month position if saved
-(function(){const s=localStorage.getItem('shiftbook_calYM');if(s){const p=s.split(',');if(p.length===2){calY=parseInt(p[0])||calY;calM=parseInt(p[1]);if(calM<0||calM>11)calM=new Date().getMonth();}}})();
 let listFilter='all',editId=null,showBH=true;
 let rotEditWi=-1,rotEditDi=-1,bookingMode='full',dashSortAsc=true,overlapAllowed=false;
 // Declare all module-level lets here to avoid Temporal Dead Zone errors
@@ -1325,10 +1323,7 @@ function ensureFY(fyk){
 }
 function getFYAlloc(fyk){if(!S.fyAllocs[fyk])return 0;return(parseFloat(S.fyAllocs[fyk].hours)||0)+(parseFloat(S.fyAllocs[fyk].carryOver)||0);}
 function initFY(){
-  // Restore previously selected FY if it still exists, otherwise use today's FY
-  const saved = localStorage.getItem('shiftbook_curFY');
-  const todayFY = curFYKey();
-  curFY = (saved && S.fyAllocs[saved]) ? saved : todayFY;
+  curFY=curFYKey();
   ensureFY(curFY);
   populateFYSel();
   document.getElementById('fyPill').textContent=curFY;
@@ -1418,7 +1413,6 @@ function snapToFY(fyk) {
 
 function changeFY(){
   curFY=document.getElementById('fySelect').value;
-  localStorage.setItem('shiftbook_curFY', curFY);
   syncAllFYSelectors();
   ensureFY(curFY);
 
@@ -1637,9 +1631,9 @@ function renderCal(){
     grid.appendChild(cell);
   });
 }
-function prevM(){calM--;if(calM<0){calM=11;calY--;}localStorage.setItem('shiftbook_calYM',calY+','+calM);renderCal();}
-function nextM(){calM++;if(calM>11){calM=0;calY++;}localStorage.setItem('shiftbook_calYM',calY+','+calM);renderCal();}
-function goToday(){calY=new Date().getFullYear();calM=new Date().getMonth();localStorage.setItem('shiftbook_calYM',calY+','+calM);renderCal();}
+function prevM(){calM--;if(calM<0){calM=11;calY--;}renderCal();}
+function nextM(){calM++;if(calM>11){calM=0;calY++;}renderCal();}
+function goToday(){calY=new Date().getFullYear();calM=new Date().getMonth();renderCal();}
 function toggleBH(){showBH=!showBH;document.getElementById('bhBtn').classList.toggle('on',showBH);if(scrollCalInited)refreshScrollCal();else renderCal();}
 
 // Detect FY boundaries in the calendar by checking if any booking falls within the month and has a different FY key than the current FY. This is needed because FY boundaries can be customized and may not align with calendar months.
@@ -1658,8 +1652,7 @@ let bulkAction=null; // {type:'status'|'delete', status?}
 
 function setListFY(fyk) {
   curFY = fyk;
-  localStorage.setItem('shiftbook_curFY', curFY);
-  syncAllFYSelectors();
+  syncAllFYSelectors(); // keep abar fySelect and fyPill in sync
   updateStats();
   renderAlerts();
   renderList();
@@ -1899,12 +1892,6 @@ function deleteReminder(id) {
     }
   }
   bk.reminderDate = '';
-  // Remove from fired list so it can re-fire if rescheduled
-  try {
-    const fired = JSON.parse(localStorage.getItem('shiftbook_notifFired') || '[]');
-    const updated = fired.filter(id => id !== bk.id);
-    localStorage.setItem('shiftbook_notifFired', JSON.stringify(updated));
-  } catch(e) {}
   persist();
   S._lastModified = new Date().toISOString();
   updateStats();
@@ -1935,15 +1922,11 @@ function renderDash(){
     }).join('')+'</div>'
     :'<div style="font-size:.75rem;color:var(--t4);padding:7px 0">No upcoming confirmed or submitted holidays</div>';
   // reminders
-  const rems=sortedByDate(S.bookings.filter(b=>b.status==='planned'&&b.reminderDate),true).slice(0,10);
+  const rems=sortedByDate(S.bookings.filter(b=>b.fyKey===curFY&&b.status==='planned'&&b.reminderDate),true).slice(0,6);
   document.getElementById('dash-reminders').innerHTML=rems.length?rems.map(r=>{
     const rd=new Date(r.reminderDate+'T00:00:00'),urg=rd<=todayD,days=Math.floor((rd-todayD)/864e5);
     const lbl=urg?'Now':days===0?'Today':'In '+days+'d';
-    const _rp=getPeriodForFY(r.date,r.fyKey);
-    const _rps=_rp.period>=1?'P'+String(_rp.period).padStart(2,'0')+' ':'';
-    const fyShort=r.fyKey?r.fyKey.replace('FY',''):'';
-    const prefix=`<span style="font-family:var(--mono);font-size:.66rem;color:var(--t3);margin-right:4px">${fyShort} ${_rps}</span>`;
-    return`<div class="rem-i${urg?' urg':''}" style="display:flex;align-items:center;gap:6px"><div style="flex:1;cursor:pointer" onclick="openEdit('${r.id}')">${prefix}<span class="rem-date">${fmtDate(r.date)}</span><span class="rem-info">${hhmm(r.hoursBooked)}${r.notes?' \u2014 '+r.notes:''}</span><span class="rem-badge" style="background:${urg?'var(--redd)':'var(--amberd)'};color:${urg?'var(--red)':'var(--amber)'};border:1px solid ${urg?'var(--red)':'var(--amber)'}">${lbl}</span></div><button onclick="event.stopPropagation();deleteReminder('${r.id}')" style="background:none;border:1px solid var(--bd2);border-radius:4px;color:var(--t3);font-size:.65rem;padding:2px 6px;cursor:pointer;flex-shrink:0" title="Remove reminder">✕</button></div>`;
+    return`<div class="rem-i${urg?' urg':''}" style="display:flex;align-items:center;gap:6px"><div style="flex:1;cursor:pointer" onclick="openEdit('${r.id}')"><span class="rem-date">${fmtDate(r.date)}</span><span class="rem-info">${hhmm(r.hoursBooked)}${r.notes?' \u2014 '+r.notes:''}</span><span class="rem-badge" style="background:${urg?'var(--redd)':'var(--amberd)'};color:${urg?'var(--red)':'var(--amber)'};border:1px solid ${urg?'var(--red)':'var(--amber)'}">${lbl}</span></div><button onclick="event.stopPropagation();deleteReminder('${r.id}')" style="background:none;border:1px solid var(--bd2);border-radius:4px;color:var(--t3);font-size:.65rem;padding:2px 6px;cursor:pointer;flex-shrink:0" title="Remove reminder">✕</button></div>`;
   }).join(''):'<div style="font-size:.75rem;color:var(--t4)">No reminders set</div>';
   // planned
   const planned=sortedByDate(S.bookings.filter(b=>b.fyKey===curFY&&b.status==='planned'),true);
@@ -1992,7 +1975,7 @@ function renderAlerts(){
   const warnMs=(S.settings.yearEndWarnWeeks||8)*7*864e5;
   if(s.rem<0)alerts.push(`<div class="alert a-danger">\u1f6a8 Over allocation by ${hhmm(Math.abs(s.rem))} for ${curFY}</div>`);
   if(today>=new Date(fyR.end.getTime()-warnMs)&&today<=fyR.end)alerts.push(`<div class="alert a-warn">\u23f3 FY ends in ${Math.ceil((fyR.end-today)/864e5)} days \u2014 ${hhmm(s.rem)} remaining.</div>`);
-  const due=S.bookings.filter(b=>b.status==='planned'&&b.reminderDate&&new Date(b.reminderDate+'T00:00:00')<=today);
+  const due=S.bookings.filter(b=>b.fyKey===curFY&&b.status==='planned'&&b.reminderDate&&new Date(b.reminderDate+'T00:00:00')<=today);
   if(due.length)alerts.push(`<div class="alert a-info">\ud83d\udd14 ${due.length} booking${due.length>1?'s':''} due to submit \u2014 check Dashboard</div>`);
   // Pending conflict from background sync
   if(localStorage.getItem(SYNC_CONFLICT_KEY)){
@@ -2228,13 +2211,6 @@ function saveBooking(){
     reminderDate:(document.getElementById('f-status').value==='planned'&&document.getElementById('f-rem-toggle').checked)?document.getElementById('f-rem').value:''};
   if(editId)S.bookings[S.bookings.findIndex(b=>b.id===editId)]=bk;
   else S.bookings.push(bk);
-  // If a reminder date is set, clear it from the fired list so it can notify
-  if(bk.reminderDate){
-    try{
-      const fired=JSON.parse(localStorage.getItem('shiftbook_notifFired')||'[]');
-      localStorage.setItem('shiftbook_notifFired',JSON.stringify(fired.filter(id=>id!==bk.id)));
-    }catch(e){}
-  }
   ensureFY(fk);overlapAllowed=false;closeModal();updateAppState();
   toast(editId?'Booking updated':'Booking saved');
 }
@@ -3865,20 +3841,18 @@ function checkReminderNotifications() {
   if (!S.settings.remindersEnabled) return;
   if (Notification.permission !== 'granted') return;
   const today = dstr(new Date());
-  // Load fired IDs from localStorage so we don't re-fire after a page reload
-  let firedIds = JSON.parse(localStorage.getItem('shiftbook_notifFired') || '[]');
   const due = S.bookings.filter(b =>
-    b.status === 'planned' && b.reminderDate && b.reminderDate <= today && !firedIds.includes(b.id)
+    b.status === 'planned' && b.reminderDate && b.reminderDate <= today && !b._notifFired
   );
   due.forEach(b => {
     const n = new Notification('ShiftBook Reminder', {
       body: 'Submit your holiday booking for ' + fmtDate(b.date) + ' (' + hhmm(b.hoursBooked) + ')',
       tag: 'sb-rem-' + b.id,
+      icon: ''
     });
-    firedIds.push(b.id);
+    b._notifFired = true; // mark as fired this session
     n.onclick = () => { window.focus(); openEdit(b.id); };
   });
-  if (due.length) localStorage.setItem('shiftbook_notifFired', JSON.stringify(firedIds));
   updateNotifBadge();
 }
 
