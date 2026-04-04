@@ -3865,20 +3865,30 @@ function checkReminderNotifications() {
   if (!S.settings.remindersEnabled) return;
   if (Notification.permission !== 'granted') return;
   const today = dstr(new Date());
-  // Load fired IDs from localStorage so we don't re-fire after a page reload
-  let firedIds = JSON.parse(localStorage.getItem('shiftbook_notifFired') || '[]');
+  // Load fired records — {id, date} pairs. Discard entries from previous days.
+  let firedRaw = [];
+  try { firedRaw = JSON.parse(localStorage.getItem('shiftbook_notifFired') || '[]'); } catch(e) {}
+  // Migrate old format (plain string IDs) and drop stale entries from previous days
+  const firedToday = firedRaw
+    .filter(e => typeof e === 'object' ? e.date === today : false)
+    .map(e => e.id);
+
   const due = S.bookings.filter(b =>
-    b.status === 'planned' && b.reminderDate && b.reminderDate <= today && !firedIds.includes(b.id)
+    b.status === 'planned' && b.reminderDate && b.reminderDate <= today && !firedToday.includes(b.id)
   );
   due.forEach(b => {
-    const n = new Notification('ShiftBook Reminder', {
+    new Notification('ShiftBook Reminder', {
       body: 'Submit your holiday booking for ' + fmtDate(b.date) + ' (' + hhmm(b.hoursBooked) + ')',
       tag: 'sb-rem-' + b.id,
-    });
-    firedIds.push(b.id);
-    n.onclick = () => { window.focus(); openEdit(b.id); };
+    }).onclick = () => { window.focus(); openEdit(b.id); };
+    firedToday.push(b.id);
   });
-  if (due.length) localStorage.setItem('shiftbook_notifFired', JSON.stringify(firedIds));
+  if (due.length) {
+    // Only keep today's entries — yesterday's are irrelevant
+    localStorage.setItem('shiftbook_notifFired',
+      JSON.stringify(firedToday.map(id => ({ id, date: today })))
+    );
+  }
   updateNotifBadge();
 }
 
