@@ -3856,12 +3856,9 @@ function rptRestoreGroupPref() {
 // ═══════════════════════════════════════
 function initNotifications() {
   if (!('Notification' in window)) return;
+  // Check and fire reminders every 60s
   if (_notifCheckInterval) clearInterval(_notifCheckInterval);
   _notifCheckInterval = setInterval(checkReminderNotifications, 60000);
-  // Register service worker for reliable notifications (works foregrounded + mobile)
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
-  }
   checkReminderNotifications();
 }
 
@@ -3881,16 +3878,10 @@ function checkReminderNotifications() {
     b.status === 'planned' && b.reminderDate && b.reminderDate <= today && !firedToday.includes(b.id)
   );
   due.forEach(b => {
-    const title = 'ShiftBook Reminder';
-    const body  = 'Submit your holiday booking for ' + fmtDate(b.date) + ' (' + hhmm(b.hoursBooked) + ')';
-    const tag   = 'sb-rem-' + b.id;
-    // Use service worker if available — works foregrounded and on mobile
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body, tag });
-    } else {
-      // Fallback to direct Notification (works when tab is backgrounded on desktop)
-      try { new Notification(title, { body, tag }); } catch(e) {}
-    }
+    new Notification('ShiftBook Reminder', {
+      body: 'Submit your holiday booking for ' + fmtDate(b.date) + ' (' + hhmm(b.hoursBooked) + ')',
+      tag: 'sb-rem-' + b.id,
+    }).onclick = () => { window.focus(); openEdit(b.id); };
     firedToday.push(b.id);
   });
   if (due.length) {
@@ -3915,9 +3906,6 @@ function debugNotifications() {
   try { firedRaw = JSON.parse(localStorage.getItem('shiftbook_notifFired') || '[]'); } catch(e) {}
   lines.push('shiftbook_notifFired: ' + JSON.stringify(firedRaw));
 
-  lines.push('ServiceWorker supported: ' + ('serviceWorker' in navigator));
-  lines.push('SW controller: ' + (navigator.serviceWorker && navigator.serviceWorker.controller ? 'active' : 'none'));
-
   // Clear fired list and force-fire
   localStorage.removeItem('shiftbook_notifFired');
   lines.push('→ Cleared fired list, attempting notification now...');
@@ -3929,16 +3917,17 @@ function debugNotifications() {
       if (p === 'granted') checkReminderNotifications();
     });
   } else {
-    const title = 'ShiftBook Test';
-    const body  = 'Notification test at ' + new Date().toLocaleTimeString('en-GB');
-    const tag   = 'sb-debug-' + Date.now();
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body, tag });
-      lines.push('✓ Sent via ServiceWorker');
-    } else {
-      try { new Notification(title, { body, tag }); lines.push('✓ Sent via direct Notification'); }
-      catch(e) { lines.push('✗ Threw: ' + e.message); }
+    // Fire a test notification immediately regardless of reminders
+    try {
+      new Notification('ShiftBook Test', {
+        body: 'Notification test fired at ' + new Date().toLocaleTimeString('en-GB'),
+        tag: 'sb-debug-' + Date.now(),
+      });
+      lines.push('✓ Test notification dispatched');
+    } catch(e) {
+      lines.push('✗ Notification threw: ' + e.message);
     }
+    // Also run the real check
     checkReminderNotifications();
     lines.push('✓ checkReminderNotifications() called');
   }
