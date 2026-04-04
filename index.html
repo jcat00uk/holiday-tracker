@@ -924,6 +924,7 @@ body.cal-active main{
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             <button class="btng" onclick="injectTestOrphan()" style="font-size:.68rem;padding:3px 8px;border-color:var(--amber);color:var(--amber)">🔧 Inject test orphan booking</button>
             <button class="btng" onclick="window._orphanModalShown=false;checkOrphanedBookings();toast('Orphan check run')" style="font-size:.68rem;padding:3px 8px">🔍 Run orphan check</button>
+            <button class="btng" onclick="debugNotifications()" style="font-size:.68rem;padding:3px 8px;border-color:var(--teal);color:var(--teal)">🔔 Test notification</button>
           </div>
         </div>
       </div>
@@ -3890,6 +3891,50 @@ function checkReminderNotifications() {
     );
   }
   updateNotifBadge();
+}
+
+function debugNotifications() {
+  const lines = [];
+  lines.push('Permission: ' + Notification.permission);
+  lines.push('remindersEnabled: ' + !!(S.settings && S.settings.remindersEnabled));
+  const today = dstr(new Date());
+  lines.push('Today: ' + today);
+  const allRem = S.bookings.filter(b => b.status === 'planned' && b.reminderDate);
+  lines.push('Planned bookings with reminder: ' + allRem.length);
+  allRem.forEach(b => lines.push('  → ' + b.reminderDate + ' (booking ' + b.date + ') due=' + (b.reminderDate <= today)));
+  let firedRaw = [];
+  try { firedRaw = JSON.parse(localStorage.getItem('shiftbook_notifFired') || '[]'); } catch(e) {}
+  lines.push('shiftbook_notifFired: ' + JSON.stringify(firedRaw));
+
+  // Clear fired list and force-fire
+  localStorage.removeItem('shiftbook_notifFired');
+  lines.push('→ Cleared fired list, attempting notification now...');
+
+  if (Notification.permission !== 'granted') {
+    lines.push('✗ Permission not granted — requesting now');
+    Notification.requestPermission().then(p => {
+      toast('Permission result: ' + p);
+      if (p === 'granted') checkReminderNotifications();
+    });
+  } else {
+    // Fire a test notification immediately regardless of reminders
+    try {
+      new Notification('ShiftBook Test', {
+        body: 'Notification test fired at ' + new Date().toLocaleTimeString('en-GB'),
+        tag: 'sb-debug-' + Date.now(),
+      });
+      lines.push('✓ Test notification dispatched');
+    } catch(e) {
+      lines.push('✗ Notification threw: ' + e.message);
+    }
+    // Also run the real check
+    checkReminderNotifications();
+    lines.push('✓ checkReminderNotifications() called');
+  }
+
+  toast(lines[0] + ' | ' + lines[1]);
+  console.log('[ShiftBook Notification Debug]\n' + lines.join('\n'));
+  alert('[ShiftBook Notification Debug]\n\n' + lines.join('\n'));
 }
 
 function updateNotifBadge() {
