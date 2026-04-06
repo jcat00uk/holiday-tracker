@@ -3911,45 +3911,67 @@ function debugNotifications() {
   lines.push('SW controller: ' + (navigator.serviceWorker && navigator.serviceWorker.controller ? 'active' : 'null'));
   const today = dstr(new Date());
   lines.push('Today: ' + today);
-  const allRem = S.bookings.filter(b => b.status === 'planned' && b.reminderDate);
-  lines.push('Planned with reminder: ' + allRem.length);
+
+  // Show ALL bookings that have ANY reminderDate set, regardless of status
+  const allRem = S.bookings.filter(b => b.reminderDate);
+  lines.push('All bookings with reminderDate: ' + allRem.length);
   allRem.forEach(b => {
     const due = b.reminderDate <= today;
-    lines.push('  reminderDate=' + b.reminderDate + ' bookingDate=' + b.date + ' due=' + due + (due ? ' ← WILL FIRE' : ' ← not due yet'));
+    lines.push('  status=' + b.status + ' reminderDate=' + b.reminderDate + ' bookingDate=' + b.date + (due ? ' ← DUE' : ' ← not yet'));
   });
+
+  // Also show planned bookings without a reminder
+  const plannedNoRem = S.bookings.filter(b => b.status === 'planned' && !b.reminderDate);
+  lines.push('Planned with NO reminder: ' + plannedNoRem.length);
+
   let firedRaw = [];
   try { firedRaw = JSON.parse(localStorage.getItem('shiftbook_notifFired') || '[]'); } catch(e) {}
   lines.push('notifFired store: ' + JSON.stringify(firedRaw));
   localStorage.removeItem('shiftbook_notifFired');
   lines.push('→ Cleared fired list');
 
+  const showDebugModal = (extraLines) => {
+    const all = lines.concat(extraLines || []).join('\n');
+    console.log('[ShiftBook Debug]\n' + all);
+    // Create selectable in-page modal
+    const existing = document.getElementById('_dbgModal');
+    if (existing) existing.remove();
+    const div = document.createElement('div');
+    div.id = '_dbgModal';
+    div.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+    div.innerHTML = `<div style="background:#1a1e2a;border:1px solid #444;border-radius:8px;padding:20px;max-width:600px;width:100%;max-height:80vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <strong style="color:#00c896">ShiftBook Debug</strong>
+        <button onclick="document.getElementById('_dbgModal').remove()" style="background:none;border:1px solid #444;color:#aaa;padding:3px 10px;border-radius:4px;cursor:pointer">Close</button>
+      </div>
+      <textarea readonly style="width:100%;height:300px;background:#0b0d12;color:#dde4f5;border:1px solid #333;border-radius:4px;padding:10px;font-family:monospace;font-size:12px;resize:vertical">${all}</textarea>
+      <div style="margin-top:8px;font-size:.7rem;color:#666">Select all text in the box above (Ctrl+A) then copy</div>
+    </div>`;
+    document.body.appendChild(div);
+  };
+
   if (Notification.permission !== 'granted') {
-    lines.push('✗ BLOCKED: permission not granted');
-    alert('[ShiftBook Debug]\n\n' + lines.join('\n'));
+    showDebugModal(['✗ BLOCKED: permission not granted']);
     return;
   }
 
-  // Step 1 — direct new Notification() baseline
   try {
     new Notification('ShiftBook Step1', { body: 'Direct Notification() test', tag: 'sb-s1-' + Date.now() });
-    lines.push('Step1 direct: dispatched (suppressed if tab focused)');
+    lines.push('Step1 direct: dispatched');
   } catch(e) {
     lines.push('Step1 direct THREW: ' + e.name + ' ' + e.message);
   }
 
-  // Step 2 — reg.showNotification() via SW ready
   if (!('serviceWorker' in navigator)) {
-    lines.push('Step2: SW not supported');
-    alert('[ShiftBook Debug]\n\n' + lines.join('\n'));
+    showDebugModal(['Step2: SW not supported']);
     return;
   }
 
   navigator.serviceWorker.ready.then(reg => {
     lines.push('Step2 SW ready: scope=' + reg.scope);
     lines.push('Step2 active state: ' + (reg.active ? reg.active.state : 'none'));
-    // Use reg.showNotification directly — does NOT need controller to be non-null
     return reg.showNotification('ShiftBook Step2', {
-      body: 'reg.showNotification() — always shows even if controller=null',
+      body: 'reg.showNotification() — should show even if controller=null',
       tag: 'sb-s2-' + Date.now(),
       requireInteraction: true,
     }).then(() => {
@@ -3958,8 +3980,7 @@ function debugNotifications() {
   }).catch(e => {
     lines.push('Step2 THREW: ' + e.name + ': ' + e.message);
   }).finally(() => {
-    console.log('[ShiftBook Debug]\n' + lines.join('\n'));
-    alert('[ShiftBook Debug]\n\n' + lines.join('\n'));
+    showDebugModal();
   });
 }
 
