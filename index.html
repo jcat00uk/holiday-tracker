@@ -3858,11 +3858,14 @@ function initNotifications() {
   if (!('Notification' in window)) return;
   if (_notifCheckInterval) clearInterval(_notifCheckInterval);
   _notifCheckInterval = setInterval(checkReminderNotifications, 60000);
-  // Register service worker for reliable notifications (works foregrounded + mobile)
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    navigator.serviceWorker.register('/sw.js')
+      .then(() => navigator.serviceWorker.ready)
+      .then(() => checkReminderNotifications())
+      .catch(() => checkReminderNotifications()); // fallback if SW fails
+  } else {
+    checkReminderNotifications();
   }
-  checkReminderNotifications();
 }
 
 function checkReminderNotifications() {
@@ -3884,11 +3887,18 @@ function checkReminderNotifications() {
     const title = 'ShiftBook Reminder';
     const body  = 'Submit your holiday booking for ' + fmtDate(b.date) + ' (' + hhmm(b.hoursBooked) + ')';
     const tag   = 'sb-rem-' + b.id;
-    // Use service worker if available — works foregrounded and on mobile
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body, tag });
+    if ('serviceWorker' in navigator) {
+      // Use ready promise — guarantees SW is active even on first load
+      navigator.serviceWorker.ready.then(reg => {
+        if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body, tag });
+        } else {
+          reg.showNotification(title, { body, tag, icon: '/favicon.ico' });
+        }
+      }).catch(() => {
+        try { new Notification(title, { body, tag }); } catch(e) {}
+      });
     } else {
-      // Fallback to direct Notification (works when tab is backgrounded on desktop)
       try { new Notification(title, { body, tag }); } catch(e) {}
     }
     firedToday.push(b.id);
@@ -3932,9 +3942,16 @@ function debugNotifications() {
     const title = 'ShiftBook Test';
     const body  = 'Notification test at ' + new Date().toLocaleTimeString('en-GB');
     const tag   = 'sb-debug-' + Date.now();
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body, tag });
-      lines.push('✓ Sent via ServiceWorker');
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(reg => {
+        if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body, tag });
+          lines.push('✓ Sent via SW controller');
+        } else {
+          reg.showNotification(title, { body, tag, icon: '/favicon.ico' });
+          lines.push('✓ Sent via reg.showNotification()');
+        }
+      });
     } else {
       try { new Notification(title, { body, tag }); lines.push('✓ Sent via direct Notification'); }
       catch(e) { lines.push('✗ Threw: ' + e.message); }
