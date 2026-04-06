@@ -3916,53 +3916,57 @@ function debugNotifications() {
   const lines = [];
   lines.push('Permission: ' + Notification.permission);
   lines.push('remindersEnabled: ' + !!(S.settings && S.settings.remindersEnabled));
+  lines.push('SW supported: ' + ('serviceWorker' in navigator));
+  lines.push('SW controller: ' + (navigator.serviceWorker && navigator.serviceWorker.controller ? 'active' : 'null'));
   const today = dstr(new Date());
   lines.push('Today: ' + today);
   const allRem = S.bookings.filter(b => b.status === 'planned' && b.reminderDate);
-  lines.push('Planned bookings with reminder: ' + allRem.length);
-  allRem.forEach(b => lines.push('  → ' + b.reminderDate + ' (booking ' + b.date + ') due=' + (b.reminderDate <= today)));
+  lines.push('Planned with reminder: ' + allRem.length);
+  allRem.forEach(b => lines.push('  reminderDate=' + b.reminderDate + ' bookingDate=' + b.date + ' due=' + (b.reminderDate <= today)));
   let firedRaw = [];
   try { firedRaw = JSON.parse(localStorage.getItem('shiftbook_notifFired') || '[]'); } catch(e) {}
-  lines.push('shiftbook_notifFired: ' + JSON.stringify(firedRaw));
-
-  lines.push('ServiceWorker supported: ' + ('serviceWorker' in navigator));
-  lines.push('SW controller: ' + (navigator.serviceWorker && navigator.serviceWorker.controller ? 'active' : 'none'));
-
-  // Clear fired list and force-fire
+  lines.push('notifFired store: ' + JSON.stringify(firedRaw));
   localStorage.removeItem('shiftbook_notifFired');
-  lines.push('→ Cleared fired list, attempting notification now...');
+  lines.push('→ Cleared fired list');
 
   if (Notification.permission !== 'granted') {
-    lines.push('✗ Permission not granted — requesting now');
-    Notification.requestPermission().then(p => {
-      toast('Permission result: ' + p);
-      if (p === 'granted') checkReminderNotifications();
-    });
-  } else {
-    const title = 'ShiftBook Test';
-    const body  = 'Notification test at ' + new Date().toLocaleTimeString('en-GB');
-    const tag   = 'sb-debug-' + Date.now();
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then(reg => {
-        if (navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body, tag });
-          lines.push('✓ Sent via SW controller');
-        } else {
-          reg.showNotification(title, { body, tag, icon: '/favicon.ico' });
-          lines.push('✓ Sent via reg.showNotification()');
-        }
-      });
-    } else {
-      try { new Notification(title, { body, tag }); lines.push('✓ Sent via direct Notification'); }
-      catch(e) { lines.push('✗ Threw: ' + e.message); }
-    }
-    checkReminderNotifications();
-    lines.push('✓ checkReminderNotifications() called');
+    lines.push('✗ BLOCKED: permission not granted');
+    alert('[ShiftBook Debug]\n\n' + lines.join('\n'));
+    return;
   }
 
-  toast(lines[0] + ' | ' + lines[1]);
-  console.log('[ShiftBook Notification Debug]\n' + lines.join('\n'));
-  alert('[ShiftBook Notification Debug]\n\n' + lines.join('\n'));
+  // Step 1 — direct new Notification() baseline
+  try {
+    new Notification('ShiftBook Step1', { body: 'Direct Notification() test', tag: 'sb-s1-' + Date.now() });
+    lines.push('Step1 direct: dispatched (suppressed if tab focused)');
+  } catch(e) {
+    lines.push('Step1 direct THREW: ' + e.name + ' ' + e.message);
+  }
+
+  // Step 2 — reg.showNotification() via SW ready
+  if (!('serviceWorker' in navigator)) {
+    lines.push('Step2: SW not supported');
+    alert('[ShiftBook Debug]\n\n' + lines.join('\n'));
+    return;
+  }
+
+  navigator.serviceWorker.ready.then(reg => {
+    lines.push('Step2 SW ready: scope=' + reg.scope);
+    lines.push('Step2 SW active state: ' + (reg.active ? reg.active.state : 'none'));
+    lines.push('Step2 controller after ready: ' + (navigator.serviceWorker.controller ? navigator.serviceWorker.controller.state : 'null'));
+    return reg.showNotification('ShiftBook Step2', {
+      body: 'reg.showNotification() test — should ALWAYS show',
+      tag: 'sb-s2-' + Date.now(),
+      requireInteraction: true,
+    }).then(() => {
+      lines.push('Step2 reg.showNotification: resolved ✓');
+    });
+  }).catch(e => {
+    lines.push('Step2 THREW: ' + e.name + ': ' + e.message);
+  }).finally(() => {
+    console.log('[ShiftBook Debug]\n' + lines.join('\n'));
+    alert('[ShiftBook Debug]\n\n' + lines.join('\n'));
+  });
 }
 
 function updateNotifBadge() {
