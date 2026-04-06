@@ -3887,20 +3887,11 @@ function checkReminderNotifications() {
     const title = 'ShiftBook Reminder';
     const body  = 'Submit your holiday booking for ' + fmtDate(b.date) + ' (' + hhmm(b.hoursBooked) + ')';
     const tag   = 'sb-rem-' + b.id;
-    if ('serviceWorker' in navigator) {
-      // Use ready promise — guarantees SW is active even on first load
-      navigator.serviceWorker.ready.then(reg => {
-        if (navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, body, tag });
-        } else {
-          reg.showNotification(title, { body, tag, icon: '/favicon.ico' });
-        }
-      }).catch(() => {
-        try { new Notification(title, { body, tag }); } catch(e) {}
-      });
-    } else {
+    navigator.serviceWorker.ready.then(reg => {
+      reg.showNotification(title, { body, tag, requireInteraction: false });
+    }).catch(() => {
       try { new Notification(title, { body, tag }); } catch(e) {}
-    }
+    });
     firedToday.push(b.id);
   });
   if (due.length) {
@@ -3922,7 +3913,10 @@ function debugNotifications() {
   lines.push('Today: ' + today);
   const allRem = S.bookings.filter(b => b.status === 'planned' && b.reminderDate);
   lines.push('Planned with reminder: ' + allRem.length);
-  allRem.forEach(b => lines.push('  reminderDate=' + b.reminderDate + ' bookingDate=' + b.date + ' due=' + (b.reminderDate <= today)));
+  allRem.forEach(b => {
+    const due = b.reminderDate <= today;
+    lines.push('  reminderDate=' + b.reminderDate + ' bookingDate=' + b.date + ' due=' + due + (due ? ' ← WILL FIRE' : ' ← not due yet'));
+  });
   let firedRaw = [];
   try { firedRaw = JSON.parse(localStorage.getItem('shiftbook_notifFired') || '[]'); } catch(e) {}
   lines.push('notifFired store: ' + JSON.stringify(firedRaw));
@@ -3952,14 +3946,14 @@ function debugNotifications() {
 
   navigator.serviceWorker.ready.then(reg => {
     lines.push('Step2 SW ready: scope=' + reg.scope);
-    lines.push('Step2 SW active state: ' + (reg.active ? reg.active.state : 'none'));
-    lines.push('Step2 controller after ready: ' + (navigator.serviceWorker.controller ? navigator.serviceWorker.controller.state : 'null'));
+    lines.push('Step2 active state: ' + (reg.active ? reg.active.state : 'none'));
+    // Use reg.showNotification directly — does NOT need controller to be non-null
     return reg.showNotification('ShiftBook Step2', {
-      body: 'reg.showNotification() test — should ALWAYS show',
+      body: 'reg.showNotification() — always shows even if controller=null',
       tag: 'sb-s2-' + Date.now(),
       requireInteraction: true,
     }).then(() => {
-      lines.push('Step2 reg.showNotification: resolved ✓');
+      lines.push('Step2 resolved ✓ — did a popup appear?');
     });
   }).catch(e => {
     lines.push('Step2 THREW: ' + e.name + ': ' + e.message);
