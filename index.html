@@ -260,7 +260,8 @@ body.cal-active main{
 .fyat td{padding:4px 6px;border-bottom:1px solid var(--bd);vertical-align:middle}
 .fyat col.col-fy{width:80px}
 .fyat col.col-date{width:108px}
-.fyat col.col-num{width:58px}
+.fyat col.col-num{width:90px}
+.fyat td select{width:100%;padding:3px 4px;font-size:.72rem;background:var(--s2);border:1px solid var(--bd);color:var(--t1);border-radius:3px;outline:none;box-sizing:border-box;}
 .fyat col.col-del{width:36px}
 .fyat td input[type=number]{width:100%;padding:3px 5px;font-size:.74rem;background:var(--s2);border:1px solid var(--bd);color:var(--t1);border-radius:3px;outline:none;box-sizing:border-box}
 .fyat td input[type=date]{width:100%;padding:3px 5px;font-size:.72rem;background:var(--s2);border:1px solid var(--bd);color:var(--t1);border-radius:3px;outline:none;box-sizing:border-box}
@@ -823,8 +824,8 @@ body.cal-active main{
             <option value="gt5">5 years or more</option>
           </select>
         </div>
-        <div class="fr"><label>Contracted hours/week</label>
-          <input type="number" id="c-chrs" value="33" step="1" onchange="calcSuggest();autoSave();renderRotEditor()">
+        <div class="fr"><label>Contracted hours/week (Excluding Breaks)</label>
+          <select id="c-chrs" onchange="calcSuggest();autoSave();renderRotEditor()"></select>
         </div>
         </div><!-- /nsSub -->
         <div class="sugbox" id="sugBox">—</div>
@@ -1073,9 +1074,16 @@ const ALLOC={
   gt5_night:[7,14,21,28,35,42,49,56,63,70,77,84,91,98,105,112,119,126,133,140,147,154,161,168,175,182,189,196,203,210,217,224,231,238,245,252,259,266,273]
 };
 function allocLookup(chrs,ys,ns){
-  const i=Math.min(38,Math.max(0,Math.round(chrs)-1));
   const row=(ys==='gt5')?(ns==='yes'?'gt5_night':'gt5_day'):(ns==='yes'?'lt5_night':'lt5_day');
-  return ALLOC[row][i];
+  const table=ALLOC[row];
+  // Interpolate between surrounding whole-hour entries for fractional contracted hours
+  const lo=Math.floor(chrs)-1, hi=lo+1;
+  const iLo=Math.min(38,Math.max(0,lo));
+  const iHi=Math.min(38,Math.max(0,hi));
+  if(iLo===iHi)return table[iLo];
+  const frac=chrs-Math.floor(chrs); // fractional part e.g. 0.67 for 14h40m
+  const result=table[iLo]+frac*(table[iHi]-table[iLo]);
+  return Math.round(result*4)/4; // round to nearest 0.25h
 }
 
 // ═══════════════════════════════════════
@@ -1135,6 +1143,34 @@ function sortedByDate(arr,asc=true){
 
 const TIME_OPTS=[];for(let m=0;m<1440;m+=15)TIME_OPTS.push(fromMins(m));
 function popSel(el,val){el.innerHTML=TIME_OPTS.map(t=>`<option value="${t}"${t===val?' selected':''}>${t}</option>`).join('');}
+// Populate a contracted-hours dropdown: 0.25h increments from 0.25 to 50h
+function hrsToHHMM(h){
+  const hrs=Math.floor(h),mins=Math.round((h-hrs)*60);
+  return hrs+'h '+(mins>0?mins+'m':'');
+}
+// Convert HH:MM display back to decimal
+function hhmmToHrs(str){return parseFloat(str)||0;}
+
+// Populate a contracted-hours dropdown: 0.25h increments from 0.25 to 50h
+function popChrsSelect(el, val){
+  const opts=[];
+  for(let h=0.25;h<=50;h+=0.25){
+    const hrs=Math.floor(h),mins=Math.round((h-hrs)*60);
+    const lbl=hrs+'h'+(mins>0?' '+mins+'m':'');
+    opts.push(`<option value="${h}"${Math.abs(h-val)<0.01?' selected':''}>${lbl}</option>`);
+  }
+  el.innerHTML=opts.join('');
+}
+// Populate an allocation-hours dropdown: 15min increments from 0 to 300h
+function popAllocSelect(el, val){
+  const opts=[];
+  for(let h=0;h<=300;h+=0.25){
+    const hrs=Math.floor(h),mins=Math.round((h-hrs)*60);
+    const lbl=hrs+'h'+(mins>0?' '+mins+'m':'');
+    opts.push(`<option value="${h}"${Math.abs(h-val)<0.01?' selected':''}>${lbl}</option>`);
+  }
+  el.innerHTML=opts.join('');
+}
 
 
 // ═══════════════════════════════════════
@@ -2278,7 +2314,9 @@ function loadSettingsUI(){
   const nsOn=c.isNightWorker===true||(c.nightShift&&c.nightShift!=='no');
   document.getElementById('c-ns-toggle').checked=nsOn;
   document.getElementById('nsSub').classList.toggle('dim',!nsOn);
-  document.getElementById('c-chrs').value=c.contractedHours;
+  // Populate contracted hours dropdown
+  const chrsEl=document.getElementById('c-chrs');
+  popChrsSelect(chrsEl, c.contractedHours||33);
   popSel(document.getElementById('c-dstart'),c.defaultStart||'23:00');
   popSel(document.getElementById('c-dend'),c.defaultEnd||'07:00');
   document.getElementById('c-notice').value=c.noticeDays||28;
@@ -2325,13 +2363,17 @@ function calcSuggest(){
   const chrs=parseFloat(document.getElementById('c-chrs').value)||33;
   const ys=document.getElementById('c-ys').value,ns=document.getElementById('c-ns').value;
   const sugg=allocLookup(chrs,ys,ns);
+  const hrs=Math.floor(sugg),mins=Math.round((sugg-hrs)*60);
+  const suggLbl=hrs+'h'+(mins>0?' '+mins+'m':'');
   const rn=(ys==='gt5')?(ns==='yes'?'≥5yrs night':'≥5yrs day'):(ns==='yes'?'<5yrs night':'<5yrs day');
-  // Check if current FY allocation differs from suggestion
   const curAlloc=parseFloat((S.fyAllocs[curFY]||{}).hours)||0;
-  const showUpdate=(curAlloc>0&&curAlloc!==sugg);
+  const showUpdate=(curAlloc>0&&Math.abs(curAlloc-sugg)>0.1);
   document.getElementById('sugBox').innerHTML=
-    `Suggested: <span class="big">${sugg}h</span><br><small>${rn} · ${chrs}h/wk</small>`+
-    (showUpdate?`<br><button class="btng" onclick="applyAllocSuggestion(${sugg})" style="font-size:.7rem;padding:3px 9px;margin-top:5px">↑ Update ${curFY} allocation to ${sugg}h</button>`:'');
+    `Suggested: <span class="big">${suggLbl}</span><br><small>${rn} · ${chrs}h/wk</small>`+
+    (showUpdate?`<br><button class="btng" onclick="applyAllocSuggestion(${sugg})" style="font-size:.7rem;padding:3px 9px;margin-top:5px">↑ Update ${curFY} allocation to ${suggLbl}</button>`:'');
+  // Sync contracted hours to QS modal if open
+  const qsChrs = document.getElementById('qs-chrs');
+  if (qsChrs && qsChrs.children.length) qsChrs.value = chrs;
 }
 function applyAllocSuggestion(hrs){
   if(!S.fyAllocs[curFY])ensureFY(curFY);
@@ -2363,29 +2405,32 @@ function nextFYStartDate(fromDateStr){
 
 function renderFYAllocTable(){
   const body=document.getElementById('fyAllocBody');
-  const keys=allFYKeys().sort(); // ascending for prev-lookup
+  const keys=allFYKeys().sort();
   keys.forEach(k=>ensureFY(k));
   const keysDesc=[...keys].reverse();
   body.innerHTML=keysDesc.map((k,i)=>{
     const fa=S.fyAllocs[k];
-    // Auto-suggest start date from previous FY (earlier one = keys[keysDesc.length-1-i-1])
     const prevKey=keys[keys.indexOf(k)-1];
     const prevStart=prevKey&&S.fyAllocs[prevKey]?S.fyAllocs[prevKey].startDate:'';
     const suggestedDate=(!fa.startDate&&prevStart)?nextFYStartDate(prevStart):'';
     const displayDate=fa.startDate||suggestedDate;
-    // If suggested and not yet saved, auto-save it
-    if(suggestedDate&&!fa.startDate){
-      S.fyAllocs[k].startDate=suggestedDate;
-      // persist deferred — will happen on next autoSave
-    }
+    if(suggestedDate&&!fa.startDate){S.fyAllocs[k].startDate=suggestedDate;}
     return`<tr class="${k===curFY?'cfy':''}">
       <td style="font-family:var(--mono);font-size:.7rem">${k}</td>
-      <td><input type="date" value="${displayDate}" onchange="saveFYA('${k}','startDate',this.value)" title="FY start date (Sunday). Auto-calculated as 52 weeks from previous FY."></td>
-      <td><input type="number" step="0.5" value="${fa.hours}" onchange="saveFYA('${k}','hours',this.value)"></td>
-      <td><input type="number" step="0.5" value="${fa.carryOver||0}" onchange="saveFYA('${k}','carryOver',this.value)"></td>
+      <td><input type="date" value="${displayDate}" onchange="saveFYA('${k}','startDate',this.value)" title="FY start date (Sunday)."></td>
+      <td><select id="fya-hrs-${k}" onchange="saveFYA('${k}','hours',this.value)" style="font-size:.72rem;width:100%"></select></td>
+      <td><select id="fya-co-${k}" onchange="saveFYA('${k}','carryOver',this.value)" style="font-size:.72rem;width:100%"></select></td>
       <td><button class="del-fy" onclick="delFY('${k}')">Del</button></td>
     </tr>`;
   }).join('');
+  // Populate the allocation dropdowns after rendering
+  keysDesc.forEach(k=>{
+    const fa=S.fyAllocs[k];
+    const hrsEl=document.getElementById('fya-hrs-'+k);
+    const coEl=document.getElementById('fya-co-'+k);
+    if(hrsEl)popAllocSelect(hrsEl,fa.hours||0);
+    if(coEl)popAllocSelect(coEl,fa.carryOver||0);
+  });
 }
 function saveFYA(fyk,field,val){
   ensureFY(fyk);
@@ -2641,7 +2686,9 @@ function resetSettings(){
     prorata: 'no',
     prorataStart: '',
     breakRules: [
-      { geHrs: 6, mins: 30 },
+      { geHrs: 9, mins: 45 },
+      { geHrs: 8, mins: 30 },
+      { geHrs: 6, mins: 20 },
       { geHrs: 4.5, mins: 15 }
     ],
     rotation: Array(4).fill().map(() =>
@@ -2776,26 +2823,28 @@ setTimeout(() => {
 // ═══════════════════════════════════════════════════════
 
 function openQuickSetup() {
-  // Reset to Days defaults
   const empSel = document.getElementById('qs-emptype');
   empSel.value = 'days';
   document.getElementById('qs-ns-row').style.display = 'none';
+  document.getElementById('qs-ns-note').style.display = 'none';
   document.getElementById('qs-ns').value = 'no';
   document.getElementById('qs-yrs').value = S.settings.yearsService || 'gt5';
 
-  // Default times match the selected emptype (Days = 07:00/15:00, Nights = 23:00/07:00)
-  // Since we always reset to Days above, always start with day times
+  // Populate contracted hours dropdown — pre-fill from saved settings
+  const qsChrsEl = document.getElementById('qs-chrs');
+  popChrsSelect(qsChrsEl, S.settings.contractedHours || 33);
+
+  // Populate allocation dropdown
+  const qsAllocEl = document.getElementById('qs-fyalloc');
+  popAllocSelect(qsAllocEl, 0);
+  qsAllocEl._userEdited = false;
+
   popSel(document.getElementById('qs-dstart'), '07:00');
   popSel(document.getElementById('qs-dend'),   '15:00');
 
-  // Set FY from engine
   const fyInfo = getFinancialYearFromDate(new Date());
   document.getElementById('qs-fyk').value = fyInfo.key;
   document.getElementById('qs-fystart').value = dstr(fyInfo.startDate);
-
-  // Reset user-edited flag on allocation input
-  const allocEl = document.getElementById('qs-fyalloc');
-  if (allocEl) allocEl._userEdited = false;
 
   qsCalcSuggestion();
   document.getElementById('qsMbg').classList.add('open');
@@ -2811,16 +2860,11 @@ function closeQuickSetup() {
 function qsOnEmpType() {
   const v = document.getElementById('qs-emptype').value;
   const isNight = (v === 'nights');
-  const nsRow = document.getElementById('qs-ns-row');
-  nsRow.style.display = isNight ? '' : 'none';
-  // Days: force ns eligibility to not eligible
-  if (!isNight) {
-    const nsEl = document.getElementById('qs-ns');
-    if (nsEl) nsEl.value = 'no';
-  }
-  // Set default shift times
-  document.getElementById('qs-dstart').value = isNight ? '23:00' : '07:00';
-  document.getElementById('qs-dend').value   = isNight ? '07:00' : '15:00';
+  document.getElementById('qs-ns-row').style.display = isNight ? '' : 'none';
+  document.getElementById('qs-ns-note').style.display = isNight ? '' : 'none';
+  if (!isNight) document.getElementById('qs-ns').value = 'no';
+  popSel(document.getElementById('qs-dstart'), isNight ? '22:15' : '07:00');
+  popSel(document.getElementById('qs-dend'),   isNight ? '07:00' : '15:00');
   qsCalcSuggestion();
 }
 
@@ -2830,10 +2874,18 @@ function qsCalcSuggestion() {
   const nsEl = document.getElementById('qs-ns');
   const ns   = nsEl ? nsEl.value : 'no';
   const sugg = allocLookup(chrs, ys, ns);
-  const el   = document.getElementById('qs-sugg');
-  if (el) el.textContent = sugg + 'h';
+  // Show suggestion in HH:MM format
+  const hrs=Math.floor(sugg), mins=Math.round((sugg-hrs)*60);
+  const suggLbl = hrs+'h'+(mins>0?' '+mins+'m':'');
+  const el = document.getElementById('qs-sugg');
+  if (el) el.textContent = suggLbl;
+  // Auto-set allocation dropdown unless user has manually changed it
   const allocEl = document.getElementById('qs-fyalloc');
-  if (allocEl && !allocEl._userEdited) allocEl.value = sugg;
+  if (allocEl && !allocEl._userEdited) popAllocSelect(allocEl, sugg);
+  // Sync contracted hours to Settings without triggering a full reload
+  S.settings.contractedHours = chrs;
+  const settChrs = document.getElementById('c-chrs');
+  if (settChrs && settChrs.children.length) settChrs.value = chrs;
 }
 
 function saveQuickSetup() {
@@ -2848,7 +2900,6 @@ function saveQuickSetup() {
   const fyk     = document.getElementById('qs-fyk').value;
   const fystart = document.getElementById('qs-fystart').value;
   const fyalloc = parseFloat(document.getElementById('qs-fyalloc').value)||allocLookup(chrs,ys,ns);
-
   S.settings.yearsService    = ys;
   S.settings.nightShift      = ns;
   S.settings.isNightWorker   = isNight;
@@ -4776,6 +4827,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <option value="no">Not eligible for extra allocation</option>
           <option value="yes">Eligible for extra allocation</option>
         </select>
+        <p id="qs-ns-note" style="display:none;font-size:.68rem;color:var(--t3);line-height:1.5;margin-top:5px">Night shift workers who regularly work the midnight–5am window and average 9+ hours per shift may be eligible for additional holiday allocation. Check with your employer — eligibility is not automatic.</p>
       </div>
     </div>
 
@@ -4789,8 +4841,8 @@ document.addEventListener('DOMContentLoaded', () => {
         </select>
       </div>
       <div class="fr">
-        <label>Contracted hours / week</label>
-        <input type="number" id="qs-chrs" value="33" oninput="qsCalcSuggestion()" min="1" max="60" step="0.5">
+        <label>Contracted hours/week (Excluding Breaks)</label>
+        <select id="qs-chrs" onchange="qsCalcSuggestion()"></select>
       </div>
     </div>
     <div class="qs-row">
@@ -4825,7 +4877,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
     <div class="fr">
       <label>Allocation hours</label>
-      <input type="number" id="qs-fyalloc" oninput="this._userEdited=true" step="0.5" min="0">
+      <select id="qs-fyalloc" onchange="this._userEdited=true"></select>
       <span class="hint">Auto-filled from suggestion above — editable</span>
     </div>
 
