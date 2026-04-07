@@ -825,7 +825,12 @@ body.cal-active main{
           </select>
         </div>
         <div class="fr"><label>Contracted hours/week (Excluding Breaks)</label>
-          <select id="c-chrs" onchange="calcSuggest();autoSave();renderRotEditor()"></select>
+          <div style="display:flex;align-items:center;gap:6px">
+            <select id="c-chrs-h" style="width:80px;font-family:var(--mono)" onchange="calcSuggest();autoSave();renderRotEditor()"></select>
+            <span style="color:var(--t3);font-size:.75rem">h</span>
+            <select id="c-chrs-m" style="width:80px;font-family:var(--mono)" onchange="calcSuggest();autoSave();renderRotEditor()"></select>
+            <span style="color:var(--t3);font-size:.75rem">m</span>
+          </div>
         </div>
         </div><!-- /nsSub -->
         <div class="sugbox" id="sugBox">—</div>
@@ -1151,15 +1156,38 @@ function hrsToHHMM(h){
 // Convert HH:MM display back to decimal
 function hhmmToHrs(str){return parseFloat(str)||0;}
 
-// Populate a contracted-hours dropdown: 0.25h increments from 0.25 to 50h
-function popChrsSelect(el, val){
-  const opts=[];
-  for(let h=0.25;h<=50;h+=0.25){
-    const hrs=Math.floor(h),mins=Math.round((h-hrs)*60);
-    const lbl=hrs+'h'+(mins>0?' '+mins+'m':'');
-    opts.push(`<option value="${h}"${Math.abs(h-val)<0.01?' selected':''}>${lbl}</option>`);
-  }
-  el.innerHTML=opts.join('');
+// Populate contracted hours hour select (0–50)
+function popChrsHours(el){
+  el.innerHTML=Array.from({length:51},(_,h)=>`<option value="${h}">${h}h</option>`).join('');
+}
+// Populate contracted hours minutes select (0,5,10,...,55)
+function popChrsMins(el){
+  el.innerHTML=[0,5,10,15,20,25,30,35,40,45,50,55].map(m=>`<option value="${m}">${String(m).padStart(2,'0')}m</option>`).join('');
+}
+// Get contracted hours decimal from the two selects (prefix: 'c-chrs' or 'qs-chrs')
+function getChrs(prefix){
+  const h=parseInt(document.getElementById(prefix+'-h').value)||0;
+  const m=parseInt(document.getElementById(prefix+'-m').value)||0;
+  return h+m/60;
+}
+// Set contracted hours into the two selects
+function setChrs(prefix,val){
+  const h=Math.floor(val);
+  const m=Math.round((val-h)*60);
+  // Round m to nearest 5
+  const m5=Math.round(m/5)*5;
+  const hEl=document.getElementById(prefix+'-h');
+  const mEl=document.getElementById(prefix+'-m');
+  if(hEl)hEl.value=h;
+  if(mEl)mEl.value=m5;
+}
+// Populate both contracted hours selects and set value
+function popChrsSelect(prefix,val){
+  const hEl=document.getElementById(prefix+'-h');
+  const mEl=document.getElementById(prefix+'-m');
+  if(hEl&&!hEl.children.length) popChrsHours(hEl);
+  if(mEl&&!mEl.children.length) popChrsMins(mEl);
+  setChrs(prefix,val);
 }
 // Populate an allocation-hours dropdown: 15min increments from 0 to 300h
 function popAllocSelect(el, val){
@@ -2296,7 +2324,7 @@ function readSettings(){
   c.yearsService=document.getElementById('c-ys').value;
   c.nightShift=document.getElementById('c-ns').value;
   c.isNightWorker=document.getElementById('c-ns-toggle').checked;
-  c.contractedHours=parseFloat(document.getElementById('c-chrs').value)||33;
+  c.contractedHours=getChrs('c-chrs');
   c.defaultStart=document.getElementById('c-dstart').value;
   c.defaultEnd=document.getElementById('c-dend').value;
   c.noticeDays=parseInt(document.getElementById('c-notice').value)||28;
@@ -2314,9 +2342,8 @@ function loadSettingsUI(){
   const nsOn=c.isNightWorker===true||(c.nightShift&&c.nightShift!=='no');
   document.getElementById('c-ns-toggle').checked=nsOn;
   document.getElementById('nsSub').classList.toggle('dim',!nsOn);
-  // Populate contracted hours dropdown
-  const chrsEl=document.getElementById('c-chrs');
-  popChrsSelect(chrsEl, c.contractedHours||33);
+  // Populate contracted hours dropdowns
+  popChrsSelect('c-chrs', c.contractedHours||33);
   popSel(document.getElementById('c-dstart'),c.defaultStart||'23:00');
   popSel(document.getElementById('c-dend'),c.defaultEnd||'07:00');
   document.getElementById('c-notice').value=c.noticeDays||28;
@@ -2360,7 +2387,7 @@ function onNsToggle(){
 }
 
 function calcSuggest(){
-  const chrs=parseFloat(document.getElementById('c-chrs').value)||33;
+  const chrs=getChrs('c-chrs');
   const ys=document.getElementById('c-ys').value,ns=document.getElementById('c-ns').value;
   const sugg=allocLookup(chrs,ys,ns);
   const hrs=Math.floor(sugg),mins=Math.round((sugg-hrs)*60);
@@ -2369,11 +2396,11 @@ function calcSuggest(){
   const curAlloc=parseFloat((S.fyAllocs[curFY]||{}).hours)||0;
   const showUpdate=(curAlloc>0&&Math.abs(curAlloc-sugg)>0.1);
   document.getElementById('sugBox').innerHTML=
-    `Suggested: <span class="big">${suggLbl}</span><br><small>${rn} · ${chrs}h/wk</small>`+
+    `Suggested: <span class="big">${suggLbl}</span><br><small>${rn} · ${chrs.toFixed(2)}h/wk</small>`+
     (showUpdate?`<br><button class="btng" onclick="applyAllocSuggestion(${sugg})" style="font-size:.7rem;padding:3px 9px;margin-top:5px">↑ Update ${curFY} allocation to ${suggLbl}</button>`:'');
-  // Sync contracted hours to QS modal if open
-  const qsChrs = document.getElementById('qs-chrs');
-  if (qsChrs && qsChrs.children.length) qsChrs.value = chrs;
+  // Sync to QS modal if selects are populated
+  const qsH=document.getElementById('qs-chrs-h');
+  if(qsH&&qsH.children.length) setChrs('qs-chrs', chrs);
 }
 function applyAllocSuggestion(hrs){
   if(!S.fyAllocs[curFY])ensureFY(curFY);
@@ -2830,9 +2857,8 @@ function openQuickSetup() {
   document.getElementById('qs-ns').value = 'no';
   document.getElementById('qs-yrs').value = S.settings.yearsService || 'gt5';
 
-  // Populate contracted hours dropdown — pre-fill from saved settings
-  const qsChrsEl = document.getElementById('qs-chrs');
-  popChrsSelect(qsChrsEl, S.settings.contractedHours || 33);
+  // Populate contracted hours dropdowns — pre-fill from saved settings
+  popChrsSelect('qs-chrs', S.settings.contractedHours || 33);
 
   // Populate allocation dropdown
   const qsAllocEl = document.getElementById('qs-fyalloc');
@@ -2869,12 +2895,11 @@ function qsOnEmpType() {
 }
 
 function qsCalcSuggestion() {
-  const chrs = parseFloat(document.getElementById('qs-chrs').value)||33;
+  const chrs = getChrs('qs-chrs');
   const ys   = document.getElementById('qs-yrs').value;
   const nsEl = document.getElementById('qs-ns');
   const ns   = nsEl ? nsEl.value : 'no';
   const sugg = allocLookup(chrs, ys, ns);
-  // Show suggestion in HH:MM format
   const hrs=Math.floor(sugg), mins=Math.round((sugg-hrs)*60);
   const suggLbl = hrs+'h'+(mins>0?' '+mins+'m':'');
   const el = document.getElementById('qs-sugg');
@@ -2882,10 +2907,10 @@ function qsCalcSuggestion() {
   // Auto-set allocation dropdown unless user has manually changed it
   const allocEl = document.getElementById('qs-fyalloc');
   if (allocEl && !allocEl._userEdited) popAllocSelect(allocEl, sugg);
-  // Sync contracted hours to Settings without triggering a full reload
+  // Sync to Settings contracted hours selects
   S.settings.contractedHours = chrs;
-  const settChrs = document.getElementById('c-chrs');
-  if (settChrs && settChrs.children.length) settChrs.value = chrs;
+  const sH=document.getElementById('c-chrs-h');
+  if(sH&&sH.children.length) setChrs('c-chrs', chrs);
 }
 
 function saveQuickSetup() {
@@ -2894,7 +2919,7 @@ function saveQuickSetup() {
   const nsEl    = document.getElementById('qs-ns');
   const ns      = (isNight && nsEl) ? (nsEl.value||'no') : 'no';
   const ys      = document.getElementById('qs-yrs').value;
-  const chrs    = parseFloat(document.getElementById('qs-chrs').value)||33;
+  const chrs    = getChrs('qs-chrs');
   const dstart  = document.getElementById('qs-dstart').value;
   const dend    = document.getElementById('qs-dend').value;
   const fyk     = document.getElementById('qs-fyk').value;
@@ -4842,7 +4867,12 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
       <div class="fr">
         <label>Contracted hours/week (Excluding Breaks)</label>
-        <select id="qs-chrs" onchange="qsCalcSuggestion()"></select>
+        <div style="display:flex;align-items:center;gap:6px">
+          <select id="qs-chrs-h" style="width:80px;font-family:var(--mono)" onchange="qsCalcSuggestion()"></select>
+          <span style="color:var(--t3);font-size:.75rem">h</span>
+          <select id="qs-chrs-m" style="width:80px;font-family:var(--mono)" onchange="qsCalcSuggestion()"></select>
+          <span style="color:var(--t3);font-size:.75rem">m</span>
+        </div>
       </div>
     </div>
     <div class="qs-row">
