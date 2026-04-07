@@ -852,10 +852,18 @@ body.cal-active main{
         <div class="sct">Shift Defaults</div>
         <div class="fr2">
           <div class="fr"><label>Default start</label>
-            <select id="c-dstart" style="font-family:var(--mono)" onchange="autoSave()"></select>
+            <div style="display:flex;gap:4px;align-items:center">
+              <select id="c-dstart-h" style="width:58px;font-family:var(--mono)" onchange="autoSave()"></select>
+              <span style="color:var(--t3)">:</span>
+              <select id="c-dstart-m" style="width:58px;font-family:var(--mono)" onchange="autoSave()"></select>
+            </div>
           </div>
           <div class="fr"><label>Default end</label>
-            <select id="c-dend" style="font-family:var(--mono)" onchange="autoSave()"></select>
+            <div style="display:flex;gap:4px;align-items:center">
+              <select id="c-dend-h" style="width:58px;font-family:var(--mono)" onchange="autoSave()"></select>
+              <span style="color:var(--t3)">:</span>
+              <select id="c-dend-m" style="width:58px;font-family:var(--mono)" onchange="autoSave()"></select>
+            </div>
           </div>
         </div>
         <div class="fr"><label>Minimum notice (days)</label>
@@ -875,10 +883,18 @@ body.cal-active main{
           <p style="font-size:.7rem;color:var(--t2);margin-bottom:8px">Configure: <strong id="rotDayLbl">—</strong></p>
           <div class="fr2">
             <div class="fr"><label>Start time</label>
-              <select id="rot-start" style="font-family:var(--mono)" onchange="saveRotDay()"></select>
+              <div style="display:flex;gap:4px;align-items:center">
+                <select id="rot-start-h" style="width:58px;font-family:var(--mono)" onchange="saveRotDay()"></select>
+                <span style="color:var(--t3)">:</span>
+                <select id="rot-start-m" style="width:58px;font-family:var(--mono)" onchange="saveRotDay()"></select>
+              </div>
             </div>
             <div class="fr"><label>End time</label>
-              <select id="rot-end" style="font-family:var(--mono)" onchange="saveRotDay()"></select>
+              <div style="display:flex;gap:4px;align-items:center">
+                <select id="rot-end-h" style="width:58px;font-family:var(--mono)" onchange="saveRotDay()"></select>
+                <span style="color:var(--t3)">:</span>
+                <select id="rot-end-m" style="width:58px;font-family:var(--mono)" onchange="saveRotDay()"></select>
+              </div>
             </div>
           </div>
         </div>
@@ -984,10 +1000,18 @@ body.cal-active main{
     <div id="customTimeFields">
       <div class="fr2">
         <div class="fr"><label>Start time</label>
-          <select id="f-start" style="font-family:var(--mono)" onchange="onTimeChg()"></select>
+          <div style="display:flex;gap:4px;align-items:center">
+            <select id="f-start-h" style="width:58px;font-family:var(--mono)" onchange="onTimeChg()"></select>
+            <span style="color:var(--t3)">:</span>
+            <select id="f-start-m" style="width:58px;font-family:var(--mono)" onchange="onTimeChg()"></select>
+          </div>
         </div>
         <div class="fr"><label>End time</label>
-          <select id="f-end" style="font-family:var(--mono)" onchange="onTimeChg()"></select>
+          <div style="display:flex;gap:4px;align-items:center">
+            <select id="f-end-h" style="width:58px;font-family:var(--mono)" onchange="onTimeChg()"></select>
+            <span style="color:var(--t3)">:</span>
+            <select id="f-end-m" style="width:58px;font-family:var(--mono)" onchange="onTimeChg()"></select>
+          </div>
         </div>
       </div>
     </div>
@@ -1088,7 +1112,7 @@ function allocLookup(chrs,ys,ns){
   if(iLo===iHi)return table[iLo];
   const frac=chrs-Math.floor(chrs); // fractional part e.g. 0.67 for 14h40m
   const result=table[iLo]+frac*(table[iHi]-table[iLo]);
-  return Math.round(result*4)/4; // round to nearest 0.25h
+  return Math.round(result*2)/2; // round to nearest 0.5h
 }
 
 // ═══════════════════════════════════════
@@ -1148,6 +1172,26 @@ function sortedByDate(arr,asc=true){
 
 const TIME_OPTS=[];for(let m=0;m<1440;m+=15)TIME_OPTS.push(fromMins(m));
 function popSel(el,val){el.innerHTML=TIME_OPTS.map(t=>`<option value="${t}"${t===val?' selected':''}>${t}</option>`).join('');}
+// Split time helpers — hours 0-23, minutes 0,5,10,...,55
+function popTimeH(el,val){
+  const h=val?parseInt(val.split(':')[0]):0;
+  el.innerHTML=Array.from({length:24},(_,i)=>`<option value="${i}"${i===h?' selected':''}>${String(i).padStart(2,'0')}</option>`).join('');
+}
+function popTimeM(el,val){
+  const m=val?Math.floor(parseInt(val.split(':')[1])/5)*5:0;
+  el.innerHTML=[0,5,10,15,20,25,30,35,40,45,50,55].map(i=>`<option value="${i}"${i===m?' selected':''}>${String(i).padStart(2,'0')}</option>`).join('');
+}
+function popTimeSplit(prefix,val){
+  const hEl=document.getElementById(prefix+'-h');
+  const mEl=document.getElementById(prefix+'-m');
+  if(hEl)popTimeH(hEl,val);
+  if(mEl)popTimeM(mEl,val);
+}
+function getTime(prefix){
+  const h=document.getElementById(prefix+'-h').value;
+  const m=document.getElementById(prefix+'-m').value;
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+}
 // Populate a contracted-hours dropdown: 0.25h increments from 0.25 to 50h
 function hrsToHHMM(h){
   const hrs=Math.floor(h),mins=Math.round((h-hrs)*60);
@@ -1209,7 +1253,7 @@ function calcBreak(sh){
   for(const r of rules){if(sh>=r.geHrs)return r.mins;}
   return 0;
 }
-function bookedHrs(s,e){const sh=shiftHrs(s,e),brk=calcBreak(sh);return{sh,brk,booked:Math.round((sh-brk/60)*4)/4};}
+function bookedHrs(s,e){const sh=shiftHrs(s,e),brk=calcBreak(sh);const exact=(sh-brk/60);return{sh,brk,booked:Math.round(exact*4)/4,exact};}
 function breakNote(sh){
   const rules=[...S.settings.breakRules].sort((a,b)=>b.geHrs-a.geHrs);
   for(const r of rules){if(sh>=r.geHrs)return`${r.mins}min (shift ≥${r.geHrs}h)`;}
@@ -1553,7 +1597,7 @@ function getRotaAvgShift(){
   let totalHrs=0,totalDays=0;
   (S.settings.rotation||[]).forEach(week=>{
     week.forEach(d=>{
-      if(d.on){totalHrs+=bookedHrs(d.start,d.end).booked;totalDays++;}
+      if(d.on){totalHrs+=bookedHrs(d.start,d.end).exact;totalDays++;}
     });
   });
   return totalDays>0?totalHrs/totalDays:0;
@@ -1564,7 +1608,7 @@ function isRotaComplete(){
   const contracted=parseFloat(S.settings.contractedHours)||0;
   if(contracted<=0)return false;
   return (S.settings.rotation||[]).every(week=>{
-    const weekNet=week.filter(d=>d.on).reduce((s,d)=>s+bookedHrs(d.start,d.end).booked,0);
+    const weekNet=week.filter(d=>d.on).reduce((s,d)=>s+bookedHrs(d.start,d.end).exact,0);
     return Math.abs(weekNet-contracted)<=0.25;
   });
 }
@@ -2078,7 +2122,7 @@ function bkAbs(dateStr,startTime,endTime,overnight){
 }
 function checkOverlap(){
   const date=document.getElementById('f-date').value;if(!date)return;
-  const start=document.getElementById('f-start').value,end=document.getElementById('f-end').value;
+  const start=getTime('f-start'),end=getTime('f-end');
   if(!start||!end)return;
   const on=isON(start,end);
   const[myS,myE]=bkAbs(date,start,end,on);
@@ -2126,8 +2170,8 @@ function openEdit(id){
   editId=id;overlapAllowed=false;
   document.getElementById('mTitle').textContent='Edit Booking';
   document.getElementById('f-date').value=b.date;
-  document.getElementById('f-start').value=b.startTime||S.settings.defaultStart;
-  document.getElementById('f-end').value=b.endTime||S.settings.defaultEnd;
+  popTimeSplit('f-start',b.startTime||S.settings.defaultStart);
+  popTimeSplit('f-end',b.endTime||S.settings.defaultEnd);
   document.getElementById('f-status').value=b.status;
   document.getElementById('f-notes').value=b.notes||'';
   const hasRem = !!(b.reminderDate);
@@ -2167,14 +2211,14 @@ function onDateChg(){
       fsi.style.display='block';
       document.getElementById('rotaShiftInfo').textContent=rd.start+' → '+rd.end;
       document.getElementById('rotaShiftInfo').style.color='var(--t1)';
-      document.getElementById('f-start').value=rd.start;
-      document.getElementById('f-end').value=rd.end;
+      popTimeSplit('f-start',rd.start);
+      popTimeSplit('f-end',rd.end);
     } else {
       fsi.style.display='block';
       document.getElementById('rotaShiftInfo').textContent='⚠ Not rota\'d — using defaults';
       document.getElementById('rotaShiftInfo').style.color='var(--amber)';
-      document.getElementById('f-start').value=S.settings.defaultStart||'23:00';
-      document.getElementById('f-end').value=S.settings.defaultEnd||'07:00';
+      popTimeSplit('f-start',S.settings.defaultStart||'23:00');
+      popTimeSplit('f-end',S.settings.defaultEnd||'07:00');
     }
   } else {
     document.getElementById('fullShiftInfo').style.display='none';
@@ -2192,7 +2236,7 @@ function onDateChg(){
   }
 }
 function onTimeChg(){
-  const start=document.getElementById('f-start').value,end=document.getElementById('f-end').value;
+  const start=getTime('f-start'),end=getTime('f-end');
   if(!start||!end)return;
   const{sh,brk,booked}=bookedHrs(start,end),on=isON(start,end);
   document.getElementById('bp-shift').textContent=start+' \u2192 '+end+(on?' (overnight)':'');
@@ -2206,8 +2250,7 @@ function onTimeChg(){
 }
 
 function getBookedHrs(){
-  // Always derive from time selectors — custom override fields removed
-  const{booked}=bookedHrs(document.getElementById('f-start').value,document.getElementById('f-end').value);
+  const{booked}=bookedHrs(getTime('f-start'),getTime('f-end'));
   return booked;
 }
 function onStatusChg(){
@@ -2284,7 +2327,7 @@ function saveBooking(){
     toast('This date is outside any defined financial year — add the FY in Settings first');return;
   }
   if(document.getElementById('overlapBox').style.display==='flex'){toast('Resolve the overlap warning first');return;}
-  const start=document.getElementById('f-start').value,end=document.getElementById('f-end').value;
+  const start=getTime('f-start'),end=getTime('f-end');
   const hrs=getBookedHrs();if(!hrs||hrs<=0){toast('Hours must be > 0');return;}
   const on=isON(start,end),fk=fyKey(date);
   const bk={id:editId||'b'+Date.now(),date,startTime:start,endTime:end,overnight:on,hoursBooked:hrs,
@@ -2325,8 +2368,8 @@ function readSettings(){
   c.nightShift=document.getElementById('c-ns').value;
   c.isNightWorker=document.getElementById('c-ns-toggle').checked;
   c.contractedHours=getChrs('c-chrs');
-  c.defaultStart=document.getElementById('c-dstart').value;
-  c.defaultEnd=document.getElementById('c-dend').value;
+  c.defaultStart=getTime('c-dstart');
+  c.defaultEnd=getTime('c-dend');
   c.noticeDays=parseInt(document.getElementById('c-notice').value)||28;
   c.prorata=document.getElementById('c-prorata').value;
   c.prorataStart=document.getElementById('c-prStart').value||'';
@@ -2344,8 +2387,8 @@ function loadSettingsUI(){
   document.getElementById('nsSub').classList.toggle('dim',!nsOn);
   // Populate contracted hours dropdowns
   popChrsSelect('c-chrs', c.contractedHours||33);
-  popSel(document.getElementById('c-dstart'),c.defaultStart||'23:00');
-  popSel(document.getElementById('c-dend'),c.defaultEnd||'07:00');
+  popTimeSplit('c-dstart',c.defaultStart||'23:00');
+  popTimeSplit('c-dend',c.defaultEnd||'07:00');
   document.getElementById('c-notice').value=c.noticeDays||28;
   document.getElementById('c-prorata').value=c.prorata||'no';
   document.getElementById('c-prStart').value=c.prorataStart||'';
@@ -2536,7 +2579,7 @@ function renderRotEditor(){
   document.getElementById('rotEditor').innerHTML=S.settings.rotation.map((week,wi)=>{
     // Calculate net hours and shift count for this week
     const activeDays = week.filter(d => d.on);
-    const weekNet = activeDays.reduce((sum, d) => sum + bookedHrs(d.start, d.end).booked, 0);
+    const weekNet = activeDays.reduce((sum, d) => sum + bookedHrs(d.start, d.end).exact, 0);
     const shifts  = activeDays.length;
     // Colour: green if equal to contracted, red if over, neutral otherwise
     const colour = contracted > 0
@@ -2602,15 +2645,15 @@ function openRotCfg(wi,di){
   const d=S.settings.rotation[wi][di];
   const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   document.getElementById('rotDayLbl').textContent='Week '+(wi+1)+' — '+days[di];
-  popSel(document.getElementById('rot-start'),d.start||S.settings.defaultStart||'23:00');
-  popSel(document.getElementById('rot-end'),d.end||S.settings.defaultEnd||'07:00');
+  popTimeSplit('rot-start',d.start||S.settings.defaultStart||'23:00');
+  popTimeSplit('rot-end',d.end||S.settings.defaultEnd||'07:00');
   document.getElementById('rotDayCfg').classList.add('open');
 }
 function saveRotDay(){
   if(rotEditWi<0)return;
   const d=S.settings.rotation[rotEditWi][rotEditDi];
-  d.start=document.getElementById('rot-start').value;
-  d.end=document.getElementById('rot-end').value;
+  d.start=getTime('rot-start');
+  d.end=getTime('rot-end');
   persist();renderRotEditor();flashSaved();
   updateRotaBookingHint();
 }
@@ -2829,9 +2872,10 @@ function triggerUndo() {
 
 // INIT
 loadData();
-// init time selects
-['f-start','f-end','c-dstart','c-dend'].forEach(id=>{const el=document.getElementById(id);if(el)popSel(el,S.settings.defaultStart||'23:00');});
-popSel(document.getElementById('c-dend'),S.settings.defaultEnd||'07:00');
+// init split time selects
+const _ds=S.settings.defaultStart||'22:15',_de=S.settings.defaultEnd||'07:00';
+popTimeSplit('f-start',_ds);popTimeSplit('f-end',_de);
+popTimeSplit('c-dstart',_ds);popTimeSplit('c-dend',_de);
 initFY();loadSettingsUI();renderDash();updateStats();renderAlerts();
 document.getElementById('bhBtn').classList.add('on');
 updateViewFYStrips();
@@ -2865,8 +2909,8 @@ function openQuickSetup() {
   popAllocSelect(qsAllocEl, 0);
   qsAllocEl._userEdited = false;
 
-  popSel(document.getElementById('qs-dstart'), '07:00');
-  popSel(document.getElementById('qs-dend'),   '15:00');
+  popTimeSplit('qs-dstart', '07:00');
+  popTimeSplit('qs-dend',   '15:00');
 
   const fyInfo = getFinancialYearFromDate(new Date());
   document.getElementById('qs-fyk').value = fyInfo.key;
@@ -2889,8 +2933,8 @@ function qsOnEmpType() {
   document.getElementById('qs-ns-row').style.display = isNight ? '' : 'none';
   document.getElementById('qs-ns-note').style.display = isNight ? '' : 'none';
   if (!isNight) document.getElementById('qs-ns').value = 'no';
-  popSel(document.getElementById('qs-dstart'), isNight ? '22:15' : '07:00');
-  popSel(document.getElementById('qs-dend'),   isNight ? '07:00' : '15:00');
+  popTimeSplit('qs-dstart', isNight ? '22:15' : '07:00');
+  popTimeSplit('qs-dend',   isNight ? '07:00' : '15:00');
   qsCalcSuggestion();
 }
 
@@ -2920,8 +2964,8 @@ function saveQuickSetup() {
   const ns      = (isNight && nsEl) ? (nsEl.value||'no') : 'no';
   const ys      = document.getElementById('qs-yrs').value;
   const chrs    = getChrs('qs-chrs');
-  const dstart  = document.getElementById('qs-dstart').value;
-  const dend    = document.getElementById('qs-dend').value;
+  const dstart  = getTime('qs-dstart');
+  const dend    = getTime('qs-dend');
   const fyk     = document.getElementById('qs-fyk').value;
   const fystart = document.getElementById('qs-fystart').value;
   const fyalloc = parseFloat(document.getElementById('qs-fyalloc').value)||allocLookup(chrs,ys,ns);
@@ -2937,9 +2981,8 @@ function saveQuickSetup() {
   S.fyAllocs[fyk].startDate=fystart;
 
   persist(); initFY(); loadSettingsUI(); refresh();
-  // Re-init time dropdowns with the chosen defaults
-  ['f-start','f-end','c-dstart'].forEach(id=>{const el=document.getElementById(id);if(el)popSel(el,dstart);});
-  const de=document.getElementById('c-dend');if(de)popSel(de,dend);
+  popTimeSplit('f-start',dstart);popTimeSplit('f-end',dend);
+  popTimeSplit('c-dstart',dstart);popTimeSplit('c-dend',dend);
   closeQuickSetup();  // navigates to Settings
   toast('Setup saved ✓  — review your settings below');
 }
@@ -4886,11 +4929,19 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="qs-row" id="qs-shift-times">
       <div class="fr">
         <label>Default start</label>
-        <select id="qs-dstart" style="font-family:var(--mono)"></select>
+        <div style="display:flex;gap:4px;align-items:center">
+          <select id="qs-dstart-h" style="width:58px;font-family:var(--mono)"></select>
+          <span style="color:var(--t3)">:</span>
+          <select id="qs-dstart-m" style="width:58px;font-family:var(--mono)"></select>
+        </div>
       </div>
       <div class="fr">
         <label>Default end</label>
-        <select id="qs-dend" style="font-family:var(--mono)"></select>
+        <div style="display:flex;gap:4px;align-items:center">
+          <select id="qs-dend-h" style="width:58px;font-family:var(--mono)"></select>
+          <span style="color:var(--t3)">:</span>
+          <select id="qs-dend-m" style="width:58px;font-family:var(--mono)"></select>
+        </div>
       </div>
     </div>
 
