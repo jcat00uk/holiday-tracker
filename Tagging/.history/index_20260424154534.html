@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BWS Merged Security List</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    body { font-family: Arial, sans-serif; margin:0; background:#f5f5f5; }
+    .container { padding:12px; }
+    h1 { font-size:20px; margin:10px 0 14px; }
+    input {
+        width:100%; padding:10px; margin:6px 0;
+        border-radius:6px; border:1px solid #ccc; font-size:15px;
+        box-sizing:border-box;
+    }
+    .header-bar {
+        background:#0078d4;
+        color:white;
+        padding:10px;
+        font-weight:bold;
+        display:flex;
+        justify-content:space-between;
+        font-size:12px;
+        border-radius:6px;
+        margin-top:10px;
+        gap:6px;
+        align-items:center;
+    }
+    .header-bar select {
+        width:100%;
+        font-size:12px;
+        padding:4px;
+        background:#0078d4;
+        color:white;
+        border:none;
+    }
+    .row {
+        display:flex;
+        background:white;
+        margin:6px 0;
+        padding:10px;
+        border-radius:6px;
+        font-size:13px;
+        align-items:center;
+    }
+    .row div { text-align:center; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>BWS – Merged Security List</h1>
+<input id="search" placeholder="Search SKU or Description">
+<!-- BLUE HEADER WITH FILTER DROPDOWNS -->
+<div class="header-bar">
+    <div style="flex:1; text-align:center;">SubCat</div>
+    <div style="flex:1; text-align:center;">SKU</div>
+    <div style="flex:2; text-align:center;">DESCRIPTION</div>
+    <div style="flex:1; text-align:center;">Tag</div>
+    <div style="flex:1; text-align:center;">Keeper</div>
+</div>
+
+<div class="header-bar" style="margin-top:0; padding-top:6px; padding-bottom:6px;">
+    <div style="flex:1;">
+        <select id="filterSubCat"></select>
+    </div>
+    <div style="flex:1;"></div>
+    <div style="flex:2;"></div>
+    <div style="flex:1;">
+        <select id="filterTag"></select>
+    </div>
+    <div style="flex:1;">
+        <select id="filterKeeper"></select>
+    </div>
+</div>
+
+<div id="results"></div>
+</div>
+
+
+
+<script type="module">
+import { bottlelox, safer } from "./data.js";
+
+/* ----------------------------------------------------------
+   MERGE LOGIC
+---------------------------------------------------------- */
+const mergedMap = {};
+// 1) Add all Bottlelox items first
+bottlelox.forEach(item => {
+    const match = safer.find(s => s.SKU === item.SKU);
+    mergedMap[item.SKU] = {
+        SubCat: item.SubCat,
+        SKU: item.SKU,
+        Desc: item.Desc,
+        Tag: item.Tag,
+        Keeper: match ? match.Keeper : "N/A",
+        SCType: match ? match.Type : ""
+    };
+});
+// 2) Add Safer-only items
+safer.forEach(s => {
+    if (!mergedMap[s.SKU]) {
+        mergedMap[s.SKU] = {
+            SubCat: s.Type,
+            SKU: s.SKU,
+            Desc: s.Desc,
+            Tag: "N/A",
+            Keeper: s.Keeper,
+            SCType: s.Type
+        };
+    }
+});
+// Convert to array
+let merged = Object.values(mergedMap);
+// Sort by SubCat
+merged.sort((a, b) => a.SubCat.localeCompare(b.SubCat));
+/* ----------------------------------------------------------
+   FILTER ELEMENTS
+---------------------------------------------------------- */
+const search = document.getElementById("search");
+const filterSubCat = document.getElementById("filterSubCat");
+const filterTag = document.getElementById("filterTag");
+const filterKeeper = document.getElementById("filterKeeper");
+const results = document.getElementById("results");
+/* ----------------------------------------------------------
+   POPULATE FILTER DROPDOWNS
+---------------------------------------------------------- */
+function populateFilters() {
+    const subCats = [...new Set(merged.map(x => x.SubCat))].sort();
+    const tags = [...new Set(merged.map(x => x.Tag))].sort();
+    const keepers = [...new Set(merged.map(x => x.Keeper))].sort();
+    filterSubCat.innerHTML =
+        '<option value=""></option>' +
+        subCats.map(s => `<option>${s}</option>`).join("");
+    filterTag.innerHTML =
+        '<option value=""></option>' +
+        tags.map(s => `<option>${s}</option>`).join("");
+    filterKeeper.innerHTML =
+        '<option value=""></option>' +
+        keepers.map(s => `<option>${s}</option>`).join("");
+}
+/* ----------------------------------------------------------
+   RENDER ROWS
+---------------------------------------------------------- */
+function render() {
+    const q = search.value.trim().toLowerCase();
+    const sub = filterSubCat.value;
+    const tag = filterTag.value;
+    const keep = filterKeeper.value;
+    const filtered = merged.filter(x =>
+        (!q || x.SKU.includes(q) || x.Desc.toLowerCase().includes(q)) &&
+        (!sub || x.SubCat === sub) &&
+        (!tag || x.Tag === tag) &&
+        (!keep || x.Keeper === keep)
+    );
+    results.innerHTML = filtered.map(x => `
+        <div class="row">
+        <div style="flex:1; text-align:center;">${x.SubCat}</div>
+        <div style="flex:1; text-align:center;">${x.SKU}</div>
+        <div style="flex:2; text-align:center;">${x.Desc}</div>
+        <div style="flex:1; text-align:center;">${x.Tag}</div>
+        <div style="flex:1; text-align:center;">${x.Keeper}</div>
+
+        </div>
+    `).join("");
+}
+/* ----------------------------------------------------------
+   EVENT LISTENERS
+---------------------------------------------------------- */
+search.addEventListener("input", render);
+filterSubCat.addEventListener("change", render);
+filterTag.addEventListener("change", render);
+filterKeeper.addEventListener("change", render);
+/* ----------------------------------------------------------
+   INIT
+---------------------------------------------------------- */
+populateFilters();
+render();
+
+</script>
+</body>
+</html>

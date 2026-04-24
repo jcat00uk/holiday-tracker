@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>PDF → data.js Parser</title>
+<style>
+body { font-family: Arial; padding:20px; }
+textarea { width:100%; height:300px; }
+button { padding:10px 20px; font-size:16px; margin-top:10px; }
+</style>
+</head>
+<body>
+
+<h2>Paste PDF Text</h2>
+<textarea id="input"></textarea>
+<button onclick="generate()">Generate data.js</button>
+
+<script>
+function generate() {
+    const raw = document.getElementById("input").value;
+    const lines = raw.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+
+    const bottlelox = [];
+    const safer = [];
+
+    let mode = "";
+
+    for (const line of lines) {
+
+        if (line.toUpperCase().includes("BOTTLELOX")) {
+            mode = "b";
+            continue;
+        }
+
+        if (line.toUpperCase().includes("SAFER")) {
+            mode = "s";
+            continue;
+        }
+
+        // Detect SKU (7 digits)
+        const skuMatch = line.match(/\b\d{7}\b/);
+        if (!skuMatch) continue;
+
+        const SKU = skuMatch[0];
+
+        // Split line around SKU
+        const before = line.split(SKU)[0].trim();
+        const after = line.split(SKU)[1].trim();
+
+        if (mode === "b") {
+            bottlelox.push({
+                SubCat: before,
+                SKU,
+                Desc: after.replace(/Neck Tag|Soft Tag|Keeper and Soft Tag|Keeper and Neck Tag/i, "").trim(),
+                Tag: (after.match(/Neck Tag|Soft Tag|Keeper and Soft Tag|Keeper and Neck Tag/i) || ["N/A"])[0]
+            });
+        }
+
+        if (mode === "s") {
+            safer.push({
+                Type: before,
+                SKU,
+                Desc: after.replace(/Large|Small|XLarge/i, "").trim(),
+                Keeper: (after.match(/Large|Small|XLarge/i) || ["N/A"])[0]
+            });
+        }
+    }
+
+    const output =
+`export const bottlelox = ${JSON.stringify(bottlelox, null, 4)};
+export const safer = ${JSON.stringify(safer, null, 4)};`;
+
+    const blob = new Blob([output], {type:"text/javascript"});
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "data.js";
+    a.click();
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>PDF → data.js Parser</title>
+<style>
+body { font-family: Arial; padding:20px; }
+textarea { width:100%; height:300px; }
+button { padding:10px 20px; font-size:16px; margin-top:10px; }
+</style>
+</head>
+<body>
+
+<h2>Paste PDF Text</h2>
+<textarea id="input"></textarea>
+<button onclick="generate()">Generate data.js</button>
+
+<script>
+function generate() {
+    const raw = document.getElementById("input").value;
+    const lines = raw.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+
+    const bottlelox = [];
+    const safer = [];
+
+    let mode = "";
+
+    for (const line of lines) {
+        if (line.includes("BOTTLELOX")) mode = "b";
+        if (line.includes("SAFER CASE")) mode = "s";
+
+        const p = line.split("|").map(x => x.trim());
+        if (p.length < 3) continue;
+
+        if (mode === "b") {
+            bottlelox.push({
+                SubCat: p[0],
+                SKU: p[1],
+                Desc: p[2],
+                Tag: p[3] || "N/A"
+            });
+        }
+
+        if (mode === "s") {
+            safer.push({
+                Type: p[0],
+                SKU: p[1],
+                Desc: p[2],
+                Keeper: p[3] || "N/A"
+            });
+        }
+    }
+
+    const output =
+`export const bottlelox = ${JSON.stringify(bottlelox, null, 4)};
+export const safer = ${JSON.stringify(safer, null, 4)};`;
+
+    const blob = new Blob([output], {type:"text/javascript"});
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "data.js";
+    a.click();
+}
+</script>
+
+</body>
+</html>
