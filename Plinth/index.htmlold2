@@ -136,15 +136,6 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f0f0ee;co
 .cut-hr::after{content:attr(data-lbl);font-size:9px;color:#bbb;background:#fff;padding:0 5px;position:relative;top:-7px;display:inline-block}
 .nodata{font-size:12px;color:#aaa;padding:16px;text-align:center;border:1px dashed #ddd;border-radius:3px}
 
-/* Search */
-.srch-box{display:none;margin-top:7px}
-.srch-box input{width:100%;padding:5px 8px;font-size:12px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;outline:none}
-.srch-box input:focus{border-color:#1a1a1a}
-.srch-results{margin-top:6px}
-.srch-dept-hdr{background:#000;color:#fff;padding:4px 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin:10px 0 3px}
-.srch-none{font-size:12px;color:#aaa;padding:12px;text-align:center;border:1px dashed #ddd;border-radius:3px}
-.srch-count{font-size:10px;color:#888;margin-bottom:6px}
-
 /* Debug log */
 #dbg{font-size:10px;color:#888;margin-top:6px;max-height:80px;overflow-y:auto;font-family:monospace;display:none}
 
@@ -222,17 +213,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f0f0ee;co
 
   <div class="ps">
     <div class="ps-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span>2 · Search</span>
-      <label class="tog"><input type="checkbox" id="srch-tog" onchange="toggleSearch(this.checked)"><span class="tsl"></span></label>
-    </div>
-    <div class="srch-box" id="srch-box">
-      <input type="text" id="srch-inp" placeholder="Search SKU or description…" oninput="doSearch(this.value)">
-    </div>
-  </div>
-
-  <div class="ps">
-    <div class="ps-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span>3 · Departments &amp; fixtures</span>
+      <span>2 · Departments &amp; fixtures</span>
       <span style="display:flex;gap:4px">
         <button class="ab" onclick="deptAllOn()">All on</button>
         <button class="ab" onclick="deptAllOff()">All off</button>
@@ -242,7 +223,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f0f0ee;co
   </div>
 
   <div class="ps">
-    <div class="ps-title">4 · Fixture types</div>
+    <div class="ps-title">3 · Fixture types</div>
     <div class="or"><label>Plinths</label><label class="tog"><input type="checkbox" id="ft-pl" checked onchange="onTypeChange()"><span class="tsl"></span></label></div>
     <div class="or"><label>Pallets</label><label class="tog"><input type="checkbox" id="ft-pa" onchange="onTypeChange()"><span class="tsl"></span></label></div>
     <div class="or"><label>Shippers / stacks</label><label class="tog"><input type="checkbox" id="ft-sh" onchange="onTypeChange()"><span class="tsl"></span></label></div>
@@ -251,7 +232,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f0f0ee;co
   </div>
 
   <div class="ps">
-    <div class="ps-title">5 · Date filter</div>
+    <div class="ps-title">4 · Date filter</div>
     <div class="or"><span>Show</span>
       <select id="dfil" onchange="rp()">
         <option value="all" selected>All dates</option>
@@ -263,7 +244,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f0f0ee;co
   </div>
 
   <div class="ps">
-    <div class="ps-title">6 · Page &amp; layout</div>
+    <div class="ps-title">5 · Page &amp; layout</div>
     <div class="or"><label>Page break between depts</label><label class="tog"><input type="checkbox" id="pb-d" onchange="rp()"><span class="tsl"></span></label></div>
     <div class="or"><label>Page break between fixtures</label><label class="tog"><input type="checkbox" id="pb-f" onchange="rp()"><span class="tsl"></span></label></div>
     <div class="or"><label>Cut lines between depts</label><label class="tog"><input type="checkbox" id="cl-d" checked onchange="rp()"><span class="tsl"></span></label></div>
@@ -276,7 +257,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f0f0ee;co
     </div>
   </div>
 
-  <button class="btn btnp" style="width:100%;padding:8px;font-size:13px;margin-top:2px" onclick="doPrint()">Print / Save PDF</button>
+  <button class="btn btnp" style="width:100%;padding:8px;font-size:13px;margin-top:2px" onclick="window.print()">Print / Save PDF</button>
 </div>
 
 <div class="pva">
@@ -994,8 +975,6 @@ function updDc(k){
 function rp(){
   var pv=document.getElementById('pv'), pc=document.getElementById('pc');
   if(!DOC){pv.innerHTML='<div class="nodata">Load an SSPSA PDF to begin</div>';return;}
-  // If search is active, don't touch preview — search owns it
-  if(document.getElementById('srch-tog').checked) return;
   var h=buildHTML();
   pv.innerHTML=h; pc.innerHTML=h;
   applyFs();
@@ -1482,97 +1461,6 @@ function autoLoadFile(name){
   }
   var el=document.querySelector('.pdf-item[data-idx="'+idx+'"]');
   if(el) selectPdf(el,idx);
-}
-
-// ── SEARCH ──
-function toggleSearch(on){
-  document.getElementById('srch-box').style.display=on?'block':'none';
-  if(!on){
-    // Restore normal view
-    document.getElementById('srch-inp').value='';
-    document.getElementById('pvi').textContent='';
-    var pv=document.getElementById('pv'),pc=document.getElementById('pc');
-    if(DOC){
-      var h=buildHTML();
-      pv.innerHTML=h; pc.innerHTML=h;
-      applyFs();
-      var cnt=pv.querySelectorAll('.fix-block,.shp-block').length;
-      document.getElementById('pvi').textContent=cnt+' fixture'+(cnt!==1?'s':'')+' in output';
-    } else {
-      pv.innerHTML='<div class="nodata">Load an SSPSA PDF to begin</div>';
-    }
-  } else {
-    // Focus input, clear preview ready for search
-    setTimeout(function(){document.getElementById('srch-inp').focus();},50);
-    document.getElementById('pv').innerHTML='<div class="nodata">Type to search SKU or description</div>';
-    document.getElementById('pc').innerHTML='';
-    document.getElementById('pvi').textContent='';
-  }
-}
-
-function doSearch(q){
-  if(!DOC) return;
-  var pv=document.getElementById('pv'), pc=document.getElementById('pc');
-  q=q.trim();
-  if(!q){
-    pv.innerHTML='<div class="nodata">Type to search SKU or description</div>';
-    pc.innerHTML='';
-    document.getElementById('pvi').textContent='';
-    return;
-  }
-  var ql=q.toLowerCase();
-  var totalMatches=0;
-  var h='';
-
-  // Group results by dept
-  DEPTS.forEach(function(def){
-    var deptFixes=DOC.fixtures.filter(function(f){return f.deptKey===def.k;});
-    if(!deptFixes.length) return;
-    var deptHTML='';
-
-    deptFixes.forEach(function(fix){
-      // Filter items matching SKU or description
-      var matched=fix.items.filter(function(it){
-        return (it.sku&&it.sku.toLowerCase().indexOf(ql)>-1)
-          ||(it.desc&&it.desc.toLowerCase().indexOf(ql)>-1);
-      });
-      if(!matched.length) return;
-      totalMatches+=matched.length;
-
-      // Build fixture block with only matched rows
-      var fixClone=Object.assign({},fix,{items:matched});
-      deptHTML+=renderFix(fixClone);
-    });
-
-    if(deptHTML){
-      h+='<div class="dept-hdr">'+esc(def.lbl)+'</div>';
-      h+=deptHTML;
-    }
-  });
-
-  if(!h){
-    h='<div class="srch-none">No results for "'+esc(q)+'"</div>';
-    document.getElementById('pvi').textContent='No results';
-  } else {
-    document.getElementById('pvi').textContent=totalMatches+' item'+(totalMatches!==1?'s':'')+' matched';
-  }
-
-  pv.innerHTML=h; pc.innerHTML=h;
-  applyFs();
-}
-
-// ── PRINT WITH FILENAME ──
-function doPrint(){
-  if(DOC&&DOC.store.week&&DOC.store.dates){
-    // Clean dates: "29 Apr - 5 May 2026" → "29 Apr - 5 May 2026"
-    var dates=DOC.store.dates.replace(/\s*[–-]\s*/g,' - ').trim();
-    document.title='SSPSA Print Tool - Week '+DOC.store.week+' - '+dates;
-  } else {
-    document.title='SSPSA Print Tool';
-  }
-  window.print();
-  // Restore title after print dialog closes
-  setTimeout(function(){document.title='SSPSA Print Tool';},2000);
 }
 
 // Init on load
