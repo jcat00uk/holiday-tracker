@@ -16,12 +16,14 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f0f0ee;co
 .main{display:grid;grid-template-columns:295px 1fr;min-height:calc(100vh - 40px)}
 .panel{background:#fff;border-right:1px solid #ddd;padding:12px;overflow-y:auto;max-height:calc(100vh - 40px);position:sticky;top:0}
 .split-divider{display:none}
+/* Mobile: split pane with draggable divider */
 @media(max-width:700px){
-  .main{display:flex;flex-direction:column;height:calc(100vh - 40px)}
-  .panel{max-height:50vh;min-height:80px;position:static;border-right:none;overflow-y:auto;flex-shrink:0;padding:10px}
-  .pva{flex:1;min-height:0;overflow-y:auto;padding:8px}
-  .split-divider{display:flex;height:18px;background:#e8e8e8;border-top:1px solid #ccc;border-bottom:1px solid #ccc;align-items:center;justify-content:center;cursor:row-resize;flex-shrink:0;touch-action:none;user-select:none}
+  html,body{height:100%;overflow:hidden}
+  .main{display:flex;flex-direction:column;height:calc(100vh - 40px);min-height:0;overflow:hidden}
+  .panel{max-height:50vh;min-height:80px;position:static;border-right:none;border-bottom:none;overflow-y:auto;flex-shrink:0;padding:10px}
+  .split-divider{height:18px;background:#e8e8e8;border-top:1px solid #ccc;border-bottom:1px solid #ccc;display:flex;align-items:center;justify-content:center;cursor:row-resize;flex-shrink:0;user-select:none;touch-action:none}
   .split-divider-handle{width:36px;height:4px;border-radius:2px;background:#bbb}
+  .pva{padding:8px;overflow-y:auto;flex:1;min-height:0}
   .a4{padding:10px}
   .top-bar h1{font-size:13px}
 }
