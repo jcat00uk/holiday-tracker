@@ -221,18 +221,8 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f0f0ee;co
   </div>
 
   <div class="ps">
-    <div class="ps-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span>2 · Search</span>
-      <label class="tog"><input type="checkbox" id="srch-tog" onchange="toggleSearch(this.checked)"><span class="tsl"></span></label>
-    </div>
-    <div class="srch-box" id="srch-box">
-      <input type="text" id="srch-inp" placeholder="Search SKU or description…" oninput="doSearch(this.value)">
-    </div>
-  </div>
-
-  <div class="ps">
     <div class="ps-title collapsible" id="hdr-3" onclick="toggleSection('sec-3','hdr-3')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none">
-      <span>3 · Departments &amp; fixtures</span>
+      <span>2 · Departments &amp; fixtures</span>
       <span style="display:flex;gap:4px;align-items:center">
         <button class="ab" onclick="event.stopPropagation();deptAllOn()">All on</button>
         <button class="ab" onclick="event.stopPropagation();deptAllOff()">All off</button>
@@ -246,7 +236,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f0f0ee;co
 
   <div class="ps">
     <div class="ps-title collapsible" id="hdr-4" onclick="toggleSection('sec-4','hdr-4')" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between">
-      <span>4 · Fixture types</span>
+      <span>3 · Fixture types</span>
       <span class="cv op" id="chv-4">&#9660;</span>
     </div>
     <div id="sec-4">
@@ -260,10 +250,10 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f0f0ee;co
 
   <div class="ps">
     <div class="ps-title collapsible" id="hdr-5" onclick="toggleSection('sec-5','hdr-5')" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between">
-      <span>5 · Date filter</span>
-      <span class="cv op" id="chv-5">&#9660;</span>
+      <span>4 · Date filter</span>
+      <span class="cv op" id="chv-5" style="transform:rotate(-90deg)">&#9660;</span>
     </div>
-    <div id="sec-5">
+    <div id="sec-5" style="display:none">
       <div class="or"><span>Show</span>
         <select id="dfil" onchange="rp()">
           <option value="all" selected>All dates</option>
@@ -277,10 +267,10 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f0f0ee;co
 
   <div class="ps">
     <div class="ps-title collapsible" id="hdr-6" onclick="toggleSection('sec-6','hdr-6')" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between">
-      <span>6 · Page &amp; layout</span>
-      <span class="cv op" id="chv-6">&#9660;</span>
+      <span>5 · Page &amp; layout</span>
+      <span class="cv op" id="chv-6" style="transform:rotate(-90deg)">&#9660;</span>
     </div>
-    <div id="sec-6">
+    <div id="sec-6" style="display:none">
       <div class="or"><label>Page break between depts</label><label class="tog"><input type="checkbox" id="pb-d" onchange="rp()"><span class="tsl"></span></label></div>
       <div class="or"><label>Page break between fixtures</label><label class="tog"><input type="checkbox" id="pb-f" onchange="rp()"><span class="tsl"></span></label></div>
       <div class="or"><label>Cut lines between depts</label><label class="tog"><input type="checkbox" id="cl-d" checked onchange="rp()"><span class="tsl"></span></label></div>
@@ -290,6 +280,16 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f0f0ee;co
           <option value="13" selected>Medium (13px)</option>
           <option value="15">Large (15px)</option>
         </select>
+    </div>
+  </div>
+
+  <div class="ps">
+    <div class="ps-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>6 · Search</span>
+      <label class="tog"><input type="checkbox" id="srch-tog" onchange="toggleSearch(this.checked)"><span class="tsl"></span></label>
+    </div>
+    <div class="srch-box" id="srch-box">
+      <input type="text" id="srch-inp" placeholder="Search SKU or description…" oninput="doSearch(this.value)">
     </div>
   </div>
 
@@ -1504,8 +1504,7 @@ function autoLoadFile(name){
 // ── COLLAPSIBLE SECTIONS ──
 var COLLAPSIBLE_SECTIONS=['3','4','5','6'];
 // Track state: true=open, false=collapsed
-var sectionState={};
-COLLAPSIBLE_SECTIONS.forEach(function(id){sectionState[id]=true;});
+var sectionState={'3':true,'4':true,'5':false,'6':false};
 // State before search collapsed them
 var preSrchState={};
 
