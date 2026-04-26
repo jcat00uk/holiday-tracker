@@ -15,17 +15,25 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f0f0ee;co
 /* Desktop: sidebar left, preview right */
 .main{display:grid;grid-template-columns:295px 1fr;min-height:calc(100vh - 40px)}
 .panel{background:#fff;border-right:1px solid #ddd;padding:12px;overflow-y:auto;max-height:calc(100vh - 40px);position:sticky;top:0}
+.split-divider{display:none}
 /* Mobile: split pane with draggable divider */
 @media(max-width:700px){
   html,body{height:100%;overflow:hidden}
-  .main{display:flex;flex-direction:column;height:calc(100vh - 40px);min-height:0}
-  .panel{max-height:none;position:static;border-right:none;border-bottom:none;overflow-y:auto;flex-shrink:0;padding:10px}
-  .pva{padding:8px;overflow-y:auto;flex:1;min-height:0}
+  .main{display:flex!important;flex-direction:column;height:calc(100vh - 40px);min-height:0;overflow:hidden}
+  .panel{max-height:50vh!important;min-height:80px;position:static!important;border-right:none;border-bottom:none;overflow-y:auto;flex-shrink:0;padding:10px}
+  .split-divider{height:18px;background:#e8e8e8;border-top:1px solid #ccc;border-bottom:1px solid #ccc;display:flex!important;align-items:center;justify-content:center;cursor:row-resize;flex-shrink:0;user-select:none;touch-action:none}
+  .split-divider-handle{width:36px;height:4px;border-radius:2px;background:#bbb}
+  .pva{padding:8px;overflow-y:auto;flex:1;min-height:80px}
   .a4{padding:10px}
   .top-bar h1{font-size:13px}
-  /* Divider */
-  .split-divider{height:18px;background:#e8e8e8;border-top:1px solid #ccc;border-bottom:1px solid #ccc;display:flex;align-items:center;justify-content:center;cursor:row-resize;flex-shrink:0;user-select:none;touch-action:none}
-  .split-divider-handle{width:36px;height:4px;border-radius:2px;background:#bbb}
+}
+/* Desktop guard — explicitly restore everything the mobile query touches */
+@media(min-width:701px){
+  html,body{height:auto;overflow:visible}
+  .main{display:grid!important;grid-template-columns:295px 1fr;flex-direction:unset;height:auto;min-height:calc(100vh - 40px)}
+  .panel{max-height:calc(100vh - 40px)!important;min-height:0;position:sticky!important;top:0;border-right:1px solid #ddd;overflow-y:auto;flex-shrink:unset;padding:12px}
+  .split-divider{display:none!important}
+  .pva{padding:14px;overflow-y:auto;flex:unset;min-height:0}
 }
 .ps{margin-bottom:14px}
 .ps-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#999;margin-bottom:7px;padding-bottom:3px;border-bottom:1px solid #eee}
@@ -300,7 +308,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f0f0ee;co
   <button class="btn btnp" style="width:100%;padding:8px;font-size:13px;margin-top:2px" onclick="doPrint()">Print / Save PDF</button>
 </div>
 
-<div class="split-divider" id="split-divider" style="display:none">
+<div class="split-divider" id="split-divider">
   <div class="split-divider-handle"></div>
 </div>
 
@@ -1634,64 +1642,47 @@ function doPrint(){
 
 // ── SPLIT PANE (mobile only) ──
 (function(){
-  var MOBILE_BP=700;
   var panel=document.querySelector('.panel');
-  var pva=document.getElementById('pva');
   var divider=document.getElementById('split-divider');
   var dragging=false;
   var startY=0, startPanelH=0;
-  var MIN_H=80, isMobile=false;
+  var MIN_H=80;
 
-  function setupSplit(){
-    var mobile=window.innerWidth<=MOBILE_BP;
-    if(mobile===isMobile) return;
-    isMobile=mobile;
-    if(mobile){
-      divider.style.display='flex';
-      // Default: 50/50 split
-      var avail=window.innerHeight-40-18; // minus topbar and divider
-      panel.style.height=Math.round(avail*0.5)+'px';
-      panel.style.flexShrink='0';
-      pva.style.flex='1';
-    } else {
-      divider.style.display='none';
-      panel.style.height='';
-      panel.style.flexShrink='';
-      pva.style.flex='';
-    }
-  }
+  function isMobile(){return window.innerWidth<=700;}
+  function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
 
-  function clamp(val,min,max){return Math.max(min,Math.min(max,val));}
-
-  function onDragStart(e){
-    if(!isMobile) return;
+  function onStart(e){
+    if(!isMobile()) return;
     dragging=true;
     startY=e.touches?e.touches[0].clientY:e.clientY;
     startPanelH=panel.offsetHeight;
     e.preventDefault();
   }
-
-  function onDragMove(e){
+  function onMove(e){
     if(!dragging) return;
     var y=e.touches?e.touches[0].clientY:e.clientY;
-    var delta=y-startY;
     var avail=window.innerHeight-40-18;
-    var newH=clamp(startPanelH+delta,MIN_H,avail-MIN_H);
+    var newH=clamp(startPanelH+(y-startY),MIN_H,avail-MIN_H);
+    panel.style.maxHeight=newH+'px';
     panel.style.height=newH+'px';
     e.preventDefault();
   }
+  function onEnd(){dragging=false;}
 
-  function onDragEnd(){dragging=false;}
+  divider.addEventListener('mousedown',onStart);
+  divider.addEventListener('touchstart',onStart,{passive:false});
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('touchmove',onMove,{passive:false});
+  document.addEventListener('mouseup',onEnd);
+  document.addEventListener('touchend',onEnd);
 
-  divider.addEventListener('mousedown',onDragStart);
-  divider.addEventListener('touchstart',onDragStart,{passive:false});
-  document.addEventListener('mousemove',onDragMove);
-  document.addEventListener('touchmove',onDragMove,{passive:false});
-  document.addEventListener('mouseup',onDragEnd);
-  document.addEventListener('touchend',onDragEnd);
-
-  setupSplit();
-  window.addEventListener('resize',setupSplit);
+  // Clear inline styles when switching to desktop so CSS takes over
+  window.addEventListener('resize',function(){
+    if(!isMobile()){
+      panel.style.height='';
+      panel.style.maxHeight='';
+    }
+  });
 })();
 
 // Init folder UI on load
