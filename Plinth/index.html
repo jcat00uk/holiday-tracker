@@ -19,21 +19,13 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f0f0ee;co
 /* Mobile: split pane with draggable divider */
 @media(max-width:700px){
   html,body{height:100%;overflow:hidden}
-  .main{display:flex!important;flex-direction:column;height:calc(100vh - 40px);min-height:0;overflow:hidden}
-  .panel{max-height:50vh!important;min-height:80px;position:static!important;border-right:none;border-bottom:none;overflow-y:auto;flex-shrink:0;padding:10px}
-  .split-divider{height:18px;background:#e8e8e8;border-top:1px solid #ccc;border-bottom:1px solid #ccc;display:flex!important;align-items:center;justify-content:center;cursor:row-resize;flex-shrink:0;user-select:none;touch-action:none}
+  .main{display:flex;flex-direction:column;height:calc(100vh - 40px);min-height:0;overflow:hidden}
+  .panel{max-height:50vh;min-height:80px;position:static;border-right:none;border-bottom:none;overflow-y:auto;flex-shrink:0;padding:10px}
+  .split-divider{height:18px;background:#e8e8e8;border-top:1px solid #ccc;border-bottom:1px solid #ccc;display:flex;align-items:center;justify-content:center;cursor:row-resize;flex-shrink:0;user-select:none;touch-action:none}
   .split-divider-handle{width:36px;height:4px;border-radius:2px;background:#bbb}
-  .pva{padding:8px;overflow-y:auto;flex:1;min-height:80px}
+  .pva{padding:8px;overflow-y:auto;flex:1;min-height:0}
   .a4{padding:10px}
   .top-bar h1{font-size:13px}
-}
-/* Desktop guard — explicitly restore everything the mobile query touches */
-@media(min-width:701px){
-  html,body{height:auto;overflow:visible}
-  .main{display:grid!important;grid-template-columns:295px 1fr;flex-direction:unset;height:auto;min-height:calc(100vh - 40px)}
-  .panel{max-height:calc(100vh - 40px)!important;min-height:0;position:sticky!important;top:0;border-right:1px solid #ddd;overflow-y:auto;flex-shrink:unset;padding:12px}
-  .split-divider{display:none!important}
-  .pva{padding:14px;overflow-y:auto;flex:unset;min-height:0}
 }
 .ps{margin-bottom:14px}
 .ps-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#999;margin-bottom:7px;padding-bottom:3px;border-bottom:1px solid #eee}
