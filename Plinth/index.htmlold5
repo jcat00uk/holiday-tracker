@@ -140,28 +140,6 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f0f0ee;co
 .copy-ok{border-color:#2d9c5c!important;color:#2d9c5c!important}
 .cut-hr::after{content:attr(data-lbl);font-size:9px;color:#bbb;background:#fff;padding:0 5px;position:relative;top:-7px;display:inline-block}
 .nodata{font-size:12px;color:#aaa;padding:16px;text-align:center;border:1px dashed #ddd;border-radius:3px}
-.cv{font-size:9px;color:#aaa;transition:transform 0.2s;display:inline-block;transform:rotate(-90deg)}
-.cv.op{transform:rotate(0deg)}
-/* Search */
-.srch-box{display:none;margin-top:7px}
-.srch-box input{width:100%;padding:5px 8px;font-size:12px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;outline:none}
-.srch-box input:focus{border-color:#1a1a1a}
-.srch-none{font-size:12px;color:#aaa;padding:12px;text-align:center;border:1px dashed #ddd;border-radius:3px}
-/* Folder picker */
-.folder-bar{display:flex;gap:6px;align-items:center;margin-bottom:7px}
-.folder-name{font-size:10px;color:#888;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pdf-list{border:1px solid #ddd;border-radius:3px;max-height:160px;overflow-y:auto}
-.pdf-item{padding:5px 8px;font-size:11px;cursor:pointer;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:6px;line-height:1.3}
-.pdf-item:last-child{border-bottom:none}
-.pdf-item:hover{background:#f5f5f5}
-.pdf-item.active{background:#1a1a1a;color:#fff}
-.pdf-item .pi-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pdf-item .pi-badge{font-size:9px;background:#e8f4e8;color:#2d9c5c;padding:1px 5px;border-radius:2px;white-space:nowrap;flex-shrink:0}
-.pdf-item.active .pi-badge{background:#444;color:#aaa}
-.pdf-none{font-size:11px;color:#aaa;padding:8px;text-align:center}
-.perm-bar{background:#fff8e8;border:1px solid #e8c84a;border-radius:3px;padding:6px 8px;font-size:11px;color:#7a5a00;display:none;align-items:center;gap:7px;margin-bottom:7px}
-.perm-bar button{font-size:10px;padding:2px 8px;border:1px solid #c8a020;border-radius:3px;background:#fff;color:#7a5a00;cursor:pointer;white-space:nowrap}
-.perm-bar button:hover{background:#fff0c0}
 
 /* Search */
 .srch-box{display:none;margin-top:7px}
@@ -258,66 +236,48 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f0f0ee;co
   </div>
 
   <div class="ps">
-    <div class="ps-title" onclick="toggleSection('sec-3','chv-3')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none">
+    <div class="ps-title" style="display:flex;align-items:center;justify-content:space-between">
       <span>3 · Departments &amp; fixtures</span>
-      <span style="display:flex;gap:4px;align-items:center">
-        <button class="ab" onclick="event.stopPropagation();deptAllOn()">All on</button>
-        <button class="ab" onclick="event.stopPropagation();deptAllOff()">All off</button>
-        <span class="cv op" id="chv-3">&#9660;</span>
+      <span style="display:flex;gap:4px">
+        <button class="ab" onclick="deptAllOn()">All on</button>
+        <button class="ab" onclick="deptAllOff()">All off</button>
       </span>
     </div>
-    <div id="sec-3">
-      <div id="dept-list"><div style="font-size:11px;color:#aaa;padding:4px 0">Load a PDF first</div></div>
+    <div id="dept-list"><div style="font-size:11px;color:#aaa;padding:4px 0">Load a PDF first</div></div>
+  </div>
+
+  <div class="ps">
+    <div class="ps-title">4 · Fixture types</div>
+    <div class="or"><label>Plinths</label><label class="tog"><input type="checkbox" id="ft-pl" checked onchange="onTypeChange()"><span class="tsl"></span></label></div>
+    <div class="or"><label>Pallets</label><label class="tog"><input type="checkbox" id="ft-pa" onchange="onTypeChange()"><span class="tsl"></span></label></div>
+    <div class="or"><label>Shippers / stacks</label><label class="tog"><input type="checkbox" id="ft-sh" onchange="onTypeChange()"><span class="tsl"></span></label></div>
+    <div class="or"><label>Permanent shippers</label><label class="tog"><input type="checkbox" id="ft-pe" onchange="onTypeChange()"><span class="tsl"></span></label></div>
+    <div class="or"><label>Clip strips</label><label class="tog"><input type="checkbox" id="ft-cl" onchange="onTypeChange()"><span class="tsl"></span></label></div>
+  </div>
+
+  <div class="ps">
+    <div class="ps-title">5 · Date filter</div>
+    <div class="or"><span>Show</span>
+      <select id="dfil" onchange="rp()">
+        <option value="all" selected>All dates</option>
+        <option value="active">Active this week</option>
+        <option value="ending">Ending this week</option>
+        <option value="starting">Starting this week</option>
+      </select>
     </div>
   </div>
 
   <div class="ps">
-    <div class="ps-title" onclick="toggleSection('sec-4','chv-4')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none">
-      <span>4 · Fixture types</span>
-      <span class="cv op" id="chv-4">&#9660;</span>
-    </div>
-    <div id="sec-4">
-      <div class="or"><label>Plinths</label><label class="tog"><input type="checkbox" id="ft-pl" checked onchange="onTypeChange()"><span class="tsl"></span></label></div>
-      <div class="or"><label>Pallets</label><label class="tog"><input type="checkbox" id="ft-pa" onchange="onTypeChange()"><span class="tsl"></span></label></div>
-      <div class="or"><label>Shippers / stacks</label><label class="tog"><input type="checkbox" id="ft-sh" onchange="onTypeChange()"><span class="tsl"></span></label></div>
-      <div class="or"><label>Permanent shippers</label><label class="tog"><input type="checkbox" id="ft-pe" onchange="onTypeChange()"><span class="tsl"></span></label></div>
-      <div class="or"><label>Clip strips</label><label class="tog"><input type="checkbox" id="ft-cl" onchange="onTypeChange()"><span class="tsl"></span></label></div>
-    </div>
-  </div>
-
-  <div class="ps">
-    <div class="ps-title" onclick="toggleSection('sec-5','chv-5')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none">
-      <span>5 · Date filter</span>
-      <span class="cv" id="chv-5">&#9660;</span>
-    </div>
-    <div id="sec-5" style="display:none">
-      <div class="or"><span>Show</span>
-        <select id="dfil" onchange="rp()">
-          <option value="all" selected>All dates</option>
-          <option value="active">Active this week</option>
-          <option value="ending">Ending this week</option>
-          <option value="starting">Starting this week</option>
-        </select>
-      </div>
-    </div>
-  </div>
-
-  <div class="ps">
-    <div class="ps-title" onclick="toggleSection('sec-6','chv-6')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none">
-      <span>6 · Page &amp; layout</span>
-      <span class="cv" id="chv-6">&#9660;</span>
-    </div>
-    <div id="sec-6" style="display:none">
-      <div class="or"><label>Page break between depts</label><label class="tog"><input type="checkbox" id="pb-d" onchange="rp()"><span class="tsl"></span></label></div>
-      <div class="or"><label>Page break between fixtures</label><label class="tog"><input type="checkbox" id="pb-f" onchange="rp()"><span class="tsl"></span></label></div>
-      <div class="or"><label>Cut lines between depts</label><label class="tog"><input type="checkbox" id="cl-d" checked onchange="rp()"><span class="tsl"></span></label></div>
-      <div class="or"><span>Font size</span>
-        <select id="fsz" onchange="applyFs()">
-          <option value="11">Small (11px)</option>
-          <option value="13" selected>Medium (13px)</option>
-          <option value="15">Large (15px)</option>
-        </select>
-      </div>
+    <div class="ps-title">6 · Page &amp; layout</div>
+    <div class="or"><label>Page break between depts</label><label class="tog"><input type="checkbox" id="pb-d" onchange="rp()"><span class="tsl"></span></label></div>
+    <div class="or"><label>Page break between fixtures</label><label class="tog"><input type="checkbox" id="pb-f" onchange="rp()"><span class="tsl"></span></label></div>
+    <div class="or"><label>Cut lines between depts</label><label class="tog"><input type="checkbox" id="cl-d" checked onchange="rp()"><span class="tsl"></span></label></div>
+    <div class="or"><span>Font size</span>
+      <select id="fsz" onchange="applyFs()">
+        <option value="11">Small (11px)</option>
+        <option value="13" selected>Medium (13px)</option>
+        <option value="15">Large (15px)</option>
+      </select>
     </div>
   </div>
 
@@ -1352,185 +1312,282 @@ function clearDoc(){
   dbSaveLastFile(null);
 }
 
-// ── COLLAPSIBLE SECTIONS ──
-var sectionState={'3':true,'4':true,'5':false,'6':false};
-var preSrchState={};
-function toggleSection(secId,chvId){
-  var num=secId.replace('sec-','');
-  var open=!sectionState[num];
-  sectionState[num]=open;
-  var sec=document.getElementById(secId);
-  var chv=document.getElementById(chvId);
-  if(sec) sec.style.display=open?'':'none';
-  if(chv){chv.className=open?'cv op':'cv';}
-}
-
-// ── SEARCH ──
-function toggleSearch(on){
-  document.getElementById('srch-box').style.display=on?'block':'none';
-  if(on){
-    ['3','4','5','6'].forEach(function(n){preSrchState[n]=sectionState[n];setSectionClosed(n);});
-    setTimeout(function(){document.getElementById('srch-inp').focus();},50);
-    document.getElementById('pv').innerHTML='<div class="nodata">Type to search SKU or description</div>';
-    document.getElementById('pc').innerHTML='';
-    document.getElementById('pvi').textContent='';
-  } else {
-    ['3','4','5','6'].forEach(function(n){
-      var open=preSrchState[n]!==undefined?preSrchState[n]:sectionState[n];
-      sectionState[n]=open;
-      var sec=document.getElementById('sec-'+n);
-      var chv=document.getElementById('chv-'+n);
-      if(sec) sec.style.display=open?'':'none';
-      if(chv) chv.className=open?'cv op':'cv';
-    });
-    document.getElementById('srch-inp').value='';
-    document.getElementById('pvi').textContent='';
-    if(DOC){var h=buildHTML();document.getElementById('pv').innerHTML=h;document.getElementById('pc').innerHTML=h;applyFs();var cnt=document.getElementById('pv').querySelectorAll('.fix-block,.shp-block').length;document.getElementById('pvi').textContent=cnt+' fixture'+(cnt!==1?'s':'')+' in output';}
-    else document.getElementById('pv').innerHTML='<div class="nodata">Load an SSPSA PDF to begin</div>';
-  }
-}
-function setSectionClosed(n){
-  sectionState[n]=false;
-  var sec=document.getElementById('sec-'+n);
-  var chv=document.getElementById('chv-'+n);
-  if(sec) sec.style.display='none';
-  if(chv) chv.className='cv';
-}
-function doSearch(q){
-  if(!DOC) return;
-  var pv=document.getElementById('pv'),pc=document.getElementById('pc');
-  q=q.trim();
-  if(!q){pv.innerHTML='<div class="nodata">Type to search SKU or description</div>';pc.innerHTML='';document.getElementById('pvi').textContent='';return;}
-  var ql=q.toLowerCase(),total=0,h='';
-  DEPTS.forEach(function(def){
-    var deptFixes=DOC.fixtures.filter(function(f){return f.deptKey===def.k;});
-    if(!deptFixes.length) return;
-    var dh='';
-    deptFixes.forEach(function(fix){
-      var matched=fix.items.filter(function(it){return(it.sku&&it.sku.toLowerCase().indexOf(ql)>-1)||(it.desc&&it.desc.toLowerCase().indexOf(ql)>-1);});
-      if(!matched.length) return;
-      total+=matched.length;
-      dh+=renderFix(Object.assign({},fix,{items:matched}));
-    });
-    if(dh) h+='<div class="dept-hdr">'+esc(def.lbl)+'</div>'+dh;
-  });
-  if(!h){h='<div class="srch-none">No results for "'+esc(q)+'"</div>';document.getElementById('pvi').textContent='No results';}
-  else document.getElementById('pvi').textContent=total+' item'+(total!==1?'s':'')+' matched';
-  pv.innerHTML=h;pc.innerHTML=h;applyFs();
-}
-
-// ── PRINT WITH FILENAME ──
-function doPrint(){
-  if(DOC&&DOC.store&&DOC.store.week&&DOC.store.dates){
-    var dates=DOC.store.dates.replace(/\s*[–-]\s*/g,' - ').trim();
-    document.title='SSPSA Print Tool - Week '+DOC.store.week+' - '+dates;
-  } else document.title='SSPSA Print Tool';
-  window.print();
-  setTimeout(function(){document.title='SSPSA Print Tool';},2000);
-}
-
 // ── FOLDER PICKER & INDEXEDDB ──
-var IDB_NAME='sspsa_tool',IDB_VER=1,IDB_STORE='handles';
-var gFolderHandle=null,gFileHandles=[],gCurrentFile=null;
-var HAS_FSA=(typeof window.showDirectoryPicker==='function');
+var IDB_NAME='sspsa_tool', IDB_VER=1, IDB_STORE='handles';
+var gFolderHandle=null, gFileHandles=[], gCurrentFile=null;
 
-function idbOpen(cb){var req=indexedDB.open(IDB_NAME,IDB_VER);req.onupgradeneeded=function(e){e.target.result.createObjectStore(IDB_STORE);};req.onsuccess=function(e){cb(null,e.target.result);};req.onerror=function(){cb('idb error');};}
-function idbPut(key,val,cb){idbOpen(function(err,db){if(err)return cb&&cb(err);var tx=db.transaction(IDB_STORE,'readwrite');tx.objectStore(IDB_STORE).put(val,key);tx.oncomplete=function(){cb&&cb(null);};tx.onerror=function(){cb&&cb('put error');};});}
-function idbGet(key,cb){idbOpen(function(err,db){if(err)return cb(err,null);var tx=db.transaction(IDB_STORE,'readonly');var req=tx.objectStore(IDB_STORE).get(key);req.onsuccess=function(){cb(null,req.result||null);};req.onerror=function(){cb('get error',null);};});}
+function idbOpen(cb){
+  var req=indexedDB.open(IDB_NAME,IDB_VER);
+  req.onupgradeneeded=function(e){e.target.result.createObjectStore(IDB_STORE);};
+  req.onsuccess=function(e){cb(null,e.target.result);};
+  req.onerror=function(){cb('idb error');};
+}
+function idbPut(key,val,cb){
+  idbOpen(function(err,db){
+    if(err) return cb&&cb(err);
+    var tx=db.transaction(IDB_STORE,'readwrite');
+    tx.objectStore(IDB_STORE).put(val,key);
+    tx.oncomplete=function(){cb&&cb(null);};
+    tx.onerror=function(){cb&&cb('put error');};
+  });
+}
+function idbGet(key,cb){
+  idbOpen(function(err,db){
+    if(err) return cb(err,null);
+    var tx=db.transaction(IDB_STORE,'readonly');
+    var req=tx.objectStore(IDB_STORE).get(key);
+    req.onsuccess=function(){cb(null,req.result||null);};
+    req.onerror=function(){cb('get error',null);};
+  });
+}
 function dbSaveFolderHandle(h){idbPut('folderHandle',h);}
 function dbSaveLastFile(name){idbPut('lastFile',name);}
 
+// Check if File System Access API is available
+var HAS_FSA=(typeof window.showDirectoryPicker==='function');
+
 function initFolderUI(){
   if(!HAS_FSA){
+    // Fallback: show original dropzone, hide folder UI
     document.getElementById('dz').style.display='block';
     document.getElementById('btn-folder').style.display='none';
     document.getElementById('folder-name').textContent='Use drop zone below';
-    document.getElementById('pdf-list').innerHTML='<div class="pdf-none">Folder browsing not supported — use drag & drop below</div>';
+    document.getElementById('pdf-list').innerHTML='<div class="pdf-none">Folder browsing not supported in this browser — use drag & drop below</div>';
     return;
   }
+  // Try to restore persisted folder handle
   idbGet('folderHandle',function(err,handle){
     if(err||!handle) return;
     gFolderHandle=handle;
+    // Try to verify permission silently
     handle.queryPermission({mode:'read'}).then(function(perm){
       if(perm==='granted'){
         setFolderName(handle.name);
-        scanFolder(function(){idbGet('lastFile',function(e2,lastName){if(lastName)autoLoadFile(lastName);});});
+        scanFolder(function(){
+          // Auto-load last file
+          idbGet('lastFile',function(e2,lastName){
+            if(lastName) autoLoadFile(lastName);
+          });
+        });
       } else {
+        // Need user gesture to re-grant — show permission bar
         setFolderName(handle.name);
         document.getElementById('perm-bar').style.display='flex';
       }
-    }).catch(function(){document.getElementById('perm-bar').style.display='flex';});
+    }).catch(function(){
+      document.getElementById('perm-bar').style.display='flex';
+    });
   });
 }
+
 function reGrantFolder(){
   if(!gFolderHandle) return;
   gFolderHandle.requestPermission({mode:'read'}).then(function(perm){
     document.getElementById('perm-bar').style.display='none';
-    if(perm==='granted'){scanFolder(function(){idbGet('lastFile',function(e,n){if(n)autoLoadFile(n);});});}
-    else setStat('Folder access denied');
+    if(perm==='granted'){
+      scanFolder(function(){
+        idbGet('lastFile',function(e,lastName){
+          if(lastName) autoLoadFile(lastName);
+        });
+      });
+    } else {
+      setStat('Folder access denied');
+    }
   });
 }
+
 function pickFolder(){
   if(!HAS_FSA) return;
   window.showDirectoryPicker({mode:'read'}).then(function(handle){
-    gFolderHandle=handle;dbSaveFolderHandle(handle);setFolderName(handle.name);
+    gFolderHandle=handle;
+    dbSaveFolderHandle(handle);
+    setFolderName(handle.name);
     document.getElementById('perm-bar').style.display='none';
     scanFolder(null);
-  }).catch(function(e){if(e.name!=='AbortError')setStat('Folder error: '+e.message);});
+  }).catch(function(e){
+    if(e.name!=='AbortError') setStat('Folder error: '+e.message);
+  });
 }
+
 function setFolderName(name){
   document.getElementById('folder-name').textContent=name;
   document.getElementById('btn-rescan').style.display='inline-block';
 }
+
 function rescanFolder(){
   if(!gFolderHandle) return;
-  var prev=gCurrentFile;
+  var prevFile=gCurrentFile;
   scanFolder(function(){
-    if(prev) document.querySelectorAll('.pdf-item').forEach(function(el){if(el.dataset.name===prev)el.classList.add('active');});
+    // Reapply active highlight if file still exists
+    if(prevFile){
+      document.querySelectorAll('.pdf-item').forEach(function(el){
+        if(el.dataset.name===prevFile) el.classList.add('active');
+      });
+    }
   });
 }
+
 function scanFolder(cb){
   if(!gFolderHandle){if(cb)cb();return;}
   gFileHandles=[];
-  var entries=[],it=gFolderHandle.entries();
+  var entries=[];
+  var it=gFolderHandle.entries();
   function next(){
     it.next().then(function(res){
       if(res.done){
-        entries=entries.filter(function(e){return e.name.toLowerCase().endsWith('.pdf')&&/ss-psa/i.test(e.name);});
+        // Filter to SS-PSA PDFs, sort by name descending (newest week first)
+        entries=entries.filter(function(e){
+          return e.name.toLowerCase().endsWith('.pdf')&&/ss-psa/i.test(e.name);
+        });
         entries.sort(function(a,b){return b.name.localeCompare(a.name);});
-        gFileHandles=entries;renderPdfList(entries);if(cb)cb();
-      } else {if(res.value[1].kind==='file')entries.push(res.value[1]);next();}
-    }).catch(function(e){setStat('Scan error: '+e.message);if(cb)cb();});
+        gFileHandles=entries;
+        renderPdfList(entries);
+        if(cb) cb();
+      } else {
+        if(res.value[1].kind==='file') entries.push(res.value[1]);
+        next();
+      }
+    }).catch(function(e){
+      setStat('Scan error: '+e.message);
+      if(cb) cb();
+    });
   }
   next();
 }
+
 function renderPdfList(handles){
   var list=document.getElementById('pdf-list');
-  if(!handles.length){list.innerHTML='<div class="pdf-none">No SS-PSA PDF files found in this folder</div>';return;}
+  if(!handles.length){
+    list.innerHTML='<div class="pdf-none">No SS-PSA PDF files found in this folder</div>';
+    return;
+  }
   list.innerHTML=handles.map(function(h,i){
+    // Highlight "latest" badge on first (newest) entry
     var badge=i===0?'<span class="pi-badge">latest</span>':'';
     return '<div class="pdf-item" data-name="'+esc(h.name)+'" data-idx="'+i+'" onclick="selectPdf(this,'+i+')">'
       +'<span class="pi-name">'+esc(h.name.replace(/\.pdf$/i,''))+'</span>'+badge+'</div>';
   }).join('');
 }
+
 function selectPdf(el,idx){
   document.querySelectorAll('.pdf-item').forEach(function(e){e.classList.remove('active');});
   el.classList.add('active');
   var handle=gFileHandles[idx];
   if(!handle) return;
-  gCurrentFile=handle.name;dbSaveLastFile(handle.name);
-  handle.getFile().then(function(file){loadFile(file);}).catch(function(e){setStat('Cannot read file: '+e.message);});
+  gCurrentFile=handle.name;
+  dbSaveLastFile(handle.name);
+  handle.getFile().then(function(file){
+    loadFile(file);
+  }).catch(function(e){setStat('Cannot read file: '+e.message);});
 }
+
 function autoLoadFile(name){
   var idx=-1;
-  gFileHandles.forEach(function(h,i){if(h.name===name)idx=i;});
-  if(idx<0){setStat('Last file not found — select from list');return;}
+  gFileHandles.forEach(function(h,i){if(h.name===name) idx=i;});
+  if(idx<0){
+    // File no longer exists — just leave list ready
+    setStat('Last file not found — select from list');
+    return;
+  }
   var el=document.querySelector('.pdf-item[data-idx="'+idx+'"]');
   if(el) selectPdf(el,idx);
 }
 
+// ── SEARCH ──
+function toggleSearch(on){
+  document.getElementById('srch-box').style.display=on?'block':'none';
+  if(!on){
+    // Restore normal view
+    document.getElementById('srch-inp').value='';
+    document.getElementById('pvi').textContent='';
+    var pv=document.getElementById('pv'),pc=document.getElementById('pc');
+    if(DOC){
+      var h=buildHTML();
+      pv.innerHTML=h; pc.innerHTML=h;
+      applyFs();
+      var cnt=pv.querySelectorAll('.fix-block,.shp-block').length;
+      document.getElementById('pvi').textContent=cnt+' fixture'+(cnt!==1?'s':'')+' in output';
+    } else {
+      pv.innerHTML='<div class="nodata">Load an SSPSA PDF to begin</div>';
+    }
+  } else {
+    // Focus input, clear preview ready for search
+    setTimeout(function(){document.getElementById('srch-inp').focus();},50);
+    document.getElementById('pv').innerHTML='<div class="nodata">Type to search SKU or description</div>';
+    document.getElementById('pc').innerHTML='';
+    document.getElementById('pvi').textContent='';
+  }
+}
+
+function doSearch(q){
+  if(!DOC) return;
+  var pv=document.getElementById('pv'), pc=document.getElementById('pc');
+  q=q.trim();
+  if(!q){
+    pv.innerHTML='<div class="nodata">Type to search SKU or description</div>';
+    pc.innerHTML='';
+    document.getElementById('pvi').textContent='';
+    return;
+  }
+  var ql=q.toLowerCase();
+  var totalMatches=0;
+  var h='';
+
+  // Group results by dept
+  DEPTS.forEach(function(def){
+    var deptFixes=DOC.fixtures.filter(function(f){return f.deptKey===def.k;});
+    if(!deptFixes.length) return;
+    var deptHTML='';
+
+    deptFixes.forEach(function(fix){
+      // Filter items matching SKU or description
+      var matched=fix.items.filter(function(it){
+        return (it.sku&&it.sku.toLowerCase().indexOf(ql)>-1)
+          ||(it.desc&&it.desc.toLowerCase().indexOf(ql)>-1);
+      });
+      if(!matched.length) return;
+      totalMatches+=matched.length;
+
+      // Build fixture block with only matched rows
+      var fixClone=Object.assign({},fix,{items:matched});
+      deptHTML+=renderFix(fixClone);
+    });
+
+    if(deptHTML){
+      h+='<div class="dept-hdr">'+esc(def.lbl)+'</div>';
+      h+=deptHTML;
+    }
+  });
+
+  if(!h){
+    h='<div class="srch-none">No results for "'+esc(q)+'"</div>';
+    document.getElementById('pvi').textContent='No results';
+  } else {
+    document.getElementById('pvi').textContent=totalMatches+' item'+(totalMatches!==1?'s':'')+' matched';
+  }
+
+  pv.innerHTML=h; pc.innerHTML=h;
+  applyFs();
+}
+
+// ── PRINT WITH FILENAME ──
+function doPrint(){
+  if(DOC&&DOC.store.week&&DOC.store.dates){
+    // Clean dates: "29 Apr - 5 May 2026" → "29 Apr - 5 May 2026"
+    var dates=DOC.store.dates.replace(/\s*[–-]\s*/g,' - ').trim();
+    document.title='SSPSA Print Tool - Week '+DOC.store.week+' - '+dates;
+  } else {
+    document.title='SSPSA Print Tool';
+  }
+  window.print();
+  // Restore title after print dialog closes
+  setTimeout(function(){document.title='SSPSA Print Tool';},2000);
+}
+
 // Init on load
-(function(){initFolderUI();})();
+(function(){
+  initFolderUI();
+})();
 
 // ── SPLIT PANE DRAG (mobile only) ──
 (function(){
