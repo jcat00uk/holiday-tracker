@@ -15,14 +15,17 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f0f0ee;co
 /* Desktop: sidebar left, preview right */
 .main{display:grid;grid-template-columns:295px 1fr;min-height:calc(100vh - 40px)}
 .panel{background:#fff;border-right:1px solid #ddd;padding:12px;overflow-y:auto;max-height:calc(100vh - 40px);position:sticky;top:0}
+/* Mobile: panel on top, preview below */
 .split-divider{display:none}
 @media(max-width:700px){
-  .main{display:flex;flex-direction:column;height:calc(100vh - 40px)}
-  .panel{max-height:50vh;min-height:80px;position:static;border-right:none;overflow-y:auto;flex-shrink:0;padding:10px}
-  .pva{flex:1;min-height:0;overflow-y:auto;padding:8px}
-  .split-divider{display:flex;height:18px;background:#e8e8e8;border-top:1px solid #ccc;border-bottom:1px solid #ccc;align-items:center;justify-content:center;cursor:row-resize;flex-shrink:0;touch-action:none;user-select:none}
+  .main{grid-template-columns:1fr;grid-template-rows:auto 1fr;display:flex;flex-direction:column;height:calc(100vh - 40px)}
+  .screen{height:100vh;overflow:hidden}
+  .panel{max-height:50vh;min-height:80px;position:static;border-right:none;border-bottom:none;overflow-y:auto;flex-shrink:0}
+  .pva{flex:1;min-height:0;overflow-y:auto;padding:10px}
+  .split-divider{display:flex;height:18px;background:#e8e8e8;border-top:1px solid #ccc;border-bottom:1px solid #ccc;align-items:center;justify-content:center;cursor:row-resize;flex-shrink:0;user-select:none;touch-action:none}
   .split-divider-handle{width:36px;height:4px;border-radius:2px;background:#bbb}
-  .a4{padding:10px}
+}
+  .a4{padding:10px 10px}
   .top-bar h1{font-size:13px}
 }
 .ps{margin-bottom:14px}
@@ -223,75 +226,58 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f0f0ee;co
   </div>
 
   <div class="ps">
-    <div class="ps-title collapsible" id="hdr-3" onclick="toggleSection('sec-3','hdr-3')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none">
-      <span>2 · Departments &amp; fixtures</span>
-      <span style="display:flex;gap:4px;align-items:center">
-        <button class="ab" onclick="event.stopPropagation();deptAllOn()">All on</button>
-        <button class="ab" onclick="event.stopPropagation();deptAllOff()">All off</button>
-        <span class="cv op" id="chv-3">&#9660;</span>
-      </span>
+    <div class="ps-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>2 · Search</span>
+      <label class="tog"><input type="checkbox" id="srch-tog" onchange="toggleSearch(this.checked)"><span class="tsl"></span></label>
     </div>
-    <div id="sec-3">
-      <div id="dept-list"><div style="font-size:11px;color:#aaa;padding:4px 0">Load a PDF first</div></div>
-    </div>
-  </div>
-
-  <div class="ps">
-    <div class="ps-title collapsible" id="hdr-4" onclick="toggleSection('sec-4','hdr-4')" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between">
-      <span>3 · Fixture types</span>
-      <span class="cv op" id="chv-4">&#9660;</span>
-    </div>
-    <div id="sec-4">
-      <div class="or"><label>Plinths</label><label class="tog"><input type="checkbox" id="ft-pl" checked onchange="onTypeChange()"><span class="tsl"></span></label></div>
-      <div class="or"><label>Pallets</label><label class="tog"><input type="checkbox" id="ft-pa" onchange="onTypeChange()"><span class="tsl"></span></label></div>
-      <div class="or"><label>Shippers / stacks</label><label class="tog"><input type="checkbox" id="ft-sh" onchange="onTypeChange()"><span class="tsl"></span></label></div>
-      <div class="or"><label>Permanent shippers</label><label class="tog"><input type="checkbox" id="ft-pe" onchange="onTypeChange()"><span class="tsl"></span></label></div>
-      <div class="or"><label>Clip strips</label><label class="tog"><input type="checkbox" id="ft-cl" onchange="onTypeChange()"><span class="tsl"></span></label></div>
-    </div>
-  </div>
-
-  <div class="ps">
-    <div class="ps-title collapsible" id="hdr-5" onclick="toggleSection('sec-5','hdr-5')" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between">
-      <span>4 · Date filter</span>
-      <span class="cv op" id="chv-5" style="transform:rotate(-90deg)">&#9660;</span>
-    </div>
-    <div id="sec-5" style="display:none">
-      <div class="or"><span>Show</span>
-        <select id="dfil" onchange="rp()">
-          <option value="all" selected>All dates</option>
-          <option value="active">Active this week</option>
-          <option value="ending">Ending this week</option>
-          <option value="starting">Starting this week</option>
-        </select>
-      </div>
-    </div>
-  </div>
-
-  <div class="ps">
-    <div class="ps-title collapsible" id="hdr-6" onclick="toggleSection('sec-6','hdr-6')" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between">
-      <span>5 · Page &amp; layout</span>
-      <span class="cv op" id="chv-6" style="transform:rotate(-90deg)">&#9660;</span>
-    </div>
-    <div id="sec-6" style="display:none">
-      <div class="or"><label>Page break between depts</label><label class="tog"><input type="checkbox" id="pb-d" onchange="rp()"><span class="tsl"></span></label></div>
-      <div class="or"><label>Page break between fixtures</label><label class="tog"><input type="checkbox" id="pb-f" onchange="rp()"><span class="tsl"></span></label></div>
-      <div class="or"><label>Cut lines between depts</label><label class="tog"><input type="checkbox" id="cl-d" checked onchange="rp()"><span class="tsl"></span></label></div>
-      <div class="or"><span>Font size</span>
-        <select id="fsz" onchange="applyFs()">
-          <option value="11">Small (11px)</option>
-          <option value="13" selected>Medium (13px)</option>
-          <option value="15">Large (15px)</option>
-        </select>
+    <div class="srch-box" id="srch-box">
+      <input type="text" id="srch-inp" placeholder="Search SKU or description…" oninput="doSearch(this.value)">
     </div>
   </div>
 
   <div class="ps">
     <div class="ps-title" style="display:flex;align-items:center;justify-content:space-between">
-      <span>6 · Search</span>
-      <label class="tog"><input type="checkbox" id="srch-tog" onchange="toggleSearch(this.checked)"><span class="tsl"></span></label>
+      <span>3 · Departments &amp; fixtures</span>
+      <span style="display:flex;gap:4px">
+        <button class="ab" onclick="deptAllOn()">All on</button>
+        <button class="ab" onclick="deptAllOff()">All off</button>
+      </span>
     </div>
-    <div class="srch-box" id="srch-box">
-      <input type="text" id="srch-inp" placeholder="Search SKU or description…" oninput="doSearch(this.value)">
+    <div id="dept-list"><div style="font-size:11px;color:#aaa;padding:4px 0">Load a PDF first</div></div>
+  </div>
+
+  <div class="ps">
+    <div class="ps-title">4 · Fixture types</div>
+    <div class="or"><label>Plinths</label><label class="tog"><input type="checkbox" id="ft-pl" checked onchange="onTypeChange()"><span class="tsl"></span></label></div>
+    <div class="or"><label>Pallets</label><label class="tog"><input type="checkbox" id="ft-pa" onchange="onTypeChange()"><span class="tsl"></span></label></div>
+    <div class="or"><label>Shippers / stacks</label><label class="tog"><input type="checkbox" id="ft-sh" onchange="onTypeChange()"><span class="tsl"></span></label></div>
+    <div class="or"><label>Permanent shippers</label><label class="tog"><input type="checkbox" id="ft-pe" onchange="onTypeChange()"><span class="tsl"></span></label></div>
+    <div class="or"><label>Clip strips</label><label class="tog"><input type="checkbox" id="ft-cl" onchange="onTypeChange()"><span class="tsl"></span></label></div>
+  </div>
+
+  <div class="ps">
+    <div class="ps-title">5 · Date filter</div>
+    <div class="or"><span>Show</span>
+      <select id="dfil" onchange="rp()">
+        <option value="all" selected>All dates</option>
+        <option value="active">Active this week</option>
+        <option value="ending">Ending this week</option>
+        <option value="starting">Starting this week</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="ps">
+    <div class="ps-title">6 · Page &amp; layout</div>
+    <div class="or"><label>Page break between depts</label><label class="tog"><input type="checkbox" id="pb-d" onchange="rp()"><span class="tsl"></span></label></div>
+    <div class="or"><label>Page break between fixtures</label><label class="tog"><input type="checkbox" id="pb-f" onchange="rp()"><span class="tsl"></span></label></div>
+    <div class="or"><label>Cut lines between depts</label><label class="tog"><input type="checkbox" id="cl-d" checked onchange="rp()"><span class="tsl"></span></label></div>
+    <div class="or"><span>Font size</span>
+      <select id="fsz" onchange="applyFs()">
+        <option value="11">Small (11px)</option>
+        <option value="13" selected>Medium (13px)</option>
+        <option value="15">Large (15px)</option>
+      </select>
     </div>
   </div>
 
@@ -1507,49 +1493,11 @@ function autoLoadFile(name){
   if(el) selectPdf(el,idx);
 }
 
-// ── COLLAPSIBLE SECTIONS ──
-var COLLAPSIBLE_SECTIONS=['3','4','5','6'];
-// Track state: true=open, false=collapsed
-var sectionState={'3':true,'4':true,'5':false,'6':false};
-// State before search collapsed them
-var preSrchState={};
-
-function toggleSection(secId,hdrId){
-  var sec=document.getElementById(secId);
-  var num=secId.replace('sec-','');
-  var isOpen=sectionState[num];
-  setSectionOpen(num,!isOpen);
-}
-
-function setSectionOpen(num,open){
-  var sec=document.getElementById('sec-'+num);
-  var chv=document.getElementById('chv-'+num);
-  if(!sec) return;
-  sectionState[num]=open;
-  sec.style.display=open?'':'none';
-  if(chv){
-    chv.style.transform=open?'':'rotate(-90deg)';
-  }
-}
-
 // ── SEARCH ──
 function toggleSearch(on){
   document.getElementById('srch-box').style.display=on?'block':'none';
-  if(on){
-    // Save current open/closed state then collapse all sections
-    COLLAPSIBLE_SECTIONS.forEach(function(num){
-      preSrchState[num]=sectionState[num];
-      setSectionOpen(num,false);
-    });
-    setTimeout(function(){document.getElementById('srch-inp').focus();},50);
-    document.getElementById('pv').innerHTML='<div class="nodata">Type to search SKU or description</div>';
-    document.getElementById('pc').innerHTML='';
-    document.getElementById('pvi').textContent='';
-  } else {
-    // Restore pre-search section states
-    COLLAPSIBLE_SECTIONS.forEach(function(num){
-      setSectionOpen(num, preSrchState[num]!==undefined ? preSrchState[num] : true);
-    });
+  if(!on){
+    // Restore normal view
     document.getElementById('srch-inp').value='';
     document.getElementById('pvi').textContent='';
     var pv=document.getElementById('pv'),pc=document.getElementById('pc');
@@ -1562,6 +1510,12 @@ function toggleSearch(on){
     } else {
       pv.innerHTML='<div class="nodata">Load an SSPSA PDF to begin</div>';
     }
+  } else {
+    // Focus input, clear preview ready for search
+    setTimeout(function(){document.getElementById('srch-inp').focus();},50);
+    document.getElementById('pv').innerHTML='<div class="nodata">Type to search SKU or description</div>';
+    document.getElementById('pc').innerHTML='';
+    document.getElementById('pvi').textContent='';
   }
 }
 
@@ -1630,54 +1584,43 @@ function doPrint(){
   setTimeout(function(){document.title='SSPSA Print Tool';},2000);
 }
 
-// ── SPLIT PANE (mobile only) ──
+// Init on load
+(function(){
+  initFolderUI();
+})();
+
+// ── SPLIT PANE DRAG (mobile only) ──
 (function(){
   var panel=document.querySelector('.panel');
   var divider=document.getElementById('split-divider');
-  var dragging=false;
-  var startY=0, startPanelH=0;
-  var MIN_H=80;
-
-  function isMobile(){return window.innerWidth<=700;}
+  var dragging=false, startY=0, startH=0;
+  function mobile(){return window.innerWidth<=700;}
   function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
-
-  function onStart(e){
-    if(!isMobile()) return;
+  function start(e){
+    if(!mobile()) return;
     dragging=true;
     startY=e.touches?e.touches[0].clientY:e.clientY;
-    startPanelH=panel.offsetHeight;
+    startH=panel.offsetHeight;
     e.preventDefault();
   }
-  function onMove(e){
+  function move(e){
     if(!dragging) return;
     var y=e.touches?e.touches[0].clientY:e.clientY;
     var avail=window.innerHeight-40-18;
-    var newH=clamp(startPanelH+(y-startY),MIN_H,avail-MIN_H);
-    panel.style.maxHeight=newH+'px';
-    panel.style.height=newH+'px';
+    var h=clamp(startH+(y-startY),80,avail-80);
+    panel.style.maxHeight=h+'px';
     e.preventDefault();
   }
-  function onEnd(){dragging=false;}
-
-  divider.addEventListener('mousedown',onStart);
-  divider.addEventListener('touchstart',onStart,{passive:false});
-  document.addEventListener('mousemove',onMove);
-  document.addEventListener('touchmove',onMove,{passive:false});
-  document.addEventListener('mouseup',onEnd);
-  document.addEventListener('touchend',onEnd);
-
-  // Clear inline styles when switching to desktop so CSS takes over
+  function end(){dragging=false;}
+  divider.addEventListener('mousedown',start);
+  divider.addEventListener('touchstart',start,{passive:false});
+  document.addEventListener('mousemove',move);
+  document.addEventListener('touchmove',move,{passive:false});
+  document.addEventListener('mouseup',end);
+  document.addEventListener('touchend',end);
   window.addEventListener('resize',function(){
-    if(!isMobile()){
-      panel.style.height='';
-      panel.style.maxHeight='';
-    }
+    if(!mobile()) panel.style.maxHeight='';
   });
-})();
-
-// Init folder UI on load
-(function(){
-  initFolderUI();
 })();
 </script>
 </body>
