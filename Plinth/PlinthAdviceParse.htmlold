@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SSPSA Print Tool</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;font-size:14px;background:#f0f0ee;color:#1a1a1a}
+.screen{display:block}
+.print-area{display:none}
+.top-bar{background:#1a1a1a;color:#fff;padding:9px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.top-bar h1{font-size:14px;font-weight:700;flex:1}
+.top-bar .meta{font-size:11px;color:#bbb}
+/* Desktop: sidebar left, preview right */
+.main{display:grid;grid-template-columns:295px 1fr;min-height:calc(100vh - 40px)}
+.panel{background:#fff;border-right:1px solid #ddd;padding:12px;overflow-y:auto;max-height:calc(100vh - 40px);position:sticky;top:0}
+/* Mobile: panel on top, preview below */
+@media(max-width:700px){
+  .main{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .panel{max-height:none;position:static;border-right:none;border-bottom:2px solid #ddd;overflow-y:visible}
+  .pva{padding:10px}
+  .a4{padding:10px 10px}
+  .top-bar h1{font-size:13px}
+}
+.ps{margin-bottom:14px}
+.ps-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#999;margin-bottom:7px;padding-bottom:3px;border-bottom:1px solid #eee}
+.dropzone{border:2px dashed #ccc;border-radius:4px;padding:16px 10px;text-align:center;cursor:pointer;background:#fafafa;transition:border-color 0.15s,background 0.15s}
+.dropzone:hover,.dropzone.over{border-color:#1a1a1a;background:#f0f0f0}
+.dz-icon{font-size:28px;margin-bottom:6px;color:#bbb}
+.dz-main{font-size:12px;font-weight:700;color:#555;margin-bottom:3px}
+.dz-sub{font-size:10px;color:#aaa}
+.dropzone input[type=file]{display:none}
+.prog-wrap{margin-top:8px;display:none}
+.prog-bar{height:4px;background:#eee;border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:#1a1a1a;width:0%;transition:width 0.2s}
+.prog-text{font-size:10px;color:#888;margin-top:4px;text-align:center}
+.btn{padding:5px 10px;font-size:12px;font-weight:700;border:1px solid #bbb;border-radius:3px;background:#fff;color:#1a1a1a;cursor:pointer}
+.btn:hover{background:#f0f0f0}
+.btnp{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.btnp:hover{background:#333}
+.pstat{font-size:10px;color:#777;line-height:1.4;margin-top:5px;min-height:16px;word-break:break-word}
+.db{border:1px solid #ddd;border-radius:3px;margin-bottom:5px;overflow:hidden}
+.dr{display:flex;align-items:center;gap:7px;padding:6px 8px;background:#f6f6f6;cursor:pointer;user-select:none}
+.dr:hover{background:#eeeeee}
+.dn{font-size:12px;font-weight:700;flex:1;color:#1a1a1a}
+.dc{font-size:10px;color:#999;white-space:nowrap}
+.cv{font-size:10px;color:#aaa;transition:transform 0.15s;flex-shrink:0}
+.cv.op{transform:rotate(180deg)}
+.tog{position:relative;width:30px;height:17px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0;position:absolute}
+.tsl{position:absolute;inset:0;background:#ccc;border-radius:9px;cursor:pointer;transition:background 0.15s}
+.tsl:before{content:'';position:absolute;width:12px;height:12px;left:2px;top:2px;background:#fff;border-radius:50%;transition:transform 0.15s}
+.tog input:checked+.tsl{background:#1a1a1a}
+.tog input:checked+.tsl:before{transform:translateX(13px)}
+.fd{display:none;padding:5px 7px 7px;border-top:1px solid #eee}
+.fd.op{display:block}
+.da{display:flex;gap:5px;margin-bottom:5px}
+.ab{font-size:10px;padding:2px 7px;border:1px solid #ccc;border-radius:3px;background:#fff;cursor:pointer;color:#555}
+.ab:hover{background:#f0f0f0}
+.fr{display:flex;align-items:flex-start;gap:6px;padding:3px 3px;border-radius:2px}
+.fr:hover{background:#f6f6f6}
+.ftog{position:relative;width:24px;height:14px;flex-shrink:0;margin-top:2px}
+.ftog input{opacity:0;width:0;height:0;position:absolute}
+.fsl{position:absolute;inset:0;background:#ccc;border-radius:7px;cursor:pointer;transition:background 0.15s}
+.fsl:before{content:'';position:absolute;width:9px;height:9px;left:2px;top:2px;background:#fff;border-radius:50%;transition:transform 0.15s}
+.ftog input:checked+.fsl{background:#1a1a1a}
+.ftog input:checked+.fsl:before{transform:translateX(10px)}
+.fl{font-size:11px;line-height:1.3;flex:1;color:#1a1a1a;min-width:0}
+.fl .fn{display:block;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fl .fs{display:block;color:#888;font-size:10px;line-height:1.3;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.or{display:flex;align-items:center;justify-content:space-between;padding:3px 0;font-size:12px}
+.or select{font-size:11px;padding:2px 4px;border:1px solid #ccc;border-radius:3px;background:#fff;color:#1a1a1a}
+.or label{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px}
+.pva{padding:14px;background:#f0f0ee;overflow-y:auto}
+.pvh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.pvt{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#999}
+.pvi{font-size:11px;color:#888}
+.a4{background:#fff;width:100%;max-width:740px;margin:0 auto;padding:16px 18px;border:1px solid #ccc;box-shadow:0 1px 6px rgba(0,0,0,0.1)}
+
+/* ── OUTPUT STYLES ── */
+.doc-stamp{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #000;padding-bottom:5px;margin-bottom:10px}
+.ds-title{font-size:14px;font-weight:700}
+.ds-sub{font-size:10px;color:#555;margin-top:2px}
+.ds-right{text-align:right;font-size:10px;color:#555}
+.dept-hdr{background:#000;color:#fff;padding:4px 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin:10px 0 3px}
+.fix-block{margin-bottom:8px}
+.fix-tr{border-top:2px solid #000;padding:3px 0 2px;display:flex;justify-content:space-between;align-items:baseline}
+.fix-title{font-size:12px;font-weight:700}
+.fix-sub{font-size:10px;color:#555;text-align:left;padding:1px 0 2px;line-height:1.4;font-style:italic}
+.shp-block{margin-bottom:5px}
+.shp-tr{border-top:1px dashed #888;padding:3px 0 2px;display:flex;justify-content:space-between;align-items:baseline}
+.shp-title{font-size:11px;font-weight:700}
+.shp-type{font-size:10px;color:#666;white-space:normal;line-height:1.3}
+.hfss-tag{font-size:9px;background:#000;color:#fff;padding:1px 4px;margin-left:4px;vertical-align:middle}
+
+/* Standard item table */
+.ot{width:100%;border-collapse:collapse;table-layout:fixed}
+.ot th{text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#666;border-bottom:1px solid #aaa;padding:2px 3px}
+.ot td{padding:3px 3px;border-bottom:0.5px solid #e0e0e0;color:#000;vertical-align:top;line-height:1.3;word-wrap:break-word;overflow-wrap:break-word;white-space:normal}
+.ot tr:last-child td{border-bottom:none}
+.c-sh{width:40px}
+.c-sk{width:58px;font-family:monospace;font-size:11px!important}
+.c-fi{width:60px}
+.c-dt{width:48px}
+
+/* Produce item table - dates may be empty so no date cols */
+.pt-wrap{margin-top:4px}
+.pt-sub{font-size:10px;font-weight:700;color:#555;margin:5px 0 2px;text-transform:uppercase;letter-spacing:0.05em}
+/* Produce grid table - 4 columns like the plan */
+.prod-grid{width:100%;border-collapse:collapse;margin-top:3px;table-layout:fixed}
+.prod-grid td{border:1px solid #ccc;padding:4px 5px;font-size:11px;vertical-align:top;line-height:1.3;width:25%;word-wrap:break-word}
+.prod-grid .pg-sku{font-family:monospace;font-size:9px;color:#666;display:block;margin-top:2px}
+/* Produce standard rows */
+.prod-std{width:100%;border-collapse:collapse;table-layout:fixed;margin-top:3px}
+.prod-std th{text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#666;border-bottom:1px solid #aaa;padding:2px 3px}
+.prod-std td{padding:3px 3px;border-bottom:0.5px solid #e0e0e0;color:#000;vertical-align:top;line-height:1.3;word-wrap:break-word;white-space:normal;font-size:12px}
+.prod-std tr:last-child td{border-bottom:none}
+.prod-std .c-sk{width:58px;font-family:monospace;font-size:11px}
+.prod-std .c-sh{width:38px}
+.prod-std .c-fi{width:58px}
+.prod-std .c-dt{width:46px}
+
+.cut-hr{border:none;border-top:1.5px dashed #bbb;margin:8px 0}
+/* Row highlights for date proximity */
+.row-ending td{background:#fffbf0}
+.row-ending td:first-child{border-left:3px solid #e8a000}
+.row-ending .end-flag{font-weight:700;color:#b85c00}
+.row-starting td{background:#f0faf4}
+.row-starting td:first-child{border-left:3px solid #2d9c5c}
+.row-starting .start-flag{font-weight:700;color:#2d9c5c}
+/* Copy button on fixture header */
+.fix-copy{font-size:9px;padding:1px 6px;border:1px solid #bbb;border-radius:3px;background:#fff;color:#555;cursor:pointer;margin-left:6px;flex-shrink:0;white-space:nowrap}
+.fix-copy:hover{background:#f0f0f0}
+.copy-ok{border-color:#2d9c5c!important;color:#2d9c5c!important}
+.cut-hr::after{content:attr(data-lbl);font-size:9px;color:#bbb;background:#fff;padding:0 5px;position:relative;top:-7px;display:inline-block}
+.nodata{font-size:12px;color:#aaa;padding:16px;text-align:center;border:1px dashed #ddd;border-radius:3px}
+
+/* Debug log */
+#dbg{font-size:10px;color:#888;margin-top:6px;max-height:80px;overflow-y:auto;font-family:monospace;display:none}
+
+@media print{
+  body{background:#fff}
+  .screen{display:none!important}
+  .print-area{display:block!important}
+  .a4{box-shadow:none;border:none;padding:8mm 10mm;width:100%;max-width:100%}
+  .dept-hdr{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:#000!important;color:#fff!important}
+  .hfss-tag{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .page-break{page-break-before:always}
+}
+</style>
+</head>
+<body>
+<div class="screen">
+<div class="top-bar">
+  <h1>SSPSA Print Tool</h1>
+  <span class="meta" id="top-meta">No document loaded</span>
+</div>
+<div class="main">
+
+<div class="panel">
+  <div class="ps">
+    <div class="ps-title">1 · Load PDF</div>
+    <div class="dropzone" id="dz" onclick="document.getElementById('fi').click()" ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)">
+      <div class="dz-icon">&#128196;</div>
+      <div class="dz-main">Drop PDF here or click to browse</div>
+      <div class="dz-sub">File stays on your device — nothing is uploaded</div>
+      <input type="file" id="fi" accept=".pdf" onchange="loadFile(this.files[0])">
+    </div>
+    <div class="prog-wrap" id="pw">
+      <div class="prog-bar"><div class="prog-fill" id="pf"></div></div>
+      <div class="prog-text" id="pt">Loading...</div>
+    </div>
+    <div class="pstat" id="pstat">Awaiting PDF</div>
+    <div style="margin-top:6px;display:flex;gap:6px;align-items:center">
+      <button class="btn" onclick="clearDoc()" style="font-size:11px;padding:3px 8px">Clear</button>
+      <label style="font-size:10px;color:#aaa;cursor:pointer"><input type="checkbox" id="showdbg" onchange="document.getElementById('dbg').style.display=this.checked?'block':'none'"> Debug log</label>
+    </div>
+    <div id="dbg"></div>
+  </div>
+
+  <div class="ps">
+    <div class="ps-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>2 · Departments &amp; fixtures</span>
+      <span style="display:flex;gap:4px">
+        <button class="ab" onclick="deptAllOn()">All on</button>
+        <button class="ab" onclick="deptAllOff()">All off</button>
+      </span>
+    </div>
+    <div id="dept-list"><div style="font-size:11px;color:#aaa;padding:4px 0">Load a PDF first</div></div>
+  </div>
+
+  <div class="ps">
+    <div class="ps-title">3 · Fixture types</div>
+    <div class="or"><label>Plinths</label><label class="tog"><input type="checkbox" id="ft-pl" checked onchange="onTypeChange()"><span class="tsl"></span></label></div>
+    <div class="or"><label>Pallets</label><label class="tog"><input type="checkbox" id="ft-pa" onchange="onTypeChange()"><span class="tsl"></span></label></div>
+    <div class="or"><label>Shippers / stacks</label><label class="tog"><input type="checkbox" id="ft-sh" onchange="onTypeChange()"><span class="tsl"></span></label></div>
+    <div class="or"><label>Permanent shippers</label><label class="tog"><input type="checkbox" id="ft-pe" onchange="onTypeChange()"><span class="tsl"></span></label></div>
+    <div class="or"><label>Clip strips</label><label class="tog"><input type="checkbox" id="ft-cl" onchange="onTypeChange()"><span class="tsl"></span></label></div>
+  </div>
+
+  <div class="ps">
+    <div class="ps-title">4 · Date filter</div>
+    <div class="or"><span>Show</span>
+      <select id="dfil" onchange="rp()">
+        <option value="all" selected>All dates</option>
+        <option value="active">Active this week</option>
+        <option value="ending">Ending this week</option>
+        <option value="starting">Starting this week</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="ps">
+    <div class="ps-title">5 · Page &amp; layout</div>
+    <div class="or"><label>Page break between depts</label><label class="tog"><input type="checkbox" id="pb-d" onchange="rp()"><span class="tsl"></span></label></div>
+    <div class="or"><label>Page break between fixtures</label><label class="tog"><input type="checkbox" id="pb-f" onchange="rp()"><span class="tsl"></span></label></div>
+    <div class="or"><label>Cut lines between depts</label><label class="tog"><input type="checkbox" id="cl-d" checked onchange="rp()"><span class="tsl"></span></label></div>
+    <div class="or"><span>Font size</span>
+      <select id="fsz" onchange="applyFs()">
+        <option value="11">Small (11px)</option>
+        <option value="13" selected>Medium (13px)</option>
+        <option value="15">Large (15px)</option>
+      </select>
+    </div>
+  </div>
+
+  <button class="btn btnp" style="width:100%;padding:8px;font-size:13px;margin-top:2px" onclick="window.print()">Print / Save PDF</button>
+</div>
+
+<div class="pva">
+  <div class="pvh">
+    <span class="pvt">Print preview — portrait A4</span>
+    <span class="pvi" id="pvi"></span>
+  </div>
+  <div class="a4" id="pv"><div class="nodata">Load an SSPSA PDF to begin</div></div>
+</div>
+
+</div>
+</div>
+
+<div class="print-area">
+  <div class="a4" id="pc"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+if(typeof pdfjsLib!=='undefined'){
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+var DOC=null, SEL={};
+var DBG=[];
+
+// ── localStorage helpers ──
+var LS_KEY='sspsa_dept_prefs';
+function savePrefs(){
+  try{
+    var s={};
+    DEPTS.forEach(function(d){if(SEL[d.k]) s[d.k]=SEL[d.k].on;});
+    localStorage.setItem(LS_KEY,JSON.stringify(s));
+  }catch(e){}
+}
+function loadPrefs(){
+  try{
+    var raw=localStorage.getItem(LS_KEY);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  }catch(e){return null;}
+}
+
+function dbg(msg){
+  DBG.push(msg);
+  var el=document.getElementById('dbg');
+  if(el) el.innerHTML=DBG.slice(-40).map(function(m){return esc(m);}).join('<br>');
+}
+
+var DEPTS=[
+  {k:'groc',      lbl:'Grocery plinths',       on:false},
+  {k:'groc-slim', lbl:'Grocery slim plinths',  on:false},
+  {k:'groc-ev',   lbl:'Grocery events',        on:false},
+  {k:'groc-ia',   lbl:'Grocery in-aisle',      on:false},
+  {k:'bws',       lbl:'BWS plinths',           on:false},
+  {k:'bws-il',    lbl:'BWS inline',            on:false},
+  {k:'fresh',     lbl:'Fresh / chilled',       on:false},
+  {k:'frozen',    lbl:'Frozen',                on:false},
+  {k:'bakery',    lbl:'Bakery',                on:false},
+  {k:'hnb',       lbl:'Health & beauty',       on:false},
+  {k:'seasonal',  lbl:'Seasonal',              on:false},
+  {k:'produce',   lbl:'Produce',               on:false},
+  {k:'checkouts', lbl:'Checkouts',             on:false},
+  {k:'other',     lbl:'Other',                 on:false},
+];
+
+// ── DRAG & DROP ──
+function dzOver(e){e.preventDefault();document.getElementById('dz').classList.add('over');}
+function dzLeave(){document.getElementById('dz').classList.remove('over');}
+function dzDrop(e){
+  e.preventDefault();
+  document.getElementById('dz').classList.remove('over');
+  var f=e.dataTransfer.files[0];
+  if(f&&f.name.toLowerCase().endsWith('.pdf')) loadFile(f);
+  else setStat('Please drop a PDF file');
+}
+function loadFile(file){
+  if(!file) return;
+  if(!file.name.toLowerCase().endsWith('.pdf')){setStat('Please select a PDF file');return;}
+  setStat('Reading '+file.name+'...');
+  showProg(0,'Reading file...');
+  DBG=[];
+  var reader=new FileReader();
+  reader.onload=function(e){extractPDF(e.target.result,file.name);};
+  reader.readAsArrayBuffer(file);
+}
+
+// ── PDF EXTRACTION ──
+function extractPDF(buffer,filename){
+  if(typeof pdfjsLib==='undefined'){setStat('PDF.js not loaded — check internet connection');return;}
+  showProg(5,'Loading PDF...');
+  pdfjsLib.getDocument({data:buffer}).promise.then(function(pdf){
+    var numPages=pdf.numPages;
+    var pageTexts=new Array(numPages);
+    var done=0;
+
+    function doPage(pn){
+      pdf.getPage(pn).then(function(page){
+        page.getTextContent({normalizeWhitespace:true}).then(function(content){
+          var items=content.items.filter(function(it){return it.str&&it.str.trim();});
+
+          // Sort: PDF Y is bottom-up, so higher Y = higher on page = earlier
+          items.sort(function(a,b){
+            var dy=b.transform[5]-a.transform[5];
+            if(Math.abs(dy)>2) return dy;
+            return a.transform[4]-b.transform[4];
+          });
+
+          // Group into lines by Y proximity
+          var lines=[];
+          var curLine=null;
+          items.forEach(function(it){
+            var y=Math.round(it.transform[5]);
+            var x=Math.round(it.transform[4]);
+            if(!curLine||Math.abs(y-curLine.y)>2){
+              curLine={y:y,parts:[]};
+              lines.push(curLine);
+            }
+            curLine.parts.push({x:x,str:it.str,w:it.width||0});
+          });
+
+          // Build line strings. Grid sections emit PGRID|x|y|word tokens for column detection.
+          var inPGrid=false;
+          var lineStrs=[];
+          lines.forEach(function(ln){
+            ln.parts.sort(function(a,b){return a.x-b.x;});
+            var flat=ln.parts.map(function(p){return p.str;}).join(' ');
+            if(/Promotional Space Advice Commencing/i.test(flat)) inPGrid=true;
+            if(/^If your store has/i.test(flat.trim())) inPGrid=false;
+            if(inPGrid){
+              // Emit per-word positional tokens for column-aware parsing
+              var wStr='',wX=null,prevEnd=null;
+              ln.parts.forEach(function(p){
+                var gap=(prevEnd!==null)?(p.x-prevEnd):-1;
+                if(gap>5&&wStr){lineStrs.push('PGRID|'+Math.round(wX)+'|'+Math.round(ln.y)+'|'+wStr);wStr='';wX=null;}
+                if(!wX) wX=p.x;
+                wStr+=p.str;
+                prevEnd=p.x+(p.w||p.str.length*4.5);
+              });
+              if(wStr) lineStrs.push('PGRID|'+Math.round(wX)+'|'+Math.round(ln.y)+'|'+wStr);
+            } else {
+              var out='';
+              for(var i=0;i<ln.parts.length;i++){
+                if(i>0){
+                  var prevEnd2=ln.parts[i-1].x+(ln.parts[i-1].w||ln.parts[i-1].str.length*4.5);
+                  var gap=ln.parts[i].x-prevEnd2;
+                  if(gap>20) out+='\t';
+                  else if(gap>5) out+=' ';
+                }
+                out+=ln.parts[i].str;
+              }
+              lineStrs.push(out);
+            }
+          });
+
+          pageTexts[pn-1]=lineStrs.join('\n');
+          done++;
+          showProg(Math.round((done/numPages)*88)+5,'Page '+done+' of '+numPages);
+          if(done===numPages){
+            showProg(96,'Parsing document...');
+            setTimeout(function(){parseSSPSA(pageTexts.join('\n'),filename);},50);
+          } else {
+            doPage(pn+1);
+          }
+        });
+      });
+    }
+    doPage(1);
+  },function(err){setStat('PDF error: '+err.message);hideProg();});
+}
+
+// ── FIXTURE PATTERNS ──
+// Each entry: {r: regex, t: type}
+// Grocery plinths need a very permissive match because PDF.js sometimes
+// splits "Grcy Plinth 1" across fragments or adds a newline after "Grcy"
+var FP=[
+  // PALLETS
+  {r:/^(CONTINGENCY PALLET \d+\s*\([^)]+\))/i,         t:'pallet'},
+  {r:/^(HFSS PALLET\b)/i,                               t:'pallet'},
+  {r:/^(WATER PALLET\b)/i,                              t:'pallet'},
+  {r:/^(M\/BUY BEER PALLET)/i,                          t:'pallet'},
+  {r:/^(STUNT PALLET\b)/i,                              t:'pallet'},
+  {r:/^(THEATRE PALLET\s*\([^)]+\))/i,                  t:'pallet'},
+  {r:/^(PALLET \d+\s*\([^)]+\))/i,                      t:'pallet'},
+  // PERMANENT
+  {r:/^(PERMANENT SHIPPER \d+\s*\([^)]+\))/i,           t:'perm'},
+  {r:/^(PERM BEER SHIPPER[^\n(]*\([^)]+\))/i,           t:'perm'},
+  {r:/^(WALKERS PERMANENT SHIPPER\s*\([^)]+\))/i,       t:'perm'},
+  // SHIPPERS
+  {r:/^(HFSS CONTINGENCY SHIPPER \d+\s*\([^)]+\))/i,   t:'shipper'},
+  {r:/^(HFSS SMALL SHIPPER \d+\s*\([^)]+\))/i,         t:'shipper'},
+  {r:/^(HFSS SHIPPER \d+\s*\([^)]+\))/i,               t:'shipper'},
+  {r:/^(CONTINGENCY SHIPPER \d+\s*\([^)]+\))/i,        t:'shipper'},
+  {r:/^(SMALL SHIPPER \d+\s*\([^)]+\))/i,              t:'shipper'},
+  {r:/^(SHIPPER \d+\s*\([^)]+\))/i,                    t:'shipper'},
+  {r:/^(ALL STORE STACK \d+\s*\([^)]+\))/i,            t:'shipper'},
+  {r:/^(SELF CHECKOUT SHIPPER \d+\b)/i,                 t:'shipper'},
+  {r:/^(TROLLEY SCO SHIPPER \d+\b)/i,                   t:'shipper'},
+  {r:/^(PRODUCE SHIPPER \d+\s*\([^)]+\))/i,            t:'shipper'},
+  {r:/^(APM\s*-\s*SHIPPER \d+)/i,                      t:'shipper'},
+  // CLIP
+  {r:/^(Clip Strip\b)/i,                                t:'clip'},
+  // PRODUCE TABLES — separate type so they render as grid
+  {r:/^(PRODUCE TABLE \d+\s*\([^)]+\))/i,              t:'produce'},
+  {r:/^(FLORAL STAND\s*\([^)]+\))/i,                   t:'plinth'},
+  // FRESH PLINTHS
+  {r:/^(MEAT PLINTH \d+\s*\([^)]+\))/i,                t:'plinth'},
+  {r:/^(DAIRY PLINTH \d+\s*\([^)]+\))/i,               t:'plinth'},
+  {r:/^(FLEXI MEAL DEAL\b)/i,                           t:'plinth'},
+  {r:/^(Fresh In-aisle Plinth \d+)/i,                   t:'plinth'},
+  {r:/^(MEAL SOLUTIONS PLINTH\s*\([^)]+\))/i,          t:'plinth'},
+  {r:/^(TTD MEAL DEAL\b)/i,                             t:'plinth'},
+  {r:/^(FRZN HOTSPOT \d+\b)/i,                          t:'plinth'},
+  {r:/^(FRZN IN-AISLE PLINTH \d+\b)/i,                 t:'plinth'},
+  // GROCERY — multiple patterns to handle PDF extraction variations
+  {r:/^(Grcy In-aisle Plinth \d+)/i,                   t:'plinth'},
+  {r:/^(Grcy Events \d+\s*\([^)]+\))/i,                t:'plinth'},
+  {r:/^(Grcy Slim Plinth \d+\b)/i,                      t:'plinth'},
+  {r:/^(Grcy Plinth \d+\b)/i,                           t:'plinth'},
+  // Catch "Grcy" alone followed by plinth number on next merged line
+  {r:/^(Grcy\s+Plinth\s+\d+)/i,                        t:'plinth'},
+  {r:/^(In-aisle Proposition Plinth\s*\([^)]+\))/i,    t:'plinth'},
+  // BWS
+  {r:/^(Seasonal Plinth \d+\b)/i,                       t:'plinth'},
+  {r:/^(BWS \d+\s*\([^)]+\))/i,                        t:'plinth'},
+  {r:/^(IN LINE BEER\s*\([^)]+\))/i,                    t:'plinth'},
+  {r:/^(IN LINE SPIRITS\s*\([^)]+\))/i,                 t:'plinth'},
+  // H&B
+  {r:/^(HEALTH & BEAUTY \d+\s*\([^)]+\))/i,            t:'plinth'},
+  {r:/^(BEAUTY SHOWCASE PLINTH \d+\s*\([^)]+\))/i,     t:'plinth'},
+  {r:/^(BEAUTY LADDER RACK \d+\s*\([^)]+\))/i,         t:'plinth'},
+  // BAKERY
+  {r:/^(BAKERY TOWER \d+\s*\([^)]+\))/i,               t:'plinth'},
+  // OTHER PLINTHS
+  {r:/^(Cadburys Moment Of Wow Plinth\s*\([^)]+\))/i,  t:'plinth'},
+  {r:/^(BELTED CHECKOUT SIDE UNIT \d+\s*\([^)]+\))/i,  t:'plinth'},
+  {r:/^(Dairy Promo Fridge \d+\b)/i,                    t:'plinth'},
+  {r:/^(LOREAL\s*\(I[A-Z]+\))/i,                       t:'plinth'},
+  {r:/^(MAXFACTOR\s*\(I[A-Z]+\))/i,                    t:'plinth'},
+  {r:/^(MAYBELLINE\s*\(I[A-Z]+\))/i,                   t:'plinth'},
+  {r:/^(RIMMEL\s*\(I[A-Z]+\))/i,                       t:'plinth'},
+  {r:/^(INLINE ESSIE\s*\(I[A-Z]+\))/i,                 t:'plinth'},
+  {r:/^(COLLECTION\s*\(I[A-Z]+\))/i,                   t:'plinth'},
+];
+
+function matchFH(line){
+  var l=line.trim();
+  if(!l||l.length<4) return null;
+  for(var i=0;i<FP.length;i++){
+    var m=l.match(FP[i].r);
+    if(m) return {title:m[1].trim(),t:FP[i].t};
+  }
+  return null;
+}
+
+// Lines to always skip
+var SKIP_HDR=/^(Pallet|Stack|Shelf|Clipstrip|Produce)\s+SKU\s+Desc/i;
+var SKIP_LN=/^(Suggested Location|Clares:|Tego:|Snowplough:|Header:|Fin[s]?:|Riser:|Divider:|PSP:|XLB:|POS Box:|Promotional Space Advice Commencing|If your store|Planogram|#|\d+\/\d+$|Store Prom)/i;
+var SHELF_LABEL=/^Shelf\s+[A-F]/i;
+var SKU_IN_LINE=/\b\d{6,8}\b/;
+
+// ── MAIN PARSE ──
+function parseSSPSA(text,filename){
+  DOC={raw:text,store:{name:'',week:'',dates:''},fixtures:[]};
+
+  // Store info
+  var nm=text.match(/(?:Advice for\s*\n?)([^\n(]+\(\d+\))/i);
+  if(nm) DOC.store.name=nm[1].trim();
+  else {
+    // Try just finding "Chaddesden (751)" pattern
+    var nm2=text.match(/([\w\s]+\(\d{3,4}\))/);
+    if(nm2) DOC.store.name=nm2[1].trim();
+    else if(filename) DOC.store.name=filename.replace(/\.pdf$/i,'');
+  }
+  var wk=text.match(/Week\s+(\d+)/i);
+  if(wk) DOC.store.week=wk[1];
+  var dt=text.match(/(\d{1,2}(?:st|nd|rd|th)?\s+\w+\s*[-–]\s*\d{1,2}(?:st|nd|rd|th)?\s+\w+\s+\d{4})/i);
+  if(dt) DOC.store.dates=dt[1].replace(/(\d+)(st|nd|rd|th)/gi,'$1').trim();
+
+  dbg('Store: '+DOC.store.name+' Wk'+DOC.store.week+' '+DOC.store.dates);
+
+  // Remove duplicate sections — cut at "Current (Only for reference"
+  var ci=text.search(/^Current\s*\n.*Only for reference/m);
+  if(ci>200){ dbg('Cutting at Current section idx='+ci); text=text.substring(0,ci); }
+
+  // Clean noise
+  text=text.replace(/#{4,}[^\n]*/g,'');
+  text=text.replace(/^Store Promotional Space Advice \(PSA\)[^\n]*/gm,'');
+  text=text.replace(/^\d+\/\d+\s*$/gm,'');
+  text=text.replace(/^Upcoming\b[^\n]*/gm,'');
+  text=text.replace(/^Between \d[^\n]*/gm,'');
+  // Tabs from PDF column alignment — keep as spaces
+  text=text.replace(/\t/g,' ');
+
+  DOC.fixtures=runParser(text);
+
+  // Fallback dates from item data
+  if(!DOC.store.dates){
+    var allD=[];
+    DOC.fixtures.forEach(function(f){
+      f.items.forEach(function(i){if(i.start)allD.push(i.start);if(i.end)allD.push(i.end);});
+    });
+    if(allD.length) DOC.store.dates=allD[0]+' – '+allD[allD.length-1];
+  }
+
+  // Summary
+  var deptCounts={};
+  DOC.fixtures.forEach(function(f){deptCounts[f.deptKey]=(deptCounts[f.deptKey]||0)+1;});
+  dbg('Dept counts: '+JSON.stringify(deptCounts));
+  dbg('Total fixtures: '+DOC.fixtures.length);
+
+  buildUI();
+  setTimeout(syncTypeVis,0);
+  rp();
+  hideProg();
+
+  var fc=DOC.fixtures.length;
+  var ic=DOC.fixtures.reduce(function(a,f){return a+f.items.length;},0);
+  setStat(fc+' fixtures, '+ic+' items found');
+  document.getElementById('top-meta').textContent=DOC.store.name+' · Week '+DOC.store.week+' · '+DOC.store.dates;
+}
+
+function runParser(text){
+  var lines=text.split('\n');
+  var n=lines.length;
+  var fixtures=[];
+  var seen={};
+  var i=0;
+
+  while(i<n){
+    var raw=lines[i];
+    var line=raw.trim();
+    if(!line){i++;continue;}
+
+    // Try to match fixture header — also try joining with next line
+    // to handle PDF line-break mid-title (e.g. "Grcy\nPlinth 1")
+    var fh=matchFH(line);
+    if(!fh&&i+1<n){
+      var joined=line+' '+lines[i+1].trim();
+      var fh2=matchFH(joined);
+      if(fh2){ fh=fh2; i++; } // consume next line too
+    }
+
+    if(fh){
+      var ctx=line+' '+(lines[i+1]||'')+' '+(lines[i+2]||'');
+      if(/NOT IN USE|No products/i.test(ctx)){i++;continue;}
+
+      var dk=fh.title.toLowerCase().replace(/[\s()]/g,'');
+      if(seen[dk]){i++;continue;}
+      seen[dk]=true;
+
+      dbg('FIXTURE: '+fh.title+' ['+fh.t+']');
+
+      // Subtitle detection:
+      // 1. Check remainder of the SAME line after the matched title
+      //    e.g. "Grcy Plinth 6 - taste The Difference | Buy 3 or more..."
+      // 2. Fall back to scanning the next few lines
+      var si=i+1;
+      var subtitle='';
+
+      // Same-line remainder: strip the matched title from the full line
+      var titleLen=fh.title.length;
+      var lineRemainder=line.substring(titleLen).replace(/^\s*[-–|]\s*/,'').trim();
+      if(lineRemainder&&!/^[A-Z]{2}\d{6}/.test(lineRemainder)){
+        subtitle=lineRemainder.replace(/Header:[^\n|]*/gi,'').replace(/Snowplough:[^\n|]*/gi,'').replace(/CS:[^\n|]*/gi,'').replace(/PSP:[^\n|]*/gi,'').trim();
+      }
+
+      // If no same-line subtitle, take the first non-structural line after the header
+      if(!subtitle){
+        while(si<n&&si<i+4){
+          var sl=lines[si].trim();
+          if(!sl){si++;continue;}
+          // Skip POS/header noise lines
+          if(SKIP_HDR.test(sl)||SKIP_LN.test(sl)){si++;break;}
+          // Stop if it looks like a data row (has a 4-8 digit SKU)
+          if(SKU_IN_LINE.test(sl)) break;
+          // Stop if it's another fixture header
+          if(matchFH(sl)) break;
+          // Stop if it looks like a section divider
+          if(/^(STORE-BUILT|PRE-FILLED|FLATPACK|HALF-PALLET|QUARTER-PALLET|PLEASE NOTE)/i.test(sl)) break;
+          // Accept anything else as the subtitle — no keyword filter
+          subtitle=sl.replace(/Header:[^\n|]*/gi,'').replace(/Snowplough:[^\n|]*/gi,'').replace(/CS:[^\n|]*/gi,'').replace(/PSP:[^\n|]*/gi,'').replace(/Backboard:[^\n|]*/gi,'').replace(/Fins?:[^\n|]*/gi,'').trim();
+          si++;
+          break;
+        }
+      }
+
+      dbg('  subtitle: '+(subtitle?subtitle.substring(0,50):'(none)'));
+      var items=[], gridItems=[];
+      var j=si;
+
+      if(fh.t==='produce'){
+        var pr=parseProduce(lines,j,n);
+        items=pr.stdItems;
+        gridItems=pr.gridItems;
+        j=pr.nextLine;
+      } else {
+        while(j<n){
+          var r2=lines[j].trim();
+          if(!r2){j++;continue;}
+          if(matchFH(r2)) break;
+          if(/^Store Prom/i.test(r2)) break;
+          if(SKIP_HDR.test(r2)||SKIP_LN.test(r2)||SHELF_LABEL.test(r2)){j++;continue;}
+          var item=parseItem(r2);
+          if(item){
+            var dup=false;
+            for(var x=0;x<items.length;x++){if(items[x].sku===item.sku&&items[x].start===item.start){dup=true;break;}}
+            if(!dup) items.push(item);
+          }
+          j++;
+        }
+      }
+
+      var hasData=(items.length>0)||(gridItems&&gridItems.length>0);
+      if(hasData){
+        fixtures.push({
+          title:fh.title,
+          subtitle:subtitle,
+          type:fh.t==='produce'?'plinth':fh.t,
+          isProduce:fh.t==='produce',
+          items:items,
+          gridItems:gridItems||[],
+          deptKey:assignDept(fh.title),
+          isHfss:/hfss/i.test(fh.title)
+        });
+      }
+      i=j;
+    } else {
+      i++;
+    }
+  }
+  return fixtures;
+}
+
+// ── PRODUCE PARSER ──
+// Extractor emits PGRID|x|y|word tokens for grid sections.
+// Columns: x<135=col0, 135-250=col1, 250-390=col2, >=390=col3.
+// Group by grid row (y within 15pt) and column; emit in row-major order.
+function parseProduce(lines,startIdx,n){
+  var stdItems=[], gridItems=[];
+  var stdSeen={};
+  var j=startIdx;
+  var inGrid=false;
+
+  var COL_X=[0,135,250,390,9999];
+  function colOf(x){for(var c=0;c<4;c++){if(x<COL_X[c+1])return c;}return 3;}
+
+  var gridRowYs=[];
+  function gridRowOf(y){
+    for(var r=0;r<gridRowYs.length;r++){if(Math.abs(y-gridRowYs[r])<=15)return r;}
+    gridRowYs.push(y);
+    return gridRowYs.length-1;
+  }
+
+  var cells=[];
+  function getCell(r,c){
+    if(!cells[r]) cells[r]=[];
+    if(!cells[r][c]) cells[r][c]={words:[],sku:null};
+    return cells[r][c];
+  }
+
+  var SKU_ONLY=/^\((\d{4,8})\)$/;
+  var SKU_EMBED=/\((\d{4,8})\)/;
+  var GRID_NOISE=/^(Header:|Hanging:|PH000|Backboard:|A2 Poster:|Snowplough:|CS:|PSP:|Fin[s]?:|Riser:)/i;
+
+  while(j<n){
+    var raw=lines[j].trim();
+    if(!raw){j++;continue;}
+    if(matchFH(raw)) break;
+    if(/^Store Prom/i.test(raw)) break;
+
+    if(/^Promotional Space Advice Commencing/i.test(raw)){inGrid=true;j++;continue;}
+
+    if(/^PGRID\|/.test(raw)){
+      var pts=raw.split('|');
+      if(pts.length===4){
+        var px=parseInt(pts[1]),py=parseInt(pts[2]),word=pts[3];
+        if(!GRID_NOISE.test(word)&&!/^If your store/i.test(word)){
+          var r=gridRowOf(py),c=colOf(px),cell=getCell(r,c);
+          var so=word.match(SKU_ONLY);
+          if(so){cell.sku=so[1];}
+          else{
+            var em=word.match(SKU_EMBED);
+            if(em){
+              cell.sku=em[1];
+              var cl=word.replace(SKU_EMBED,'').replace(/\s*-\s*$/,'').trim();
+              if(cl) cell.words.push(cl);
+            } else {
+              var cl2=word.replace(/\s*-\s*$/,'').trim();
+              if(cl2&&cl2!=='-') cell.words.push(cl2);
+            }
+          }
+        }
+      }
+      j++;continue;
+    }
+
+    if(inGrid){if(/^If your store has/i.test(raw)) inGrid=false; j++;continue;}
+
+    if(SKIP_LN.test(raw)){j++;continue;}
+    if(SHELF_LABEL.test(raw)){j++;continue;}
+    if(SKIP_HDR.test(raw)){j++;continue;}
+    if(SKU_IN_LINE.test(raw)){
+      var item=parseItem(raw);
+      if(item&&!stdSeen[item.sku]){stdSeen[item.sku]=true;stdItems.push(item);}
+    }
+    j++;
+  }
+
+  for(var r=0;r<gridRowYs.length;r++){
+    for(var c=0;c<4;c++){
+      if(cells[r]&&cells[r][c]&&cells[r][c].sku){
+        gridItems.push({sku:cells[r][c].sku,desc:cells[r][c].words.join(' ')});
+      }
+    }
+  }
+
+  return {stdItems:stdItems,gridItems:gridItems,nextLine:j};
+}
+
+// ── ITEM ROW PARSER ──
+function parseItem(line){
+  var skuM=line.match(/\b(\d{6,8})\b/);
+  if(!skuM) return null;
+  var sku=skuM[1];
+
+  if(/^(Pallet|Stack|Shelf)\s+SKU/i.test(line)) return null;
+  if(/Suggested Location|Clares:|Tego:/i.test(line)) return null;
+
+  // Dates
+  var dates=[], dm;
+  var dr=/\b(\d{1,2})-(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/gi;
+  while((dm=dr.exec(line))!==null) dates.push(dm[0]);
+  var start=dates[0]||'', end=dates[1]||'';
+
+  // Fill
+  var fillM=line.match(/(\d+)\s+(cases?|units?)/i);
+  var fill=fillM?fillM[0]:'';
+
+  // Shelf
+  var shelf='';
+  var shM=line.match(/^([A-F](?:\(TOP\)|\(BASE\))?(?:&[A-F](?:\(TOP\)|\(BASE\))?)?)\s+\d{6,8}/i);
+  if(shM) shelf=shM[1];
+
+  // Description — strip all known non-desc tokens
+  var desc=line;
+  desc=desc.replace(new RegExp('\\b'+sku+'\\b'),' ');
+  if(fill) desc=desc.replace(fill,' ');
+  dates.forEach(function(d){desc=desc.replace(d,' ');});
+  if(shelf) desc=desc.replace(new RegExp('^'+shelf.replace(/[()]/g,'\\$&')+'\\s*'),'');
+  desc=desc.replace(/PLEASE NOTE:.*$/i,'');
+  desc=desc.replace(/\s{2,}/g,' ').trim();
+  desc=desc.replace(/^[,.\s\-]+|[,.\s\-]+$/g,'').trim();
+
+  if(!desc) return null;
+  if(/^(STORE-BUILT|PRE-FILLED|FLATPACK|QUARTER|HALF|PLEASE|DIVIDER)/i.test(desc)) return null;
+
+  return {shelf:shelf,sku:sku,desc:desc,fill:fill,start:start,end:end};
+}
+
+// ── DEPT ASSIGNMENT ──
+function assignDept(title){
+  if(/^BELTED CHECKOUT|^SELF CHECKOUT|^TROLLEY SCO/i.test(title)) return 'checkouts';
+  if(/^Clip Strip/i.test(title)) return 'clip';
+  if(/^BAKERY TOWER/i.test(title)) return 'bakery';
+  if(/^PRODUCE TABLE|^FLORAL STAND|^APM|^PRODUCE SHIPPER/i.test(title)) return 'produce';
+  if(/^FRZN/i.test(title)) return 'frozen';
+  if(/^MEAT PLINTH|^DAIRY PLINTH|^Fresh In-aisle|^MEAL SOLUTIONS PLINTH|^FLEXI MEAL DEAL|^TTD MEAL DEAL|^Dairy Promo Fridge/i.test(title)) return 'fresh';
+  if(/^BWS \d|^IN LINE BEER|^IN LINE SPIRITS/i.test(title)) return 'bws';
+  if(/^Grcy Slim/i.test(title)) return 'groc-slim';
+  if(/^Grcy Events/i.test(title)) return 'groc-ev';
+  if(/^Grcy In-aisle|^In-aisle Proposition|^Cadburys Moment/i.test(title)) return 'groc-ia';
+  if(/^Grcy Plinth|^Grcy\s+Plinth/i.test(title)) return 'groc';
+  if(/^Seasonal Plinth/i.test(title)) return 'seasonal';
+  if(/^HEALTH & BEAUTY|^BEAUTY SHOWCASE|^BEAUTY LADDER|^LOREAL|^MAXFACTOR|^MAYBELLINE|^RIMMEL|^INLINE ESSIE|^COLLECTION \(/i.test(title)) return 'hnb';
+  if(/^PERMANENT SHIPPER \d+.*taste the difference/i.test(title)) return 'fresh';
+  return 'other';
+}
+
+// ── UI ──
+function buildUI(){
+  var container=document.getElementById('dept-list');
+  container.innerHTML='';
+  DEPTS.forEach(function(def){
+    var fl=DOC.fixtures.filter(function(f){return f.deptKey===def.k;});
+    if(!fl.length) return;
+    var savedOn=loadPrefs();
+    var initOn=(savedOn&&savedOn[def.k]!==undefined)?savedOn[def.k]:def.on;
+    if(!SEL[def.k]) SEL[def.k]={on:initOn,fixtures:new Set(fl.map(function(_,i){return i;}))};
+    else SEL[def.k].on=initOn;
+    var total=fl.length, sc=SEL[def.k].fixtures.size, on=SEL[def.k].on;
+    var b=document.createElement('div');
+    b.className='db'; b.id='db-'+def.k;
+    b.innerHTML=
+      '<div class="dr" onclick="toggleDr(\''+def.k+'\')">'
+      +'<label class="tog" onclick="event.stopPropagation()">'
+      +'<input type="checkbox" id="dtog-'+def.k+'" '+(on?'checked':'')+' onchange="deptTog(\''+def.k+'\')">'
+      +'<span class="tsl"></span></label>'
+      +'<span class="dn">'+esc(def.lbl)+'</span>'
+      +'<span class="dc" id="dc-'+def.k+'">'+(on?sc+'/'+total+' sel':'off')+'</span>'
+      +'<span class="cv" id="cv-'+def.k+'">&#9660;</span></div>'
+      +'<div class="fd" id="fd-'+def.k+'">'
+      +'<div class="da"><button class="ab" onclick="selAll(\''+def.k+'\')">Select all</button>'
+      +'<button class="ab" onclick="selNone(\''+def.k+'\')">Select none</button></div>'
+      +'<div id="fg-'+def.k+'">'
+      +fl.map(function(f,i){
+        return '<div class="fr" id="fr-'+def.k+'-'+i+'">'
+          +'<label class="ftog">'
+          +'<input type="checkbox" '+(SEL[def.k].fixtures.has(i)?'checked':'')
+          +' onchange="fixTog(\''+def.k+'\','+i+',this.checked)">'
+          +'<span class="fsl"></span></label>'
+          +'<span class="fl">'
+          +'<span class="fn">'+esc(cleanTitle(f.title))+'</span>'
+          +(f.subtitle?'<span class="fs">'+esc(truncSub(f.subtitle))+'</span>':'')
+          +'</span></div>';
+      }).join('')
+      +'</div></div>';
+    container.appendChild(b);
+  });
+}
+
+function deptAllOn(){
+  DEPTS.forEach(function(d){
+    if(!SEL[d.k]) return;
+    SEL[d.k].on=true;
+    var cb=document.getElementById('dtog-'+d.k);
+    if(cb) cb.checked=true;
+    updDc(d.k);
+  });
+  savePrefs(); rp();
+}
+function deptAllOff(){
+  DEPTS.forEach(function(d){
+    if(!SEL[d.k]) return;
+    SEL[d.k].on=false;
+    var cb=document.getElementById('dtog-'+d.k);
+    if(cb) cb.checked=false;
+    updDc(d.k);
+  });
+  savePrefs(); rp();
+}
+function syncTypeVis(){
+  if(!DOC) return;
+  var ftPl=document.getElementById('ft-pl').checked;
+  var ftPa=document.getElementById('ft-pa').checked;
+  var ftSh=document.getElementById('ft-sh').checked;
+  var ftPe=document.getElementById('ft-pe').checked;
+  var ftCl=document.getElementById('ft-cl').checked;
+  DEPTS.forEach(function(def){
+    if(!SEL[def.k]) return;
+    var fl=DOC.fixtures.filter(function(f){return f.deptKey===def.k;});
+    fl.forEach(function(f,i){
+      var el=document.getElementById('fr-'+def.k+'-'+i);
+      if(!el) return;
+      var show=true;
+      if(f.type==='plinth') show=ftPl;
+      else if(f.type==='pallet') show=ftPa;
+      else if(f.type==='shipper') show=ftSh;
+      else if(f.type==='perm') show=ftPe;
+      else if(f.type==='clip') show=ftCl;
+      el.style.display=show?'':'none';
+    });
+  });
+  DEPTS.forEach(function(def){if(SEL[def.k]) updDc(def.k);});
+}
+function toggleDr(k){
+  var fd=document.getElementById('fd-'+k), cv=document.getElementById('cv-'+k);
+  fd.classList.toggle('op',!fd.classList.contains('op'));
+  cv.classList.toggle('op',!cv.classList.contains('op'));
+}
+function deptTog(k){SEL[k].on=document.getElementById('dtog-'+k).checked;updDc(k);savePrefs();rp();}
+function fixTog(k,i,v){if(v)SEL[k].fixtures.add(i);else SEL[k].fixtures.delete(i);updDc(k);rp();}
+function onTypeChange(){
+  // Update all visible dept counts, sync sidebar visibility, rerender
+  if(DOC) DEPTS.forEach(function(d){if(SEL[d.k]) updDc(d.k);});
+  syncTypeVis();
+  rp();
+}
+function selAll(k){
+  DOC.fixtures.filter(function(f){return f.deptKey===k;}).forEach(function(_,i){SEL[k].fixtures.add(i);});
+  document.querySelectorAll('#fg-'+k+' input[type=checkbox]').forEach(function(c){c.checked=true;});
+  updDc(k);rp();
+}
+function selNone(k){
+  SEL[k].fixtures.clear();
+  document.querySelectorAll('#fg-'+k+' input[type=checkbox]').forEach(function(c){c.checked=false;});
+  updDc(k);rp();
+}
+function updDc(k){
+  var el=document.getElementById('dc-'+k);
+  if(!el) return;
+  if(!DOC){el.textContent=''; return;}
+  // Count fixtures matching current type toggles
+  var ftPl=document.getElementById('ft-pl').checked;
+  var ftPa=document.getElementById('ft-pa').checked;
+  var ftSh=document.getElementById('ft-sh').checked;
+  var ftPe=document.getElementById('ft-pe').checked;
+  var ftCl=document.getElementById('ft-cl').checked;
+  function typeOn(f){
+    if(f.type==='plinth') return ftPl;
+    if(f.type==='pallet') return ftPa;
+    if(f.type==='shipper') return ftSh;
+    if(f.type==='perm') return ftPe;
+    if(f.type==='clip') return ftCl;
+    return true;
+  }
+  var deptFixes=DOC.fixtures.filter(function(f){return f.deptKey===k;});
+  var visTotal=deptFixes.filter(typeOn).length;
+  var selCount=deptFixes.filter(function(f,i){return typeOn(f)&&SEL[k].fixtures.has(i);}).length;
+  el.textContent=selCount+'/'+visTotal;
+  el.style.color=SEL[k].on?'#999':'#bbb';
+}
+
+// ── RENDER ──
+function rp(){
+  var pv=document.getElementById('pv'), pc=document.getElementById('pc');
+  if(!DOC){pv.innerHTML='<div class="nodata">Load an SSPSA PDF to begin</div>';return;}
+  var h=buildHTML();
+  pv.innerHTML=h; pc.innerHTML=h;
+  applyFs();
+  var cnt=pv.querySelectorAll('.fix-block,.shp-block').length;
+  document.getElementById('pvi').textContent=cnt+' fixture'+(cnt!==1?'s':'')+' in output';
+}
+
+function buildHTML(){
+  var pbD=document.getElementById('pb-d').checked;
+  var pbF=document.getElementById('pb-f').checked;
+  var clD=document.getElementById('cl-d').checked;
+  var ftPl=document.getElementById('ft-pl').checked;
+  var ftPa=document.getElementById('ft-pa').checked;
+  var ftSh=document.getElementById('ft-sh').checked;
+  var ftPe=document.getElementById('ft-pe').checked;
+  var ftCl=document.getElementById('ft-cl').checked;
+  var dfil=document.getElementById('dfil').value;
+  var wr=getWeekRange();
+  var selD=DEPTS.filter(function(d){return SEL[d.k]&&SEL[d.k].on;}).map(function(d){return d.lbl;}).join(' / ')||'—';
+
+  var h='<div class="doc-stamp">'
+    +'<div><div class="ds-title">'+esc(DOC.store.name)+' — Promotional space advice</div>'
+    +'<div class="ds-sub">Week '+esc(DOC.store.week)+' &nbsp;·&nbsp; '+esc(DOC.store.dates)+' &nbsp;·&nbsp; '+esc(selD)+'</div></div>'
+    +'<div class="ds-right">Printed: '+todayStr()+'</div></div>';
+
+  var first=true, fc=0;
+
+  DEPTS.forEach(function(def){
+    if(!SEL[def.k]||!SEL[def.k].on) return;
+    var fl=DOC.fixtures.filter(function(f){return f.deptKey===def.k;});
+    if(!fl.length) return;
+    var sf=fl.filter(function(_,i){return SEL[def.k].fixtures.has(i);});
+    if(!sf.length) return;
+    var tf=sf.filter(function(f){
+      if(f.type==='plinth') return ftPl;
+      if(f.type==='pallet') return ftPa;
+      if(f.type==='shipper') return ftSh;
+      if(f.type==='perm') return ftPe;
+      if(f.type==='clip') return ftCl;
+      return true;
+    });
+    if(!tf.length) return;
+
+    // Date filter — for produce, only filter std items (grid items have no dates)
+    var df=tf.map(function(f){
+      var filtered=f.items.filter(function(it){return inDF(it,dfil,wr.ws,wr.we);});
+      return Object.assign({},f,{items:filtered});
+    }).filter(function(f){
+      if(f.isProduce) return f.items.length>0||f.gridItems.length>0;
+      return f.items.length>0;
+    });
+    if(!df.length) return;
+
+    if(!first&&clD) h+='<hr class="cut-hr" data-lbl="&#9988; '+esc(def.lbl)+'">';
+    if(!first&&pbD) h+='<div class="page-break"></div>';
+    first=false;
+    h+='<div class="dept-hdr">'+esc(def.lbl)+'</div>';
+
+    df.forEach(function(fix,fi){
+      if(fi>0&&pbF) h+='<div class="page-break"></div>';
+      h+=renderFix(fix,wr.ws,wr.we);
+      fc++;
+    });
+  });
+
+  if(!fc) h+='<div class="nodata">No fixtures match the current selection</div>';
+  return h;
+}
+
+function renderFix(fix,weekStart,weekEnd){
+  var hfss=fix.isHfss?'<span class="hfss-tag">HFSS</span>':'';
+  var sub=fix.subtitle?cleanSub(fix.subtitle):'';
+  var isShp=fix.type==='shipper'||fix.type==='perm'||fix.type==='clip';
+  var fixId='fix-'+Math.random().toString(36).slice(2,8);
+
+  function rowClass(it){
+    var s=pd(it.start),e=pd(it.end);
+    if(!s||!e||!weekStart||!weekEnd) return '';
+    if(e>=weekStart&&e<=weekEnd) return ' row-ending';
+    if(s>=weekStart&&s<=weekEnd) return ' row-starting';
+    return '';
+  }
+  function endFlag(it){
+    var e=pd(it.end);
+    if(!e||!weekStart||!weekEnd) return it.end;
+    if(e>=weekStart&&e<=weekEnd) return '<span class="end-flag">'+esc(it.end)+' \u2691</span>';
+    return esc(it.end);
+  }
+  function startFlag(it){
+    var s=pd(it.start);
+    if(!s||!weekStart||!weekEnd) return it.start;
+    if(s>=weekStart&&s<=weekEnd) return '<span class="start-flag">'+esc(it.start)+' \u2605</span>';
+    return esc(it.start);
+  }
+
+  // Copy button — builds WhatsApp-ready text
+  var copyBtn='<button class="fix-copy" onclick="copyFix(\''+fixId+'\',this)">Copy</button>';
+
+  // ── PRODUCE ──
+  if(fix.isProduce){
+    var h='<div class="fix-block" id="'+fixId+'"><div class="fix-tr">'
+      +'<span class="fix-title">'+esc(cleanTitle(fix.title))+'</span>'
+      +'<span style="flex:1"></span>'+copyBtn
+      +'</div>'
+      +(sub?'<div class="fix-sub">'+esc(sub)+'</div>':'');
+    if(fix.items.length>0){
+      h+='<div class="pt-sub">Stock list</div>'
+        +'<table class="prod-std">'
+        +'<tr><th class="c-sh">Shelf</th><th class="c-sk">SKU</th><th>Description</th>'
+        +'<th class="c-fi">Fill</th><th class="c-dt">Start</th><th class="c-dt">End</th></tr>';
+      fix.items.forEach(function(it){
+        h+='<tr class="'+rowClass(it)+'">'
+          +'<td class="c-sh">'+esc(it.shelf)+'</td>'
+          +'<td class="c-sk">'+esc(it.sku)+'</td>'
+          +'<td>'+esc(it.desc)+'</td>'
+          +'<td class="c-fi">'+esc(it.fill)+'</td>'
+          +'<td class="c-dt">'+startFlag(it)+'</td>'
+          +'<td class="c-dt">'+endFlag(it)+'</td></tr>';
+      });
+      h+='</table>';
+    }
+    if(fix.gridItems&&fix.gridItems.length>0){
+      h+='<div class="pt-sub">Table plan</div>'
+        +'<table class="prod-grid">';
+      var gi=fix.gridItems;
+      for(var r=0;r<gi.length;r+=4){
+        h+='<tr>';
+        for(var c=0;c<4;c++){
+          var item=gi[r+c];
+          if(item) h+='<td>'+esc(item.desc)+'<span class="pg-sku">'+esc(item.sku)+'</span></td>';
+          else h+='<td></td>';
+        }
+        h+='</tr>';
+      }
+      h+='</table>';
+    }
+    h+='</div>';
+    return h;
+  }
+
+  // ── PLINTH / PALLET ──
+  if(!isShp){
+    var h='<div class="fix-block" id="'+fixId+'"><div class="fix-tr">'
+      +'<span class="fix-title">'+esc(cleanTitle(fix.title))+hfss+'</span>'
+      +'<span style="flex:1"></span>'+copyBtn
+      +'</div>'
+      +(sub?'<div class="fix-sub">'+esc(sub)+'</div>':'')
+      +'<table class="ot">'
+      +'<tr><th class="c-sh">Shelf</th><th class="c-sk">SKU</th>'
+      +'<th>Description</th><th class="c-fi">Fill</th>'
+      +'<th class="c-dt">Start</th><th class="c-dt">End</th></tr>';
+    fix.items.forEach(function(it){
+      h+='<tr class="'+rowClass(it)+'">'
+        +'<td class="c-sh">'+esc(it.shelf)+'</td>'
+        +'<td class="c-sk">'+esc(it.sku)+'</td>'
+        +'<td>'+esc(it.desc)+'</td>'
+        +'<td class="c-fi">'+esc(it.fill)+'</td>'
+        +'<td class="c-dt">'+startFlag(it)+'</td>'
+        +'<td class="c-dt">'+endFlag(it)+'</td></tr>';
+    });
+    h+='</table></div>';
+    return h;
+  }
+
+  // ── SHIPPER / STACK ──
+  var tl=fix.type==='perm'?'Permanent shipper':fix.type==='clip'?'Clip strip':'Shipper / stack';
+  var h='<div class="shp-block" id="'+fixId+'"><div class="shp-tr">'
+    +'<span class="shp-title">'+esc(cleanTitle(fix.title))+hfss+'</span>'
+    +'<span style="flex:1"></span>'
+    +'<span class="shp-type">'+tl+'</span>'
+    +copyBtn+'</div>'
+    +(sub?'<div class="fix-sub">'+esc(sub)+'</div>':'')
+    +'<table class="ot">'
+    +'<tr><th class="c-sk">SKU</th><th>Description</th>'
+    +'<th class="c-fi">Fill</th><th class="c-dt">Start</th><th class="c-dt">End</th></tr>';
+  fix.items.forEach(function(it){
+    h+='<tr class="'+rowClass(it)+'">'
+      +'<td class="c-sk">'+esc(it.sku)+'</td>'
+      +'<td>'+esc(it.desc)+'</td>'
+      +'<td class="c-fi">'+esc(it.fill)+'</td>'
+      +'<td class="c-dt">'+startFlag(it)+'</td>'
+      +'<td class="c-dt">'+endFlag(it)+'</td></tr>';
+  });
+  h+='</table></div>';
+  return h;
+}
+
+// ── WHATSAPP COPY ──
+function copyFix(fixId,btn){
+  var el=document.getElementById(fixId);
+  if(!el) return;
+  var lines=[];
+  // Title
+  var titleEl=el.querySelector('.fix-title,.shp-title');
+  var subEl=el.querySelector('.fix-sub,.shp-type');
+  var title=titleEl?titleEl.textContent.trim():'';
+  var sub=subEl?subEl.textContent.trim():'';
+  lines.push('*'+title+(sub?' — '+sub:'')+'*');
+  lines.push('');
+  // Table rows
+  var rows=el.querySelectorAll('table tr');
+  rows.forEach(function(tr,i){
+    var cells=tr.querySelectorAll('th,td');
+    if(!cells.length) return;
+    var cols=Array.from(cells).map(function(c){return c.textContent.replace(/[⚑★]/g,'').trim();});
+    if(i===0){
+      // Header row
+      lines.push(cols.join('  '));
+    } else {
+      lines.push(cols.join('  '));
+    }
+  });
+  var text=lines.join('\n');
+  navigator.clipboard.writeText(text).then(function(){
+    btn.textContent='Copied!';
+    btn.classList.add('copy-ok');
+    setTimeout(function(){btn.textContent='Copy';btn.classList.remove('copy-ok');},1800);
+  }).catch(function(){
+    // Fallback for non-HTTPS
+    var ta=document.createElement('textarea');
+    ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent='Copied!';
+    btn.classList.add('copy-ok');
+    setTimeout(function(){btn.textContent='Copy';btn.classList.remove('copy-ok');},1800);
+  });
+}
+
+
+// ── DATE FILTER ──
+var MON={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+function pd(s){
+  if(!s) return null;
+  var m=s.match(/(\d{1,2})-(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
+  if(!m) return null;
+  var mo=MON[m[2].toLowerCase()];
+  if(mo===undefined) return null;
+  var now=new Date(), yr=now.getFullYear();
+  if(mo<now.getMonth()-4) yr++;
+  return new Date(yr,mo,parseInt(m[1]));
+}
+function getWeekRange(){
+  if(!DOC||!DOC.store.dates) return {ws:null,we:null};
+  var d=DOC.store.dates.match(/\d{1,2}-[A-Za-z]{3}/g);
+  if(!d||d.length<2) return {ws:null,we:null};
+  return {ws:pd(d[0]),we:pd(d[1])};
+}
+function inDF(it,fil,ws,we){
+  if(fil==='all') return true;
+  var s=pd(it.start), e=pd(it.end);
+  if(!s||!e) return true;
+  var t=new Date(); t.setHours(0,0,0,0);
+  var rws=ws||t, rwe=we||new Date(t.getTime()+6*86400000);
+  if(fil==='active') return s<=rwe&&e>=rws;
+  if(fil==='ending') return e>=rws&&e<=rwe;
+  if(fil==='starting') return s>=rws&&s<=rwe;
+  return true;
+}
+
+// ── HELPERS ──
+function esc(s){
+  if(!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function cleanTitle(t){return t.replace(/\s*-\s*NOT IN USE.*/gi,'').trim();}
+function cleanSub(s){
+  // Full subtitle — cleaned but not truncated (used in print output)
+  return s.replace(/Header:[^\n|]*/gi,'').replace(/Snowplough:[^\n|]*/gi,'').replace(/CS:[^\n|]*/gi,'').replace(/PSP:[^\n|]*/gi,'').replace(/Backboard:[^\n|]*/gi,'').replace(/\|/g,' · ').replace(/\s{2,}/g,' ').trim();
+}
+function truncSub(s){
+  // Truncated subtitle — used in sidebar list only
+  s=cleanSub(s);
+  return s.length>55?s.substring(0,52)+'…':s;
+}
+function todayStr(){
+  var d=new Date();
+  return d.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+d.getFullYear();
+}
+function setStat(m){document.getElementById('pstat').textContent=m;}
+function showProg(pct,msg){
+  document.getElementById('pw').style.display='block';
+  document.getElementById('pf').style.width=pct+'%';
+  document.getElementById('pt').textContent=msg;
+}
+function hideProg(){document.getElementById('pw').style.display='none';}
+function applyFs(){
+  var sz=document.getElementById('fsz').value;
+  document.querySelectorAll('.ot td,.prod-std td,.prod-grid td').forEach(function(el){el.style.fontSize=sz+'px';});
+}
+function clearDoc(){
+  DOC=null; DBG=[];
+  document.getElementById('fi').value='';
+  setStat('Awaiting PDF');
+  hideProg();
+  document.getElementById('top-meta').textContent='No document loaded';
+  document.getElementById('dept-list').innerHTML='<div style="font-size:11px;color:#aaa;padding:4px 0">Load a PDF first</div>';
+  document.getElementById('pv').innerHTML='<div class="nodata">Load an SSPSA PDF to begin</div>';
+  document.getElementById('pvi').textContent='';
+  document.getElementById('dbg').innerHTML='';
+  Object.keys(SEL).forEach(function(k){delete SEL[k];});
+}
+</script>
+</body>
+</html>
