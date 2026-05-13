@@ -608,7 +608,7 @@ function parseSSPSA(text,filename){
   dbg('Store: '+DOC.store.name+' Wk'+DOC.store.week+' '+DOC.store.dates);
 
   // Remove duplicate sections — cut at "Current (Only for reference"
-  var ci=text.search(/^Current\s*\n.*Only for reference/m);
+  var ci=text.search(/^Current\b[^\n]*(?:\n[^\n]*)?Only for reference/im);
   if(ci>200){ dbg('Cutting at Current section idx='+ci); text=text.substring(0,ci); }
 
   // Clean noise
@@ -675,7 +675,6 @@ function runParser(text){
 
       var dk=fh.title.toLowerCase().replace(/[\s()]/g,'');
       if(seen[dk]){i++;continue;}
-      seen[dk]=true;
 
       dbg('FIXTURE: '+fh.title+' ['+fh.t+']');
 
@@ -741,6 +740,7 @@ function runParser(text){
 
       var hasData=(items.length>0)||(gridItems&&gridItems.length>0);
       if(hasData){
+        seen[dk]=true;
         fixtures.push({
           title:fh.title,
           subtitle:subtitle,
