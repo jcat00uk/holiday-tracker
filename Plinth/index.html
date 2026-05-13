@@ -607,9 +607,7 @@ function parseSSPSA(text,filename){
 
   dbg('Store: '+DOC.store.name+' Wk'+DOC.store.week+' '+DOC.store.dates);
 
-  // Remove duplicate sections — cut at "Current (Only for reference"
-  var ci=text.search(/^Current\b[^\n]*(?:\n[^\n]*)?Only for reference/im);
-  if(ci>200){ dbg('Cutting at Current section idx='+ci); text=text.substring(0,ci); }
+  // Current section ("for reference only") is skipped via seen[] dedup — no pre-cut needed
 
   // Clean noise
   text=text.replace(/#{4,}[^\n]*/g,'');
