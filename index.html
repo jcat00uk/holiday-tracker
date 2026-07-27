@@ -3555,8 +3555,9 @@ async function driveRequest(url,options={}){
 
 async function getDriveFileId(){
   if(Sync.fileId) return Sync.fileId;
-  const url=`https://www.googleapis.com/drive/v3/files?spaces=${GDRIVE_FOLDER}&q=name='${GDRIVE_FILE_NAME}'&fields=files(id,name,modifiedTime)`;
+  const url=`https://www.googleapis.com/drive/v3/files?spaces=${GDRIVE_FOLDER}&q=name='${GDRIVE_FILE_NAME}'&fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc`;
   const resp=await driveRequest(url);
+  if(!resp.ok) throw new Error('drive_lookup_failed:'+resp.status);
   const data=await resp.json();
   if(data.files&&data.files.length>0){Sync.fileId=data.files[0].id;return Sync.fileId;}
   return null;
