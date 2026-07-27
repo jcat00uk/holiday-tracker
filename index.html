@@ -3479,7 +3479,7 @@ function buildDrivePayload(){
   return JSON.stringify({...S,version:DATA_VERSION,lastModified:new Date().toISOString(),deviceId:getDeviceId()});
 }
 
-let _tokenClient=null, _pendingSyncAfterAuth=false;
+let _tokenClient=null, _pendingSyncAfterAuth=false, _fallbackAttempted=false;
 
 function initGoogleAuth(){
   const cid=getClientId();
@@ -3490,18 +3490,22 @@ function initGoogleAuth(){
     scope:GDRIVE_SCOPE,
     callback:(resp)=>{
       if(resp.error){
+        console.warn('GIS auth error:',resp.error,resp);
+        const silent=['access_denied','popup_closed_by_user','immediate_failed'];
         // A pending sync means this was a background silent refresh (prompt:'none') —
         // if it failed (e.g. third-party storage blocked), fall back to an interactive popup
-        // instead of silently giving up with no feedback.
-        if(_pendingSyncAfterAuth && resp.error==='immediate_failed' && _tokenClient){
+        // instead of silently giving up with no feedback. Only retry once to avoid loops.
+        if(_pendingSyncAfterAuth && silent.includes(resp.error) && !_fallbackAttempted && _tokenClient){
+          _fallbackAttempted=true;
           _tokenClient.requestAccessToken({prompt:''});
           return;
         }
+        _fallbackAttempted=false;
         // UX-only errors (user closed popup etc.) — don't show error state
-        const silent=['access_denied','popup_closed_by_user','immediate_failed'];
         if(silent.includes(resp.error)){Sync.setStatus('unsigned');return;}
         console.error('GIS:',resp);Sync.setStatus('error','☁ Auth error');return;
       }
+      _fallbackAttempted=false;
       Sync.token=resp.access_token;
       // Remember that this user has previously consented
       const savedEmail=localStorage.getItem('shiftbook_userEmail');
