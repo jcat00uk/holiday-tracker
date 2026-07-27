@@ -3663,13 +3663,10 @@ async function syncNow(){
   if(!getClientId()){toast('Google Client ID not configured — see setup instructions');return;}
   if(!Sync.token){
     _pendingSyncAfterAuth=true;
-    // If previously consented, try silent first; else show sign-in popup
-    const hasConsented=localStorage.getItem('shiftbook_hasConsented');
-    if(hasConsented&&_tokenClient){
-      _tokenClient.requestAccessToken({prompt:'none'});
-    } else {
-      signIn();
-    }
+    // Silent (prompt:'none') re-auth is unreliable now that browsers block the
+    // third-party storage it depends on — go straight to the interactive popup,
+    // which works reliably even when silent auth doesn't.
+    signIn();
     return;
   }
   Sync.setStatus('syncing');
