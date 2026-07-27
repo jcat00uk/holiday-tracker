@@ -3587,6 +3587,19 @@ async function uploadToDrive(payload){
   return result;
 }
 
+window._debugListDriveFiles=async function(){
+  const url=`https://www.googleapis.com/drive/v3/files?spaces=${GDRIVE_FOLDER}&q=name='${GDRIVE_FILE_NAME}'&fields=files(id,name,modifiedTime,size)&orderBy=modifiedTime desc`;
+  const resp=await driveRequest(url);
+  const data=await resp.json();
+  console.table(data.files||[]);
+  return data.files;
+};
+window._debugDeleteDriveFile=async function(fileId){
+  const resp=await driveRequest(`https://www.googleapis.com/drive/v3/files/${fileId}`,{method:'DELETE'});
+  console.log(resp.ok?'Deleted '+fileId:'Failed: '+resp.status);
+  return resp.ok;
+};
+
 function showConflict(driveData,onKeepDrive,onKeepLocal){
   document.getElementById('conflictLocalTime').textContent=
     new Date(S._lastModified||0).toLocaleString('en-GB');
