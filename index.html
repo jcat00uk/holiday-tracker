@@ -3490,6 +3490,13 @@ function initGoogleAuth(){
     scope:GDRIVE_SCOPE,
     callback:(resp)=>{
       if(resp.error){
+        // A pending sync means this was a background silent refresh (prompt:'none') —
+        // if it failed (e.g. third-party storage blocked), fall back to an interactive popup
+        // instead of silently giving up with no feedback.
+        if(_pendingSyncAfterAuth && resp.error==='immediate_failed' && _tokenClient){
+          _tokenClient.requestAccessToken({prompt:''});
+          return;
+        }
         // UX-only errors (user closed popup etc.) — don't show error state
         const silent=['access_denied','popup_closed_by_user','immediate_failed'];
         if(silent.includes(resp.error)){Sync.setStatus('unsigned');return;}
