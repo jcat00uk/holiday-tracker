@@ -7,14 +7,32 @@ export const bottlelox = [
     },
     {
         "SubCat": "Brandy",
-        "SKU": "8234500",
-        "Desc": "TTD DISCOVRY XO FINE CHAMPAGNE COGNC50CL",
+        "SKU": "8261637",
+        "Desc": "Hine Rare Cognac 70cl",
         "Tag": "Neck Tag"
     },
     {
         "SubCat": "Brandy",
         "SKU": "8128562",
         "Desc": "St-Rémy Signature French Brandy 700ML",
+        "Tag": "Soft Tag"
+    },
+    {
+        "SubCat": "Brandy",
+        "SKU": "8234500",
+        "Desc": "TTD DISCOVRY XO FINE CHAMPAGNE COGNC50CL",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Cocktails & Liqueurs",
+        "SKU": "8271361",
+        "Desc": "Patron XO Cafe 70cl",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Cocktails and Liqueurs",
+        "SKU": "8241298",
+        "Desc": "1800 BLANCO TEQUILA 70CL",
         "Tag": "Soft Tag"
     },
     {
@@ -49,12 +67,6 @@ export const bottlelox = [
     },
     {
         "SubCat": "Cocktails and Liqueurs",
-        "SKU": "8241298",
-        "Desc": "1800 BLANCO TEQUILA 70CL",
-        "Tag": "Soft Tag"
-    },
-    {
-        "SubCat": "Cocktails and Liqueurs",
         "SKU": "7593867",
         "Desc": "Sierra Blanco Tequila 50cl",
         "Tag": "Soft Tag"
@@ -67,122 +79,14 @@ export const bottlelox = [
     },
     {
         "SubCat": "Gin",
-        "SKU": "8259632",
-        "Desc": "Quarter Proof London Dry Spiri",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Gin",
-        "SKU": "8112805",
-        "Desc": "Caorunn Blood Orange 70cl",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Gin",
-        "SKU": "8129151",
-        "Desc": "Gin Mare 70cl",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Gin",
-        "SKU": "8129639",
-        "Desc": "UKIYO Blossom Gin, 700ml",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Gin",
-        "SKU": "8237059",
-        "Desc": "UKIYO TOKYO DRY GIN 70CL",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Gin",
-        "SKU": "8261721",
-        "Desc": "Mirabeau Gin 70cl  NEW",
-        "Tag": "Soft Tag"
-    },
-    {
-        "SubCat": "Gin",
-        "SKU": "8247622",
-        "Desc": "Hepple Gin 70cl  NEW",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Gin",
-        "SKU": "8048727",
-        "Desc": "Jawbox Gin & Ginger Ale 5% 250ml  NEW",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Gin",
-        "SKU": "8048724",
-        "Desc": "Jawbox Pineapple & Ginger Ale Gin 250ml  NEW",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Gin",
-        "SKU": "7918216",
-        "Desc": "Jawbox Pineapple&Ginger Gin Lqr 70cl 20%  NEW",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Gin",
-        "SKU": "7918212",
-        "Desc": "Jawbox Rhubarb & Ginger Gin Lqr 70cl 20%  NEW",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Gin",
-        "SKU": "7824042",
-        "Desc": "Jawbox Small Batch Gin 70cl  NEW",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Gin",
-        "SKU": "8162368",
-        "Desc": "Engine Gin 70cl",
-        "Tag": "Soft Tag"
-    },
-    {
-        "SubCat": "Gin",
-        "SKU": "8185467",
-        "Desc": "Mermaid Pink Gin 70cl",
-        "Tag": "Soft Tag"
-    },
-    {
-        "SubCat": "Gin",
-        "SKU": "8202378",
-        "Desc": "Mermaid Zest Gin 70cl",
-        "Tag": "Soft Tag"
-    },
-    {
-        "SubCat": "Gin",
-        "SKU": "8243572",
-        "Desc": "TREVETHAN LONDON DRY GIN 70CL",
-        "Tag": "Soft Tag"
-    },
-    {
-        "SubCat": "Gin",
-        "SKU": "8162484",
-        "Desc": "TTD Blackcurrant & Rasp Gin Liqueur 50cl",
-        "Tag": "Soft Tag"
-    },
-    {
-        "SubCat": "Gin",
-        "SKU": "8162482",
-        "Desc": "TTD Mandarin Gin Liqueur 50cl",
-        "Tag": "Soft Tag"
-    },
-    {
-        "SubCat": "Gin",
-        "SKU": "8176128",
-        "Desc": "No.3 Gin 70cl",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Gin",
         "SKU": "8084826",
         "Desc": "Aber Falls Welsh Dry Gin 70cl",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Gin",
+        "SKU": "8271262",
+        "Desc": "Aber Orange Marmalade Gin 70cl",
         "Tag": "Neck Tag"
     },
     {
@@ -211,6 +115,12 @@ export const bottlelox = [
     },
     {
         "SubCat": "Gin",
+        "SKU": "8112805",
+        "Desc": "Caorunn Blood Orange 70cl",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Gin",
         "SKU": "7231113",
         "Desc": "Caorunn Gin 70cl",
         "Tag": "Neck Tag"
@@ -224,7 +134,19 @@ export const bottlelox = [
     {
         "SubCat": "Gin",
         "SKU": "8090204",
-        "Desc": "Eden Mill Golden Lore Gin 70cl  NEW",
+        "Desc": "Eden Mill Golden Lore Gin 70cl",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Gin",
+        "SKU": "8162368",
+        "Desc": "Engine Gin 70cl",
+        "Tag": "Soft Tag"
+    },
+    {
+        "SubCat": "Gin",
+        "SKU": "8129151",
+        "Desc": "Gin Mare 70cl",
         "Tag": "Neck Tag"
     },
     {
@@ -235,8 +157,44 @@ export const bottlelox = [
     },
     {
         "SubCat": "Gin",
+        "SKU": "8247622",
+        "Desc": "Hepple Gin 70cl",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Gin",
         "SKU": "8191044",
         "Desc": "Hills & Harbour Gin 70cl",
+        "Tag": "Soft Tag"
+    },
+    {
+        "SubCat": "Gin",
+        "SKU": "8048727",
+        "Desc": "Jawbox Gin & Ginger Ale 5% 250ml",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Gin",
+        "SKU": "8048724",
+        "Desc": "Jawbox Pineapple & Ginger Ale Gin 250ml",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Gin",
+        "SKU": "7918216",
+        "Desc": "Jawbox Pineapple&Ginger Gin Lqr 70cl 20%",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Gin",
+        "SKU": "7918212",
+        "Desc": "Jawbox Rhubarb & Ginger Gin Lqr 70cl 20%",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Gin",
+        "SKU": "7824042",
+        "Desc": "Jawbox Small Batch Gin 70cl",
         "Tag": "Neck Tag"
     },
     {
@@ -277,8 +235,32 @@ export const bottlelox = [
     },
     {
         "SubCat": "Gin",
+        "SKU": "8185467",
+        "Desc": "Mermaid Pink Gin 70cl",
+        "Tag": "Soft Tag"
+    },
+    {
+        "SubCat": "Gin",
+        "SKU": "8202378",
+        "Desc": "Mermaid Zest Gin 70cl",
+        "Tag": "Soft Tag"
+    },
+    {
+        "SubCat": "Gin",
+        "SKU": "8261721",
+        "Desc": "Mirabeau Gin 70cl",
+        "Tag": "Soft Tag"
+    },
+    {
+        "SubCat": "Gin",
         "SKU": "8226634",
         "Desc": "Mr. White's London Dry Gin 70cl",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Gin",
+        "SKU": "8176128",
+        "Desc": "No.3 Gin 70cl",
         "Tag": "Neck Tag"
     },
     {
@@ -297,6 +279,12 @@ export const bottlelox = [
         "SubCat": "Gin",
         "SKU": "7618137",
         "Desc": "Plymouth Gin 70cl",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Gin",
+        "SKU": "8259632",
+        "Desc": "Quarter Proof London Dry Spiri",
         "Tag": "Neck Tag"
     },
     {
@@ -324,6 +312,66 @@ export const bottlelox = [
         "Tag": "Neck Tag"
     },
     {
+        "SubCat": "Gin",
+        "SKU": "8186228",
+        "Desc": "Tarquins Dry Gin 70cl",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Gin",
+        "SKU": "8243572",
+        "Desc": "TREVETHAN LONDON DRY GIN 70CL",
+        "Tag": "Soft Tag"
+    },
+    {
+        "SubCat": "Gin",
+        "SKU": "8162484",
+        "Desc": "TTD Blackcurrant & Rasp Gin Liqueur 50cl",
+        "Tag": "Soft Tag"
+    },
+    {
+        "SubCat": "Gin",
+        "SKU": "8162482",
+        "Desc": "TTD Mandarin Gin Liqueur 50cl",
+        "Tag": "Soft Tag"
+    },
+    {
+        "SubCat": "Gin",
+        "SKU": "8129639",
+        "Desc": "UKIYO Blossom Gin, 700ml",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Gin",
+        "SKU": "8237059",
+        "Desc": "UKIYO TOKYO DRY GIN 70CL  NEW",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Gin",
+        "SKU": "8273701",
+        "Desc": "Renais Gin 70cl  NEW",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Gin",
+        "SKU": "8276891",
+        "Desc": "Oyster Adriatic Gin 70cl  NEW",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Gin",
+        "SKU": "8274682",
+        "Desc": "UKIYO Japanese Yuzu Citrus Gin 70cl  NEW",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Rum",
+        "SKU": "8200240",
+        "Desc": "BUMBU ORIGINAL 40% 70CLX6",
+        "Tag": "Keeper and Neck Tag"
+    },
+    {
         "SubCat": "Rum",
         "SKU": "8243993",
         "Desc": "CANEROCK BARBADOS SPICED RUM 70CL",
@@ -333,6 +381,12 @@ export const bottlelox = [
         "SubCat": "Rum",
         "SKU": "7791716",
         "Desc": "Dark Matter Spiced Rum 40% abv 70cl",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Rum",
+        "SKU": "8198251",
+        "Desc": "Diplomatico Reserva Exclusiva 70cl",
         "Tag": "Neck Tag"
     },
     {
@@ -349,92 +403,32 @@ export const bottlelox = [
     },
     {
         "SubCat": "Rum",
+        "SKU": "7907200",
+        "Desc": "Kirk&Sweeney Reserva Dominican Rep 70cl",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Rum",
+        "SKU": "8261854",
+        "Desc": "Planteray XO Rum 70cl",
+        "Tag": "Soft Tag"
+    },
+    {
+        "SubCat": "Rum",
         "SKU": "8166500",
         "Desc": "Twin Fin Spiced Rum 700ml",
         "Tag": "Neck Tag"
     },
     {
         "SubCat": "Rum",
-        "SKU": "8261854",
-        "Desc": "Planteray XO Rum 70cl  NEW",
-        "Tag": "Soft Tag"
-    },
-    {
-        "SubCat": "Rum",
-        "SKU": "8198251",
-        "Desc": "Diplomatico Reserva Exclusiva 70cl",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Rum",
-        "SKU": "7907200",
-        "Desc": "Kirk&Sweeney Reserva Dominican Rep 70cl",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Vodka",
-        "SKU": "8261054",
-        "Desc": "Dutch Barn Vodka Black Cherry  NEW",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Vodka",
-        "SKU": "8163256",
-        "Desc": "Nemiroff Cranberry Vodka 70cl",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Vodka",
-        "SKU": "8163244",
-        "Desc": "Nemiroff De Luxe Vodka 1L",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Vodka",
-        "SKU": "8130124",
-        "Desc": "Nemiroff De Luxe Vodka 70cl",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Vodka",
-        "SKU": "8223280",
-        "Desc": "Zubrowka Biala Original Vodka 70cl",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Vodka",
-        "SKU": "8223928",
-        "Desc": "Zubrowka Biala Vodka 100cl",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Vodka",
-        "SKU": "6385823",
-        "Desc": "Zubrowka Bison Grass Polish Vodka 70cl",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Vodka",
-        "SKU": "8223278",
-        "Desc": "Zubrowka Vanilla Vodka 70cl",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Vodka",
-        "SKU": "8171483",
-        "Desc": "Thunder Toffee Vodka 70cl",
-        "Tag": "Soft Tag"
+        "SKU": "3247334",
+        "Desc": "Wray & Nephew White Overproof Rum 70cl",
+        "Tag": "Keeper and Soft Tag"
     },
     {
         "SubCat": "Vodka",
         "SKU": "8162507",
         "Desc": "Abstrakt Mrshmllow & Vanilla Vodka 70cl",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Vodka",
-        "SKU": "8085837",
-        "Desc": "Zubrowka Rosé 70cl",
         "Tag": "Neck Tag"
     },
     {
@@ -457,27 +451,69 @@ export const bottlelox = [
     },
     {
         "SubCat": "Vodka",
+        "SKU": "8261054",
+        "Desc": "Dutch Barn Vodka Black Cherry",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Vodka",
+        "SKU": "8163256",
+        "Desc": "Nemiroff Cranberry Vodka 70cl",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Vodka",
+        "SKU": "8163244",
+        "Desc": "Nemiroff De Luxe Vodka 1L",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Vodka",
+        "SKU": "8130124",
+        "Desc": "Nemiroff De Luxe Vodka 70cl",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Vodka",
         "SKU": "8168299",
         "Desc": "Rock Rose Holy Grass Vodka 70cl 41.5 abv",
         "Tag": "Neck Tag"
     },
     {
-        "SubCat": "Whisky",
-        "SKU": "8261751",
-        "Desc": "Arran 10YO Single Malt Whisky 70cl  NEW",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Whisky",
-        "SKU": "8262463",
-        "Desc": "Aberfeldy 12YO Single Malt Whisky 70cl  NEW",
-        "Tag": "Neck Tag"
-    },
-    {
-        "SubCat": "Whisky",
-        "SKU": "8238260",
-        "Desc": "Bladnoch Vinaya Single Malt Whisky 70cl  NEW",
+        "SubCat": "Vodka",
+        "SKU": "8171483",
+        "Desc": "Thunder Toffee Vodka 70cl",
         "Tag": "Soft Tag"
+    },
+    {
+        "SubCat": "Vodka",
+        "SKU": "8223280",
+        "Desc": "Zubrowka Biala Original Vodka 70cl",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Vodka",
+        "SKU": "8223928",
+        "Desc": "Zubrowka Biala Vodka 100cl",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Vodka",
+        "SKU": "6385823",
+        "Desc": "Zubrowka Bison Grass Polish Vodka 70cl",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Vodka",
+        "SKU": "8085837",
+        "Desc": "Zubrowka Rosé 70cl",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Vodka",
+        "SKU": "8223278",
+        "Desc": "Zubrowka Vanilla Vodka 70cl",
+        "Tag": "Neck Tag"
     },
     {
         "SubCat": "Whisky",
@@ -487,14 +523,14 @@ export const bottlelox = [
     },
     {
         "SubCat": "Whisky",
-        "SKU": "7581490",
-        "Desc": "Ballantine's Finest Blended Whisky 70cl",
+        "SKU": "8271329",
+        "Desc": "Aber Single Malt Madeira Cask 70cl",
         "Tag": "Neck Tag"
     },
     {
         "SubCat": "Whisky",
-        "SKU": "6337771",
-        "Desc": "Monkey Shoulder Malt Whisky 70cl",
+        "SKU": "8262463",
+        "Desc": "Aberfeldy 12YO Single Malt Whisky 70cl",
         "Tag": "Neck Tag"
     },
     {
@@ -517,15 +553,15 @@ export const bottlelox = [
     },
     {
         "SubCat": "Whisky",
-        "SKU": "8238997",
-        "Desc": "BALVENIE DOUBLEWOOD 12 20CL",
-        "Tag": "Soft Tag"
+        "SKU": "8261751",
+        "Desc": "Arran 10YO Single Malt Whisky 70cl",
+        "Tag": "Neck Tag"
     },
     {
         "SubCat": "Whisky",
-        "SKU": "7907313",
-        "Desc": "Balvenie Doublewood 12Yo 20cl  NEW",
-        "Tag": "Soft Tag"
+        "SKU": "7581490",
+        "Desc": "Ballantine's Finest Blended Whisky 70cl",
+        "Tag": "Neck Tag"
     },
     {
         "SubCat": "Whisky",
@@ -535,9 +571,39 @@ export const bottlelox = [
     },
     {
         "SubCat": "Whisky",
+        "SKU": "8238997",
+        "Desc": "BALVENIE DOUBLEWOOD 12 20CL",
+        "Tag": "Soft Tag"
+    },
+    {
+        "SubCat": "Whisky",
+        "SKU": "7907313",
+        "Desc": "Balvenie Doublewood 12Yo 20cl",
+        "Tag": "Soft Tag"
+    },
+    {
+        "SubCat": "Whisky",
+        "SKU": "8271347",
+        "Desc": "Bankhall British Blended Whisky",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Whisky",
         "SKU": "8196325",
         "Desc": "Bankhall Single Malt 70CL",
         "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Whisky",
+        "SKU": "2396712",
+        "Desc": "Black Bush Irish Whiskey 70cl",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Whisky",
+        "SKU": "8238260",
+        "Desc": "Bladnoch Vinaya Single Malt Whisky 70cl",
+        "Tag": "Soft Tag"
     },
     {
         "SubCat": "Whisky",
@@ -571,6 +637,12 @@ export const bottlelox = [
     },
     {
         "SubCat": "Whisky",
+        "SKU": "7633294",
+        "Desc": "Gentleman Jack 70cl",
+        "Tag": "Keeper and Neck Tag"
+    },
+    {
+        "SubCat": "Whisky",
         "SKU": "8185751",
         "Desc": "Grants Triple Wood 12YO",
         "Tag": "Neck Tag"
@@ -589,6 +661,12 @@ export const bottlelox = [
     },
     {
         "SubCat": "Whisky",
+        "SKU": "6695735",
+        "Desc": "Jack Daniel's Single Barrel 70cl",
+        "Tag": "Keeper and Neck Tag"
+    },
+    {
+        "SubCat": "Whisky",
         "SKU": "8088930",
         "Desc": "Jameson Orange 70cl",
         "Tag": "Neck Tag"
@@ -597,6 +675,30 @@ export const bottlelox = [
         "SubCat": "Whisky",
         "SKU": "6667805",
         "Desc": "Maker's Mark Bourbon 70 cl",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Whisky",
+        "SKU": "6337771",
+        "Desc": "Monkey Shoulder Malt Whisky 70cl",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Whisky",
+        "SKU": "8262238",
+        "Desc": "Port Charlotte 10YO Single Malt 70cl",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Whisky",
+        "SKU": "8261666",
+        "Desc": "Scapa 10YO Single Malt Whisky 70cl",
+        "Tag": "Neck Tag"
+    },
+    {
+        "SubCat": "Whisky",
+        "SKU": "8200238",
+        "Desc": "THE DEACON 40% 70cl",
         "Tag": "Neck Tag"
     }
 ];
@@ -723,6 +825,18 @@ export const safer = [
     },
     {
         "Type": "Spirits",
+        "SKU": "8271268",
+        "Desc": "Au Vodka Miami Mango 70cl  New Line",
+        "Keeper": "Small"
+    },
+    {
+        "Type": "Spirits",
+        "SKU": "8272103",
+        "Desc": "Absolut Vanilla Vodka 1L  New Line",
+        "Keeper": "Small"
+    },
+    {
+        "Type": "Spirits",
         "SKU": "7746700",
         "Desc": "Jack Daniel's Tennessee Honey 1L  2",
         "Keeper": "Small"
@@ -814,37 +928,49 @@ export const safer = [
     {
         "Type": "Champagne",
         "SKU": "3556436",
-        "Desc": "Moët & Chandon Brut Impérial 150cl  4 NEW",
+        "Desc": "Moët & Chandon Brut Impérial 150cl  4",
         "Keeper": "XLarge"
     },
     {
         "Type": "Champagne",
         "SKU": "7602468",
-        "Desc": "Veuve Clicquot Yellow Label Magnum 150cl  4 NEW",
+        "Desc": "Veuve Clicquot Yellow Label Magnum 150cl  4",
         "Keeper": "XLarge"
     },
     {
         "Type": "Champagne",
         "SKU": "8196948",
-        "Desc": "Lanson Le Black Creation 150cl  4 NEW",
+        "Desc": "Lanson Le Black Creation 150cl  4",
         "Keeper": "XLarge"
     },
     {
         "Type": "Spirits",
         "SKU": "8200240",
-        "Desc": "BUMBU ORIGINAL 40% 70CLX6  4 NEW",
+        "Desc": "BUMBU ORIGINAL 40% 70CLX6  4",
         "Keeper": "Small"
     },
     {
         "Type": "Spirits",
         "SKU": "8261860",
-        "Desc": "Remy Martin 1738 Accord Royal 70cl  New Line NEW",
+        "Desc": "Remy Martin 1738 Accord Royal 70cl  New Line",
         "Keeper": "Small"
     },
     {
         "Type": "Spirits",
         "SKU": "8263177",
-        "Desc": "Grey Goose Citron 70cl  New Line NE",
+        "Desc": "Grey Goose Citron 70cl  New Line",
+        "Keeper": "Small"
+    },
+    {
+        "Type": "Spirits",
+        "SKU": "2373416",
+        "Desc": "Johnnie Walker Black Label 70cl  5 NEW",
+        "Keeper": "Small"
+    },
+    {
+        "Type": "Spirits",
+        "SKU": "6337771",
+        "Desc": "Monkey Shoulder Malt Whisky 70cl",
         "Keeper": "Small"
     }
 ];
